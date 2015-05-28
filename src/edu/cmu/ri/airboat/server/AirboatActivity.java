@@ -428,7 +428,7 @@ public class AirboatActivity extends Activity {
      * 
      * @return Text representation of current local IP address.
      */
-	public String getLocalIpAddress() {
+	public static String getLocalIpAddress() {
 		try {
 			for (Enumeration<NetworkInterface> en = NetworkInterface
 					.getNetworkInterfaces(); en.hasMoreElements();) {

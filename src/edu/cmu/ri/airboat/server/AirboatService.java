@@ -1,25 +1,5 @@
 package edu.cmu.ri.airboat.server;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.net.InetSocketAddress;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-
-import javax.measure.unit.NonSI;
-import javax.measure.unit.SI;
-
-import org.jscience.geography.coordinates.LatLong;
-import org.jscience.geography.coordinates.UTM;
-import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import robotutils.Pose3D;
-import robotutils.Quaternion;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -43,6 +23,7 @@ import android.net.wifi.WifiManager.WifiLock;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Debug;
+import android.os.Environment;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
 import android.os.PowerManager;
@@ -50,16 +31,44 @@ import android.os.PowerManager.WakeLock;
 import android.os.StrictMode;
 import android.util.Log;
 
+import com.gams.controllers.BaseController;
 import com.google.code.microlog4android.LoggerFactory;
 import com.google.code.microlog4android.appender.FileAppender;
 import com.google.code.microlog4android.config.PropertyConfigurator;
 import com.google.code.microlog4android.format.PatternFormatter;
+import com.madara.KnowledgeBase;
+import com.madara.transport.QoSTransportSettings;
+import com.madara.transport.TransportType;
+
+import org.jscience.geography.coordinates.LatLong;
+import org.jscience.geography.coordinates.UTM;
+import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.net.InetSocketAddress;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.StringTokenizer;
+
+import javax.measure.unit.NonSI;
+import javax.measure.unit.SI;
 
 import edu.cmu.ri.crw.CrwNetworkUtils;
 import edu.cmu.ri.crw.CrwSecurityManager;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
 import edu.cmu.ri.crw.udp.UdpVehicleService;
+import robotutils.Pose3D;
+import robotutils.Quaternion;
 
 /**
  * Android Service to register sensor and Amarino handlers for Android.s
@@ -102,7 +111,6 @@ public class AirboatService extends Service {
 	// Objects implementing actual functionality
 	private AirboatImpl _airboatImpl;
 	private UdpVehicleService _udpService;
-    private MadaraVehicleService _madaraService;
 
 	// Lock objects that prevent the phone from sleeping
 	private WakeLock _wakeLock = null;
@@ -113,6 +121,13 @@ public class AirboatService extends Service {
 
 	// global variable to reference rotation vector values
 	private float[] rotationMatrix = new float[9];
+
+    private KnowledgeBase _knowledge;
+    private BaseController _controller;
+    private AirboatPlatform _platform;
+    private AirboatAlgorithm _algorithm;
+    private int _id, _teamSize;
+    private String _ipAddress;
 
 	/**
 	 * Handles GPS updates by calling the appropriate update.
@@ -289,7 +304,7 @@ public class AirboatService extends Service {
 		}
 
 		// Ensure that we do not reinitialize if not necessary
-		if (_airboatImpl != null) {
+		if (_airboatImpl != null || _udpService != null) {
 			Log.w(TAG, "Attempted to start while running.");
 			return Service.START_STICKY;
 		}
@@ -398,22 +413,6 @@ public class AirboatService extends Service {
 			}
 		}).start();
 
-        // Start up the MADARA service in the background.
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    // Create a MadaraVehicleService to expose the data object
-                    _madaraService = new MadaraVehicleService(_airboatImpl);
-                } catch (Exception e) {
-                    Log.e(TAG, "MadaraVehicleService failed to launch", e);
-                    sendNotification("MadaraVehicleService failed: "
-                            + e.getMessage());
-                    stopSelf();
-                }
-            }
-        }).start();
-
 		// Start up UDP vehicle service in the background
 		new Thread(new Runnable() {
 			@Override
@@ -440,6 +439,7 @@ public class AirboatService extends Service {
 					sendNotification("UdpVehicleService failed: "
 							+ e.getMessage());
 					stopSelf();
+					return;
 				}
 			}
 		}).start();
@@ -470,6 +470,30 @@ public class AirboatService extends Service {
 				} while (_airboatImpl == null);
 			}
 		}).start();
+
+        // Create MADARA objects
+        readMadaraConfig();
+        QoSTransportSettings settings = new QoSTransportSettings();
+        settings.setHosts(new String[]{"239.255.0.1:4150"});
+        settings.setType(TransportType.MULTICAST_TRANSPORT);
+        String ipAddress = AirboatActivity.getLocalIpAddress();
+        _knowledge = new KnowledgeBase(ipAddress, settings);
+
+        _controller = new BaseController(_knowledge);
+        _ipAddress = AirboatActivity.getLocalIpAddress();
+        _platform = new AirboatPlatform(_airboatImpl, _ipAddress, _id);
+        _algorithm = new AirboatAlgorithm(_airboatImpl, _ipAddress);
+        _controller.initVars(_id, _teamSize);
+        _controller.initPlatform(_platform);
+        _controller.initAlgorithm(_algorithm);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                logger.info("Running controller every 1s for 1000s...");
+                _controller.run(1.0, 1000.0);
+            }
+        }).start();
 
 		// This is now a foreground service
 		{
@@ -514,6 +538,41 @@ public class AirboatService extends Service {
 		Log.i(TAG, "AirboatService started.");
 		return Service.START_STICKY;
 	}
+
+    /**
+     * Read in device id and team size from text file madara.config
+     * http://stackoverflow.com/questions/12421814/how-can-i-read-a-text-file-in-android
+     */
+    private void readMadaraConfig() {
+        //Find the directory for the SD Card using the API
+        File sdcard = Environment.getExternalStorageDirectory();
+
+        //Get the text file
+        File file = new File(sdcard,"madara.config");
+
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                StringTokenizer st = new StringTokenizer(line);
+                while(st.hasMoreTokens()) {
+                    String token  = st.nextToken();
+                    if(token.equals(".id") && st.hasMoreTokens()) {
+                        token = st.nextToken();
+                        _id = Integer.valueOf(token);
+                    } else if(token.equals(".processes") && st.hasMoreTokens()) {
+                        token = st.nextToken();
+                        _teamSize = Integer.valueOf(token);
+                    }
+                }
+            }
+            br.close();
+        }
+        catch (IOException e) {
+            logger.error(e.getMessage());
+        }
+    }
 
 	/**
 	 * Called when there are no longer any consumers of the service and
@@ -580,6 +639,12 @@ public class AirboatService extends Service {
 				Log.e(TAG, "Data log shutdown error", e);
 			}
 		}
+
+        // Destroy MADARA objects
+        _knowledge.free();
+        _controller.free();
+        _algorithm.shutdown();
+        _platform.shutdown();
 
 		// Disable this as a foreground service
 		stopForeground(true);

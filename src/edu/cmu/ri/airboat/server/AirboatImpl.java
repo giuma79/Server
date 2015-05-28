@@ -8,9 +8,6 @@ import android.util.Log;
 
 import com.google.code.microlog4android.LoggerFactory;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -29,6 +26,9 @@ import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
 import robotutils.Pose3D;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 /**
  * Contains the actual implementation of vehicle functionality, accessible as a
