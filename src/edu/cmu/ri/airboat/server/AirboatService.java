@@ -31,14 +31,10 @@ import android.os.PowerManager.WakeLock;
 import android.os.StrictMode;
 import android.util.Log;
 
-import com.gams.controllers.BaseController;
 import com.google.code.microlog4android.LoggerFactory;
 import com.google.code.microlog4android.appender.FileAppender;
 import com.google.code.microlog4android.config.PropertyConfigurator;
 import com.google.code.microlog4android.format.PatternFormatter;
-import com.madara.KnowledgeBase;
-import com.madara.transport.QoSTransportSettings;
-import com.madara.transport.TransportType;
 
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
@@ -109,7 +105,8 @@ public class AirboatService extends Service {
 	private InetSocketAddress _udpRegistryAddr;
 
 	// Objects implementing actual functionality
-	private AirboatImpl _airboatImpl;
+	//private AirboatImpl _airboatImpl;
+	private LutraGAMS lutra;
 	private UdpVehicleService _udpService;
 
 	// Lock objects that prevent the phone from sleeping
@@ -122,12 +119,13 @@ public class AirboatService extends Service {
 	// global variable to reference rotation vector values
 	private float[] rotationMatrix = new float[9];
 
-    private KnowledgeBase _knowledge;
-    private BaseController _controller;
-    private AirboatPlatform _platform;
-    private AirboatAlgorithm _algorithm;
     private int _id, _teamSize;
     private String _ipAddress;
+
+	AirboatImpl _airboatImpl;
+	public AirboatImpl getServer() {
+		return this._airboatImpl;
+	}
 
 	/**
 	 * Handles GPS updates by calling the appropriate update.
@@ -161,13 +159,9 @@ public class AirboatService extends Service {
 					utmLoc.latitudeZone() > 'O');
 			UtmPose utm = new UtmPose(pose, origin);
 
-			// Apply update using filter object
-			if (_airboatImpl != null) {
-				_airboatImpl.filter.gpsUpdate(utm, location.getTime());
-				logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
-						+ utmLoc.latitudeZone() + ", " + location.getAltitude()
-						+ ", " + location.getBearing());
-			}
+			logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
+					+ utmLoc.latitudeZone() + ", " + location.getAltitude()
+					+ ", " + location.getBearing());
 		}
 	};
 	private final SensorEventListener rotationVectorListener = new SensorEventListener() {
@@ -179,11 +173,11 @@ public class AirboatService extends Service {
 						event.values);
 				double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
 
-				if (_airboatImpl != null) {
-					_airboatImpl.filter.compassUpdate(yaw,
-							System.currentTimeMillis());
-					logger.info("COMPASS: " + yaw);
-				}
+				//if (_airboatImpl != null) {
+				//	_airboatImpl.filter.compassUpdate(yaw,
+				//			System.currentTimeMillis());
+				//	logger.info("COMPASS: " + yaw);
+				//}
 			}
 		}
 
@@ -217,8 +211,8 @@ public class AirboatService extends Service {
 					+ rotationMatrix[7] * event.values[1] + rotationMatrix[8]
 					* event.values[2];
 
-			if (_airboatImpl != null)
-				_airboatImpl.setPhoneGyro(gyroValues);
+			//if (_airboatImpl != null)
+			//	_airboatImpl.setPhoneGyro(gyroValues);
 		}
 		@Override
 		public void onAccuracyChanged(Sensor sensor, int accuracy) {
@@ -256,17 +250,7 @@ public class AirboatService extends Service {
 		// Get USB Manager to handle USB accessories.
 		mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
 
-		// TODO: optimize this to allocate resources up here and handle multiple
-		// start commands
-	}
-
-	/**
-	 * Access method to get underlying implementation of server functionality.
-	 * 
-	 * @return An interface allowing high-level control of the boat.
-	 */
-	public AirboatImpl getServer() {
-		return _airboatImpl;
+		// TODO: optimize this to allocate resources up here and handle multiple start commands
 	}
 
 	/**
@@ -304,10 +288,10 @@ public class AirboatService extends Service {
 		}
 
 		// Ensure that we do not reinitialize if not necessary
-		if (_airboatImpl != null || _udpService != null) {
-			Log.w(TAG, "Attempted to start while running.");
-			return Service.START_STICKY;
-		}
+		//if (_airboatImpl != null || _udpService != null) {
+		//	Log.w(TAG, "Attempted to start while running.");
+		//	return Service.START_STICKY;
+		//}
 
 		// start tracing to "/sdcard/trace_crw.trace"
 		// Debug.startMethodTracing("trace_crw");
@@ -378,7 +362,17 @@ public class AirboatService extends Service {
 		final FileInputStream usbReader = new FileInputStream(mUsbDescriptor.getFileDescriptor());
 
 		// Create the data object
-		_airboatImpl = new AirboatImpl(this, usbWriter);
+		//_airboatImpl = new AirboatImpl(this, usbWriter);
+
+
+
+		// Create the GAMS loop object ///////////////////////////////////////////////////////////////////////////////
+		readMadaraConfig();
+		lutra = new LutraGAMS(_id,_teamSize,_ipAddress);
+
+
+
+
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -392,7 +386,6 @@ public class AirboatService extends Service {
 						String line = new String(buffer, 0, len);
 						
 						try {
-							// TODO: proper threading here
 							if (_airboatImpl == null) {
 								return;
 							} else {
@@ -413,6 +406,7 @@ public class AirboatService extends Service {
 			}
 		}).start();
 
+		/*
 		// Start up UDP vehicle service in the background
 		new Thread(new Runnable() {
 			@Override
@@ -443,7 +437,9 @@ public class AirboatService extends Service {
 				}
 			}
 		}).start();
+		*/
 
+		/*
 		// Log the velocity gains before starting the service
 		new Thread(new Runnable() {
 			@Override
@@ -470,23 +466,11 @@ public class AirboatService extends Service {
 				} while (_airboatImpl == null);
 			}
 		}).start();
+		*/
 
-        // Create MADARA objects
-        readMadaraConfig();
-        QoSTransportSettings settings = new QoSTransportSettings();
-        settings.setHosts(new String[]{"239.255.0.1:4150"});
-        settings.setType(TransportType.MULTICAST_TRANSPORT);
-        String ipAddress = AirboatActivity.getLocalIpAddress();
-        _knowledge = new KnowledgeBase(ipAddress, settings);
 
-        _controller = new BaseController(_knowledge);
-        _ipAddress = AirboatActivity.getLocalIpAddress();
-        _platform = new AirboatPlatform(_airboatImpl, _ipAddress, _id);
-        _algorithm = new AirboatAlgorithm(_airboatImpl, _ipAddress);
-        _controller.initVars(_id, _teamSize);
-        _controller.initPlatform(_platform);
-        _controller.initAlgorithm(_algorithm);
 
+		/*
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -494,6 +478,7 @@ public class AirboatService extends Service {
                 _controller.run(1.0, 1000.0);
             }
         }).start();
+        */
 
 		// This is now a foreground service
 		{
@@ -640,11 +625,15 @@ public class AirboatService extends Service {
 			}
 		}
 
+		/*
         // Destroy MADARA objects
         _knowledge.free();
         _controller.free();
         _algorithm.shutdown();
         _platform.shutdown();
+        */
+		lutra.knowledge.free();
+		lutra.controller.free();
 
 		// Disable this as a foreground service
 		stopForeground(true);
@@ -705,4 +694,5 @@ public class AirboatService extends Service {
 			}
 		}
 	};
+
 }

@@ -293,7 +293,7 @@ public class AirboatFailsafeService extends Service {
 			
 			// If there is no vehicle server, then there's nothing to do here
 			if (_airboatService == null) return;
-			VehicleServer server = _airboatService.getServer();
+			//VehicleServer server = _airboatService.getServer();
 			
 			// Test for connectivity to the specified server
 			try {
@@ -312,8 +312,8 @@ public class AirboatFailsafeService extends Service {
 				_numFailures = 0;
 				synchronized(_homeLock) {
 					Log.i(LOG_TAG, "Failsafe triggered: " + _homePosition);
-					server.setAutonomous(true);
-					server.startWaypoints(new UtmPose[]{_homePosition}, "POINT_AND_SHOOT");
+					//server.setAutonomous(true);
+					//server.startWaypoints(new UtmPose[]{_homePosition}, "POINT_AND_SHOOT");
 				}
 			}
 			

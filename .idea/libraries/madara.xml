@@ -4,8 +4,6 @@
       <root url="jar://$PROJECT_DIR$/libs/madara.jar!/" />
     </CLASSES>
     <JAVADOC />
-    <SOURCES>
-      <root url="jar://$PROJECT_DIR$/libs/madara.jar!/" />
-    </SOURCES>
+    <SOURCES />
   </library>
 </component>

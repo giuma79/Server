@@ -4,8 +4,6 @@
       <root url="jar://$PROJECT_DIR$/libs/gams.jar!/" />
     </CLASSES>
     <JAVADOC />
-    <SOURCES>
-      <root url="jar://$PROJECT_DIR$/libs/gams.jar!/" />
-    </SOURCES>
+    <SOURCES />
   </library>
 </component>
