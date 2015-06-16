@@ -12,13 +12,13 @@ dependencies {
     compile files('libs/crwlib_core.jar')
     compile files('libs/jscience-4.3.jar')
     compile files('libs/microlog4android-1.0.0.jar')
-    compile files('libs/gams.jar')
     compile files('libs/madara.jar')
+    compile files('libs/gams.jar')
 }
 
 android {
     compileSdkVersion 20
-    buildToolsVersion '20.0.0'
+    buildToolsVersion '22.0.1'
 
     sourceSets {
         main {
@@ -30,6 +30,9 @@ android {
             res.srcDirs = ['res']
             assets.srcDirs = ['assets']
         }
+
+        //main.jniLibs.srcDirs = ['libs']
+        //main.jniLibs.srcDirs = ['libs']
 
         // Move the tests to tests/java, tests/res, etc...
         instrumentTest.setRoot('tests')

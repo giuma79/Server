@@ -36,6 +36,8 @@ import com.google.code.microlog4android.appender.FileAppender;
 import com.google.code.microlog4android.config.PropertyConfigurator;
 import com.google.code.microlog4android.format.PatternFormatter;
 
+import org.apache.commons.math.linear.MatrixUtils;
+import org.apache.commons.math.linear.RealMatrix;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
@@ -75,6 +77,10 @@ import robotutils.Quaternion;
  * 
  */
 public class AirboatService extends Service {
+    /////////////////////////////////////////
+    DatumListener datumListener;
+    /////////////////////////////////////////
+
 	private static final int SERVICE_ID = 11312;
 	private static final String TAG = AirboatService.class.getName();
 	private static final com.google.code.microlog4android.Logger logger = LoggerFactory
@@ -159,9 +165,21 @@ public class AirboatService extends Service {
 					utmLoc.latitudeZone() > 'O');
 			UtmPose utm = new UtmPose(pose, origin);
 
+			/////////////////////////////////////////////////////////////////////
+            RealMatrix z = MatrixUtils.createRealMatrix(2,1);
+            z.setEntry(0,0,utm.pose.getX());
+            z.setEntry(1,0,utm.pose.getY());
+            RealMatrix R = MatrixUtils.createRealMatrix(2,2);
+            R.setEntry(0,0,5.0);
+            R.setEntry(0,0,5.0);
+            Datum datum = new Datum(SENSOR_TYPES.GPS,java.lang.System.currentTimeMillis(),z,R);
+            //lutra.platform.boatEKF.newDatum(datum);
+            datumListener.newDatum(datum);
+			/////////////////////////////////////////////////////////////////////
+
 			logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
-					+ utmLoc.latitudeZone() + ", " + location.getAltitude()
-					+ ", " + location.getBearing());
+                    + utmLoc.latitudeZone() + ", " + location.getAltitude()
+                    + ", " + location.getBearing());
 		}
 	};
 	private final SensorEventListener rotationVectorListener = new SensorEventListener() {
@@ -369,7 +387,7 @@ public class AirboatService extends Service {
 		// Create the GAMS loop object ///////////////////////////////////////////////////////////////////////////////
 		readMadaraConfig();
 		lutra = new LutraGAMS(_id,_teamSize,_ipAddress);
-
+        DatumListener datumListener = lutra.platform.boatEKF;
 
 
 

@@ -7,6 +7,8 @@ import com.gams.utility.Position;
 import com.gams.utility.Axes;
 import com.madara.EvalSettings;
 import com.madara.KnowledgeBase;
+import com.madara.threads.BaseThread;
+import com.madara.threads.Threader;
 
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
@@ -35,24 +37,26 @@ import robotutils.Quaternion;
  */
 public class LutraPlatform extends BasePlatform {
 
-    public static final boolean PRINT_DEVICE_KB = true;
-    public static final long PRINT_DEVICE_KB_ID = 1;
-    public static final int PRINT_LEADER_KB_RATE = 0; // msec
+    KnowledgeBase knowledge;
+    BoatEKF boatEKF;
+    BoatMotionController boatMotionController;
+    Threader threader;
+    class FilterAndControllerThread extends BaseThread {
+        @Override
+        public void run() {
+            boatEKF.predict();
+            boatMotionController.control();
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    String ipAddress;
 
     // Delay for sending modified fields
     EvalSettings evalSettings;
 
-    // IP address including port number
-    protected String _ipAddress;
-    // Device id
-    protected final int id;
-
-    long lastTime = 0, curTime;
-
-    public LutraPlatform(int id, String ipAddress) {
-        this._ipAddress = ipAddress;
-        this.id = id;
-
+    public LutraPlatform(KnowledgeBase knowledge) {
+        this.knowledge = knowledge;
         evalSettings = new EvalSettings();
         evalSettings.setDelaySendingModifieds(true);
     }
@@ -60,7 +64,7 @@ public class LutraPlatform extends BasePlatform {
     @Override
     public void init(BaseController controller) {
         super.init(controller);
-        self.id.set(id);
+        threader.run(100.0, "FilterAndController", new FilterAndControllerThread());
     }
 
     /**
@@ -70,18 +74,6 @@ public class LutraPlatform extends BasePlatform {
      *
      */
     public int analyze() {
-        if (PRINT_DEVICE_KB) {
-            if (self.id.toLong() == PRINT_DEVICE_KB_ID) {
-                curTime = System.currentTimeMillis();
-                if (curTime - lastTime >= PRINT_LEADER_KB_RATE) {
-                    lastTime = curTime;
-//            LOGGER.info("Print KB START for " + self.id);
-                    knowledge.print();
-//            LOGGER.info("Printing KB DONE for " + self.id);
-                }
-            }
-        }
-//    System.out.println("Platform.analyze called");
 
         return PlatformStatusEnum.OK.value();
     }
@@ -191,7 +183,7 @@ public class LutraPlatform extends BasePlatform {
      */
     public java.lang.String getId() {
         // Get IP address
-        return _ipAddress;
+        return ipAddress;
     }
 
     /**
@@ -261,6 +253,10 @@ public class LutraPlatform extends BasePlatform {
     }
 
     public void shutdown() {
+        // stop threads
+        threader.terminate();
+
         // Free MADARA containers
+        threader.free();
     }
 }

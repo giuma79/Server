@@ -4,7 +4,6 @@ import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
 
-
 import com.gams.algorithms.BaseAlgorithm;
 import com.gams.controllers.BaseController;
 import com.madara.KnowledgeBase;
@@ -32,7 +31,7 @@ public class LutraGAMS extends AbstractVehicleServer {
         this.teamSize = teamSize;
         this.ipAddress = ipAddress;
 
-        platform = new LutraPlatform(id, ipAddress);
+        platform = new LutraPlatform(knowledge);
         settings = new QoSTransportSettings();
         settings.setHosts(new String[]{"239.255.0.1:4150"});
         settings.setType(TransportType.MULTICAST_TRANSPORT);
