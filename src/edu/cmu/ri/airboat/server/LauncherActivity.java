@@ -41,6 +41,12 @@ public class LauncherActivity extends Activity {
         
         Log.d(TAG, "Starting vehicle service launcher.");
 
+        ///////////////////////////////////////
+        Log.w("jjb","LauncherActivity.onCreate");
+        ///////////////////////////////////////
+
+
+
         // Register a listener for USB permission events.
         // (This is cleaned up when the launcher is destroyed, but we might need
         // it if we have to search for an accessory.)
@@ -50,6 +56,7 @@ public class LauncherActivity extends Activity {
         // Request permission for ANY connected devices.
         UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         UsbAccessory[] usbAccessoryList = usbManager.getAccessoryList();
+
 
         if (usbAccessoryList != null && usbAccessoryList.length > 0) {
             // TODO: only detect Platypus Hardware!
@@ -63,6 +70,8 @@ public class LauncherActivity extends Activity {
             Toast.makeText(this, "No devices found.", Toast.LENGTH_SHORT).show();
             finish();
         }
+
+
     }
     
     @Override

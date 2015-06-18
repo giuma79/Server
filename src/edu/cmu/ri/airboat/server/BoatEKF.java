@@ -16,16 +16,16 @@ public class BoatEKF implements DatumListener {
     RealMatrix H; // dz/dx associated with z
     RealMatrix R; // covariance associated with z
 
-    int stateSize = 7; // [x,y,theta,v,omega,cx,cy]
+    int stateSize = 8; // [x,y,theta,v,omega,cx,cy,ct]
     double[] intial_x = new double[stateSize];
     RealMatrix x; // state
-    RealMatrix P; // stateCov
+    RealMatrix P = MatrixUtils.createRealIdentityMatrix(stateSize); // stateCov
     RealMatrix K; // Kalman gain
     RealMatrix F; // d_xdot/d_x
     RealMatrix Q; // growth of uncertainty with time
-    RealMatrix G; // coordinate transformation of uncertainty
-    RealMatrix Phi; // state transition (x_{k+1} = Phi*x_{k})
-    RealMatrix Phi_k; // (I + F*dt), propagation of uncertainty (P_{k+1} = Phi_k*P_{k}*Phi_k' + GQG')
+    RealMatrix G = MatrixUtils.createRealIdentityMatrix(stateSize); // coordinate transformation of uncertainty
+    RealMatrix Phi = MatrixUtils.createRealIdentityMatrix(stateSize); // state transition (x_{k+1} = Phi*x_{k})
+    RealMatrix Phi_k =  MatrixUtils.createRealIdentityMatrix(stateSize); // (I + F*dt), propagation of uncertainty (P_{k+1} = Phi_k*P_{k}*Phi_k' + GQG')
 
     Long t; // current time
     final double ROLLBACK_LIMIT = 1.0; // seconds allowed for a rollback before measurements are just abandoned
@@ -60,7 +60,7 @@ public class BoatEKF implements DatumListener {
         // update z and R
         z = datum.getZ();
         R = datum.getR();
-        double dt = timeStep();
+        predict();
 
         // warning if datum timestamp is too far away from filter's current time
         if ((datum.getTimestamp().doubleValue() - t.doubleValue())*1000.0 > ROLLBACK_LIMIT) {
@@ -98,7 +98,7 @@ public class BoatEKF implements DatumListener {
         sensorUpdate();
     }
 
-    private void setH(Datum datum) {
+    private synchronized void setH(Datum datum) {
         RealMatrix newH = MatrixUtils.createRealMatrix(1,stateSize);
         if (datum.getType() == SENSOR_TYPES.GPS) {
             newH.setEntry(0,0,1.0);
@@ -117,7 +117,7 @@ public class BoatEKF implements DatumListener {
 
         this.H = newH;
     }
-    public void sensorUpdate() {
+    public synchronized void sensorUpdate() {
         // compute kalman gain
         // compute innovation (dz), remember in EKF, dz = z - h(x), not z - Hx
         // compute innovation covariance S = HPH' + R
@@ -130,12 +130,35 @@ public class BoatEKF implements DatumListener {
         updateKnowledgeBase();
     }
 
-    public void predict() {
+    public synchronized void predict() {
         double dt = timeStep();
 
+        double s = Math.cos(x.getEntry(2, 0));
+        double c = Math.sin(x.getEntry(2, 0));
+        double v = x.getEntry(3,0);
+
         // Update Phi and Phi_k with current state and dt
+        Phi.setEntry(0,3,dt*c);
+        Phi.setEntry(0,5,dt);
+        Phi.setEntry(1,3,dt*s);
+        Phi.setEntry(1,6,dt);
+        Phi.setEntry(2,3,dt);
+        Phi.setEntry(2,7,dt);
+
+        Phi_k.setEntry(0,2,-dt*v*s);
+        Phi_k.setEntry(0,3,dt*c);
+        Phi_k.setEntry(0,5,dt);
+        Phi_k.setEntry(1,2,dt*v*c);
+        Phi_k.setEntry(1,3,dt*s);
+        Phi_k.setEntry(1,6,dt);
+        Phi_k.setEntry(2,4,dt);
+        Phi_k.setEntry(2,7,dt);
 
         // Update G with current state
+        G.setEntry(0,0,c);
+        G.setEntry(0,1,-s);
+        G.setEntry(1,0,s);
+        G.setEntry(1,1,c);
 
         // Update state and state covariance
         x = Phi.multiply(x);
@@ -145,14 +168,14 @@ public class BoatEKF implements DatumListener {
     }
 
 
-    public double timeStep() {
+    public synchronized double timeStep() {
         // Update dt
         Long old_t = t;
         t = java.lang.System.currentTimeMillis();
         return (t.doubleValue() - old_t.doubleValue())*1000.0;
     }
 
-    public boolean rollBack(Long old_t) {
+    public synchronized boolean rollBack(Long old_t) {
         // roll back the state of the filter
         double secondsBack = (old_t.doubleValue() - t.doubleValue()) * 1000.0;
 

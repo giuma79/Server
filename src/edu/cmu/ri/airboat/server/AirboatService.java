@@ -79,6 +79,7 @@ import robotutils.Quaternion;
 public class AirboatService extends Service {
     /////////////////////////////////////////
     DatumListener datumListener;
+
     /////////////////////////////////////////
 
 	private static final int SERVICE_ID = 11312;
@@ -89,7 +90,7 @@ public class AirboatService extends Service {
 	// Default values for parameters
 	private static final String DEFAULT_LOG_PREFIX = "airboat_";
 	private static final int DEFAULT_UDP_PORT = 11411;
-	final int GPS_UPDATE_RATE = 200; // in milliseconds
+	final int GPS_UPDATE_RATE = 2000; // in milliseconds
 
 	// Intent fields definitions
 	public static final String UDP_REGISTRY_ADDR = "UDP_REGISTRY_ADDR";
@@ -166,6 +167,9 @@ public class AirboatService extends Service {
 			UtmPose utm = new UtmPose(pose, origin);
 
 			/////////////////////////////////////////////////////////////////////
+
+			System.out.println("location changed listener has fired");
+
             RealMatrix z = MatrixUtils.createRealMatrix(2,1);
             z.setEntry(0,0,utm.pose.getX());
             z.setEntry(1,0,utm.pose.getY());
@@ -269,6 +273,8 @@ public class AirboatService extends Service {
 		mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
 
 		// TODO: optimize this to allocate resources up here and handle multiple start commands
+
+        Log.w("jjb","AirboatService.onCreate()");
 	}
 
 	/**
@@ -291,6 +297,12 @@ public class AirboatService extends Service {
 	 */
 	@Override
 	public int onStartCommand(final Intent intent, int flags, int startId) {
+
+        ////////////////////////////////////////////////
+        Log.w("jjb","AirboatService.onStartCommand");
+        ////////////////////////////////////////////////
+
+
 		super.onStartCommand(intent, flags, startId);
 
 		// Ignore startup requests that don't include an intent
@@ -299,11 +311,18 @@ public class AirboatService extends Service {
 			return Service.START_STICKY;
 		}
 
+        /* //////////////////////////////////////////////////////////////////////////////
 		// Ignore startup requests without an accessory.
 		if (!intent.hasExtra(UsbManager.EXTRA_ACCESSORY)) {
 			Log.e(TAG, "Attempted to start without accessory.");
 			return Service.START_STICKY;
 		}
+		*/ //////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
 
 		// Ensure that we do not reinitialize if not necessary
 		//if (_airboatImpl != null || _udpService != null) {
@@ -356,6 +375,7 @@ public class AirboatService extends Service {
 		gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0,
 				locationListener);
 
+        /*////////////////////////////////////////////////////////////////////////
 		// Create an intent filter to listen for device disconnections
 		IntentFilter filter = new IntentFilter(
 				UsbManager.ACTION_USB_ACCESSORY_DETACHED);
@@ -374,6 +394,7 @@ public class AirboatService extends Service {
 			return Service.START_STICKY;
 		}
 
+
 		// Create writer for output over USB
 		PrintWriter usbWriter = new PrintWriter(new OutputStreamWriter(
 				new FileOutputStream(mUsbDescriptor.getFileDescriptor())));
@@ -381,7 +402,7 @@ public class AirboatService extends Service {
 
 		// Create the data object
 		//_airboatImpl = new AirboatImpl(this, usbWriter);
-
+        */ ////////////////////////////////////////////////////////////////////////
 
 
 		// Create the GAMS loop object ///////////////////////////////////////////////////////////////////////////////
@@ -390,7 +411,7 @@ public class AirboatService extends Service {
         DatumListener datumListener = lutra.platform.boatEKF;
 
 
-
+        /*////////////////////////////////////////////////////////////////////////
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -423,6 +444,7 @@ public class AirboatService extends Service {
 				}
 			}
 		}).start();
+		*/ ////////////////////////////////////////////////////////////////////////
 
 		/*
 		// Start up UDP vehicle service in the background
