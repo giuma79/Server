@@ -83,14 +83,15 @@ public class AirboatService extends Service {
     /////////////////////////////////////////
 
 	private static final int SERVICE_ID = 11312;
-	private static final String TAG = AirboatService.class.getName();
+	//private static final String TAG = AirboatService.class.getName(); /////////////////////
+	String TAG = "asdf";
 	private static final com.google.code.microlog4android.Logger logger = LoggerFactory
 			.getLogger();
 
 	// Default values for parameters
 	private static final String DEFAULT_LOG_PREFIX = "airboat_";
 	private static final int DEFAULT_UDP_PORT = 11411;
-	final int GPS_UPDATE_RATE = 2000; // in milliseconds
+	final int GPS_UPDATE_RATE = 100; // in milliseconds
 
 	// Intent fields definitions
 	public static final String UDP_REGISTRY_ADDR = "UDP_REGISTRY_ADDR";
@@ -167,18 +168,21 @@ public class AirboatService extends Service {
 			UtmPose utm = new UtmPose(pose, origin);
 
 			/////////////////////////////////////////////////////////////////////
-
-			System.out.println("location changed listener has fired");
+			Log.w("jjb","the GPS phone listener has activated");
 
             RealMatrix z = MatrixUtils.createRealMatrix(2,1);
             z.setEntry(0,0,utm.pose.getX());
             z.setEntry(1,0,utm.pose.getY());
+
+			Log.w("jjb",z.toString());
+
             RealMatrix R = MatrixUtils.createRealMatrix(2,2);
-            R.setEntry(0,0,5.0);
+            R.setEntry(0, 0, 5.0);
             R.setEntry(0,0,5.0);
             Datum datum = new Datum(SENSOR_TYPES.GPS,java.lang.System.currentTimeMillis(),z,R);
             //lutra.platform.boatEKF.newDatum(datum);
             datumListener.newDatum(datum);
+			Log.w("jjb","datumListener should be activated right now");
 			/////////////////////////////////////////////////////////////////////
 
 			logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
@@ -365,7 +369,6 @@ public class AirboatService extends Service {
 				.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
 		sm.registerListener(rotationVectorListener, rotation_vector,
 				SensorManager.SENSOR_DELAY_NORMAL);
-
 		// Hook up to the GPS system
 		LocationManager gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 		Criteria c = new Criteria();
@@ -406,9 +409,14 @@ public class AirboatService extends Service {
 
 
 		// Create the GAMS loop object ///////////////////////////////////////////////////////////////////////////////
-		readMadaraConfig();
+		//readMadaraConfig();
+		_id = 5;
+		_ipAddress = "heyheyhey";
+		_teamSize = 1;
 		lutra = new LutraGAMS(_id,_teamSize,_ipAddress);
-        DatumListener datumListener = lutra.platform.boatEKF;
+        datumListener = lutra.platform.boatEKF;
+
+		Log.w("jjb","AirboatService.datumListener is set to boatEKF");
 
 
         /*////////////////////////////////////////////////////////////////////////

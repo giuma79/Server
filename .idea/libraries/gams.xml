@@ -1,7 +1,7 @@
 <component name="libraryTable">
   <library name="gams">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/libs/gams.jar!/" />
+      <root url="jar://$PROJECT_DIR$/src/main/jniLibs/gams.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

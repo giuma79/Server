@@ -59,11 +59,14 @@ public class LutraPlatform extends BasePlatform {
         this.knowledge = knowledge;
         evalSettings = new EvalSettings();
         evalSettings.setDelaySendingModifieds(true);
+        threader = new Threader(knowledge);
+        boatEKF = new BoatEKF(knowledge);
     }
 
     @Override
     public void init(BaseController controller) {
         super.init(controller);
+
         threader.run(100.0, "FilterAndController", new FilterAndControllerThread());
     }
 

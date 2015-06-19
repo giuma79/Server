@@ -32,6 +32,11 @@ android {
                 abiFilter "armeabi-v7a"
             }
         }
+        arm {
+            ndk {
+                abiFilter "armeabi"
+            }
+        }
     }
     buildTypes {
         debug {
@@ -48,9 +53,10 @@ android {
             res.srcDirs = ['res']
             assets.srcDirs = ['assets']
 
-            jni.srcDirs = []
-            jniLibs.srcDir 'libs'
+            //jni.srcDirs = []
+            //jniLibs.srcDir 'libs'
         }
+
 
         /*
         task buildNative(type: Exec,description: 'Compile JNI source via NDK') {
@@ -96,11 +102,11 @@ android {
 }
 
 dependencies {
-    compile files('libs/crwlib_core.jar')
-    compile files('libs/jscience-4.3.jar')
-    compile files('libs/microlog4android-1.0.0.jar')
-    compile files('libs/madara.jar')
-    compile files('libs/gams.jar')
+    compile files('src/main/jniLibs/crwlib_core.jar')
+    compile files('src/main/jniLibs/gams.jar')
+    compile files('src/main/jniLibs/jscience-4.3.jar')
+    compile files('src/main/jniLibs/madara.jar')
+    compile files('src/main/jniLibs/microlog4android-1.0.0.jar')
 }
 
 

@@ -31,15 +31,17 @@ public class LutraGAMS extends AbstractVehicleServer {
         this.teamSize = teamSize;
         this.ipAddress = ipAddress;
 
-        platform = new LutraPlatform(knowledge);
         settings = new QoSTransportSettings();
         settings.setHosts(new String[]{"239.255.0.1:4150"});
         settings.setType(TransportType.MULTICAST_TRANSPORT);
         knowledge = new KnowledgeBase(ipAddress,settings);
+        platform = new LutraPlatform(knowledge);
         controller = new BaseController(knowledge);
-        controller.initVars(id, teamSize);
-        controller.initPlatform(platform);
-        controller.initAlgorithm(algorithm);
+        //controller.initVars(id, teamSize);
+        //controller.initPlatform(platform);
+
+        algorithm = new DwellAlgorithm(this,ipAddress);
+        //controller.initAlgorithm(algorithm);
     }
 
 

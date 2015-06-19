@@ -1,9 +1,12 @@
 package edu.cmu.ri.airboat.server;
 
+import android.util.Log;
+
 import org.apache.commons.math.linear.MatrixUtils;
 import org.apache.commons.math.linear.RealMatrix;
 
 import com.madara.KnowledgeBase;
+import com.madara.KnowledgeRecord;
 import com.madara.containers.DoubleVector;
 
 /**
@@ -17,12 +20,12 @@ public class BoatEKF implements DatumListener {
     RealMatrix R; // covariance associated with z
 
     int stateSize = 8; // [x,y,theta,v,omega,cx,cy,ct]
-    double[] intial_x = new double[stateSize];
-    RealMatrix x; // state
+    double[] initial_x = new double[stateSize];
+    RealMatrix x = MatrixUtils.createColumnRealMatrix(initial_x); // state
     RealMatrix P = MatrixUtils.createRealIdentityMatrix(stateSize); // stateCov
     RealMatrix K; // Kalman gain
     RealMatrix F; // d_xdot/d_x
-    RealMatrix Q; // growth of uncertainty with time
+    RealMatrix Q = MatrixUtils.createRealIdentityMatrix(stateSize); // growth of uncertainty with time
     RealMatrix G = MatrixUtils.createRealIdentityMatrix(stateSize); // coordinate transformation of uncertainty
     RealMatrix Phi = MatrixUtils.createRealIdentityMatrix(stateSize); // state transition (x_{k+1} = Phi*x_{k})
     RealMatrix Phi_k =  MatrixUtils.createRealIdentityMatrix(stateSize); // (I + F*dt), propagation of uncertainty (P_{k+1} = Phi_k*P_{k}*Phi_k' + GQG')
@@ -39,7 +42,10 @@ public class BoatEKF implements DatumListener {
     public BoatEKF(KnowledgeBase knowledge) {
         t = java.lang.System.currentTimeMillis();
         this.knowledge = knowledge;
+        x_KB = new DoubleVector();
         x_KB.setName(knowledge,".x");
+
+        Log.w("jjb", "BoatEKF has been constructed");
     }
 
     public BoatEKF(KnowledgeBase knowledge, RealMatrix x, RealMatrix P, RealMatrix Q) {
@@ -49,14 +55,26 @@ public class BoatEKF implements DatumListener {
         this.Q = Q;
     }
 
+    public void stop() {
+        x_KB.free();
+    }
+
     public synchronized void updateKnowledgeBase() {
         for (int i = 0; i < stateSize; i++) {
-            x_KB.set(i,x.getEntry(i,0));
+            String message = String.format("x(%d) = %f",i,x.getEntry(i,0));
+            Log.w("jjb",message);
+            x_KB.set(i, x.getEntry(i,0));
         }
+
+        KnowledgeRecord a[] = x_KB.toArray();
+        Log.w("jjb", a.toString());
     }
 
     @Override
     public synchronized void newDatum(Datum datum) {
+
+        Log.w("jjb","received datum z = " + datum.getZ().toString());
+
         // update z and R
         z = datum.getZ();
         R = datum.getR();
@@ -81,6 +99,10 @@ public class BoatEKF implements DatumListener {
                 x.setEntry(0,0,z.getEntry(0,0));
                 x.setEntry(1,0,z.getEntry(1,0));
                 isGPSInitialized = true;
+
+
+                Log.w("jjb", "GPS is now initialized");
+
                 return;
             }
         }
