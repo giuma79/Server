@@ -5,7 +5,7 @@
     android:versionName="1.0">
 
     <uses-sdk
-        android:minSdkVersion="19"
+        android:minSdkVersion="14"
         android:targetSdkVersion="19" />
 
     <uses-feature android:name="android.hardware.usb.accessory" />
@@ -16,6 +16,7 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/icon"
@@ -24,10 +25,13 @@
             android:name="AirboatService"
             android:icon="@drawable/icon"
             android:label="Airboat Service" />
+
         <service
             android:name="AirboatFailsafeService"
             android:icon="@drawable/icon"
             android:label="Airboat Failsafe" />
+
+
 
         <activity
             android:name=".AirboatActivity"

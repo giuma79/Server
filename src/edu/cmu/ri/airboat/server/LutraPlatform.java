@@ -1,7 +1,10 @@
 package edu.cmu.ri.airboat.server;
 
+import android.util.Log;
+
 import com.gams.controllers.BaseController;
 import com.gams.platforms.BasePlatform;
+import com.gams.platforms.DebuggerPlatform;
 import com.gams.platforms.PlatformStatusEnum;
 import com.gams.utility.Position;
 import com.gams.utility.Axes;
@@ -17,6 +20,7 @@ import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,7 +39,8 @@ import robotutils.Quaternion;
  * @author nbb
  *
  */
-public class LutraPlatform extends BasePlatform {
+//public class LutraPlatform extends BasePlatform {
+public class LutraPlatform extends DebuggerPlatform {
 
     KnowledgeBase knowledge;
     BoatEKF boatEKF;
@@ -46,8 +51,32 @@ public class LutraPlatform extends BasePlatform {
         public void run() {
             boatEKF.predict();
             boatMotionController.control();
+            String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
+            Log.w("jjb","FilterAndControllerThread iteration" + threadID);
         }
     }
+
+    // Speed profile following --> updated each time profile.move() is called ***
+    /*
+    * 1) Assume that the boat is already pointed straight at the target (no trajectory planning)
+    * 2) Using estimate of current velocity along that ideal line between current point and target point
+     *     as initial speed, establish a trapezoidal speed profile.
+    * 3) Parallel, independent, and simple PID control on rotation, just like in current POINT_AND_SHOOT.
+     *     Any rotation velocity will be superimposed on top of speed commands.
+    * 4) P-PI cascaded position and velocity control to follow the trapezoidal velocity profile
+    * 5) The actions will be suboptimal for sure, but the trapezoid will be updated several times a second,
+     *     and as the boat nears a straight-away, the boat approaches the ideal
+    *
+    * Alternatively, you could do tank-steering moves at the way points. Point right at the goal from the
+     * beginning. Or at least wait until you are pointing within +/- 30 degrees before starting the trapezoid.
+     * That seems like a much easier alternative. Otherwise you'll need trajectory generation.
+    */
+    List<java.lang.Double> velocityProfile;
+    double sustainedSpeed;
+    double accelTime; // t1
+    double sustainTime; // t2
+    double finishTime; // t3
+    double moveDistance;
 
     ////////////////////////////////////////////////////////////////////////
     String ipAddress;
@@ -67,8 +96,13 @@ public class LutraPlatform extends BasePlatform {
     public void init(BaseController controller) {
         super.init(controller);
 
-        threader.run(100.0, "FilterAndController", new FilterAndControllerThread());
+        //threader.run(100.0, "FilterAndController", new FilterAndControllerThread()); // --> causes a crash
     }
+
+    public void start() {
+        threader.run(100.0, "FilterAndController", new FilterAndControllerThread()); // --> also causes a crash
+    }
+
 
     /**
      * Analyzes the platform.

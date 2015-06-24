@@ -1,0 +1,2 @@
+Bad activity command, or no activities match: edu.cmu.ri.airboat.server
+Use -h for help.

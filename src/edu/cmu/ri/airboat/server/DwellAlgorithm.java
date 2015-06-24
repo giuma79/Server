@@ -1,6 +1,7 @@
 package edu.cmu.ri.airboat.server;
 
 import com.gams.algorithms.BaseAlgorithm;
+import com.gams.algorithms.DebuggerAlgorithm;
 import com.gams.controllers.BaseController;
 import com.madara.KnowledgeRecord;
 
@@ -18,7 +19,8 @@ import robotutils.Pose3D;
  * @author jjb
  *
  */
-public class DwellAlgorithm extends BaseAlgorithm {
+//public class DwellAlgorithm extends BaseAlgorithm {
+public class DwellAlgorithm extends DebuggerAlgorithm {
 
     // Local reference to vehicle server.
     protected AbstractVehicleServer _server;
@@ -40,6 +42,8 @@ public class DwellAlgorithm extends BaseAlgorithm {
     public int analyze() {
 
 
+
+
         return 0;
     }
 
@@ -55,6 +59,7 @@ public class DwellAlgorithm extends BaseAlgorithm {
 
         return 0;
     }
+
 
     public void shutdown() {
         // Free MADARA containers

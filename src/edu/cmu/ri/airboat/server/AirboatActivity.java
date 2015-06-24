@@ -65,7 +65,7 @@ public class AirboatActivity extends Activity {
 		// copied from LauncherActivity and modified to try and circumvent need for e-board
 		Intent server_intent = new Intent(AirboatActivity.this, AirboatService.class);
 		startService(server_intent);
-		finish();
+		//finish();
 		///////////////////////////////////////////////////////////////////
 
 
@@ -74,7 +74,7 @@ public class AirboatActivity extends Activity {
     	// Create the "main" layout from the included XML file 
     	super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-        
+
 		// Register handler for URI master that changes the color of the URI
 		// if a valid ROS core seems to be reached.
 		// TODO: Move this to its own class!
@@ -150,7 +150,9 @@ public class AirboatActivity extends Activity {
 				}
 			}
 		});
-		
+
+
+
         // Register handler for server toggle button
         final ToggleButton connectToggle = (ToggleButton)findViewById(R.id.ConnectToggle);
         connectToggle.setOnClickListener(new OnClickListener() {
@@ -180,7 +182,9 @@ public class AirboatActivity extends Activity {
                 }
             }
         });
-        
+
+
+
         // Periodically update status of toggle button
         final Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
@@ -191,6 +195,8 @@ public class AirboatActivity extends Activity {
 				handler.postDelayed(this, 300);
 			}
 		}, 0);
+
+
 
         // Initialize vehicle type spinner using preferences.
         final Spinner vehicle_type = (Spinner)findViewById(R.id.VehicleTypeSpinner);
@@ -211,23 +217,29 @@ public class AirboatActivity extends Activity {
             }
         });
 
+
+
         // Register handler for debug button
         final Button debugButton = (Button)findViewById(R.id.DebugButton);
         debugButton.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				// Start up the debug control activity
 				startActivity(new Intent(AirboatActivity.this, AirboatControlActivity.class));
-				/* Broadcast Receive Test
+				/*
+				// Broadcast Receive Test
 				Intent i = new Intent(AirboatImpl.OBSTACLE);
 				i.putExtra(OBSTACLE_DATA, true);
 				
 				Log.e("Osman", "Sent intent when click debug button");
 				sendBroadcast(i);
 				*/
+
 				// start controller
 			}
 		});
-        
+
+
+
         // Register handler for failsafe address that changes color 
 		// if a valid hostname seems to be reached.
 		// TODO: Move this to its own class!
@@ -301,13 +313,16 @@ public class AirboatActivity extends Activity {
 				}
 			}
 		});
-		
+
+
+
 		// Register handler for failsafe toggle button
         final ToggleButton failsafeToggle = (ToggleButton)findViewById(R.id.FailsafeToggle);
         failsafeToggle.setOnClickListener(new OnClickListener() {
         	
 			@Override
 			public void onClick(View v) {
+
 				// Don't allow re-clicking until the service status updates
 				failsafeToggle.setEnabled(false);
 				
@@ -333,9 +348,12 @@ public class AirboatActivity extends Activity {
     				Log.i(logTag, "Stopping failsafe service.");
     				stopService(intent);
     			}
+
     		}
     	});
-        
+
+
+
         // Periodically update status of failsafe button
         handler.postDelayed(new Runnable() {
 			@Override
@@ -345,7 +363,9 @@ public class AirboatActivity extends Activity {
 				handler.postDelayed(this, 300);
 			}
 		}, 0);
-        
+
+
+		/*
         // Register handler for homing button
         final Button homeButton = (Button)findViewById(R.id.HomeButton);
         homeButton.setOnClickListener(new OnClickListener() {
@@ -413,12 +433,16 @@ public class AirboatActivity extends Activity {
 				
 			}
 		});
-        
+		*/
+
+		/*
         // Set text boxes to previous values
         masterAddress.setText(prefs.getString(KEY_MASTER_URI, masterAddress.getText().toString()));
         failsafeAddress.setText(prefs.getString(KEY_FAILSAFE_ADDR, failsafeAddress.getText().toString()));
+		*/
     }
-    
+
+
     @Override
     public void onResume() {
     	super.onResume();
@@ -439,7 +463,11 @@ public class AirboatActivity extends Activity {
      * 
      * @return Text representation of current local IP address.
      */
+
+
 	public static String getLocalIpAddress() {
+
+		/*
 		try {
 			for (Enumeration<NetworkInterface> en = NetworkInterface
 					.getNetworkInterfaces(); en.hasMoreElements();) {
@@ -455,7 +483,10 @@ public class AirboatActivity extends Activity {
 		} catch (SocketException ex) {
 			Log.e(logTag, "Failed to get local IP.", ex);
 		}
+		*/
 		return null;
 	}
+
+
 
 }

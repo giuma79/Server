@@ -1,12 +1,21 @@
 package edu.cmu.ri.airboat.server;
 
+import android.util.Log;
+
 import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
 
 import com.gams.algorithms.BaseAlgorithm;
+import com.gams.algorithms.DebuggerAlgorithm;
 import com.gams.controllers.BaseController;
+import com.gams.platforms.BasePlatform;
+import com.gams.platforms.DebuggerPlatform;
+import com.gams.utility.Axes;
+import com.gams.utility.Position;
 import com.madara.KnowledgeBase;
+import com.madara.threads.BaseThread;
+import com.madara.threads.Threader;
 import com.madara.transport.QoSTransportSettings;
 import com.madara.transport.TransportType;
 
@@ -18,13 +27,14 @@ public class LutraGAMS extends AbstractVehicleServer {
 
     int id;
     int teamSize;
-    String ipAddress;
+    public String ipAddress;
 
     BaseController controller;
     LutraPlatform platform;
     QoSTransportSettings settings;
     KnowledgeBase knowledge;
     BaseAlgorithm algorithm;
+
 
     public LutraGAMS(int id, int teamSize, String ipAddress) {
         this.id = id;
@@ -35,13 +45,81 @@ public class LutraGAMS extends AbstractVehicleServer {
         settings.setHosts(new String[]{"239.255.0.1:4150"});
         settings.setType(TransportType.MULTICAST_TRANSPORT);
         knowledge = new KnowledgeBase(ipAddress,settings);
-        platform = new LutraPlatform(knowledge);
         controller = new BaseController(knowledge);
-        //controller.initVars(id, teamSize);
-        //controller.initPlatform(platform);
 
-        algorithm = new DwellAlgorithm(this,ipAddress);
-        //controller.initAlgorithm(algorithm);
+    }
+
+
+
+    void start(final AbstractVehicleServer lutra) {
+
+        controller.initVars(id, teamSize);
+        platform = new LutraPlatform(knowledge);
+        algorithm = new DwellAlgorithm(lutra, ipAddress);
+        controller.initPlatform(platform); // --> the culprit (see platform's threader.run inside platform.init)
+        controller.initAlgorithm(algorithm);
+        //platform.start();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                controller.run(1.0,3.0);
+                knowledge.print();
+            }
+        }).start();
+
+
+
+        /*
+        MAPE_Thread =  new Thread(new Runnable() {
+            @Override
+            public void run() {
+                controller.initVars(id, teamSize);
+                platform = new LutraPlatform(knowledge);
+                controller.initPlatform(platform);
+                algorithm = new DwellAlgorithm(lutra, ipAddress);
+                controller.initAlgorithm(algorithm);
+
+                controller.run(1.0,20.0);
+            }
+        });
+        MAPE_Thread.start();
+        */
+
+        /*
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // Controllers require a knowledge base. This one will have no networking.
+                System.out.println("Creating knowledge base...");
+                KnowledgeBase knowledge = new KnowledgeBase();
+
+                System.out.println("Passing knowledge base to base controller...");
+                BaseController controller = new BaseController(knowledge);
+
+                // give our agent id 0 of 4 processes
+                controller.initVars(0, 4);
+
+                // initialize the debugger platform and algorithm
+                controller.initPlatform(new DebuggerPlatform());
+                controller.initAlgorithm(new DebuggerAlgorithm());
+
+                System.out.println("Running controller every 1s for 10s...");
+                controller.run(1.0, 20.0);
+
+                knowledge.print();
+
+                controller.free();
+                knowledge.free();
+            }
+        }).start();
+        */
+
+
+    }
+
+    void shutdown() {
+        knowledge.free();
+        controller.free();
     }
 
 

@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="madara">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/src/main/jniLibs/madara.jar!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

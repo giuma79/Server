@@ -15,6 +15,7 @@ import android.hardware.SensorManager;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
 import android.location.Criteria;
+import android.location.GpsStatus;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -68,6 +69,23 @@ import edu.cmu.ri.crw.udp.UdpVehicleService;
 import robotutils.Pose3D;
 import robotutils.Quaternion;
 
+
+///////////////////////////////////////////////////////
+import com.madara.KnowledgeBase;
+import com.madara.threads.Threader;
+import com.madara.threads.BaseThread;
+import com.gams.controllers.BaseController;
+import com.gams.platforms.DebuggerPlatform;
+import com.gams.algorithms.DebuggerAlgorithm;
+///////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
 /**
  * Android Service to register sensor and Amarino handlers for Android.s
  * Contains a RosVehicleServer and a VehicleServer object.
@@ -83,8 +101,7 @@ public class AirboatService extends Service {
     /////////////////////////////////////////
 
 	private static final int SERVICE_ID = 11312;
-	//private static final String TAG = AirboatService.class.getName(); /////////////////////
-	String TAG = "asdf";
+	private static final String TAG = AirboatService.class.getName();
 	private static final com.google.code.microlog4android.Logger logger = LoggerFactory
 			.getLogger();
 
@@ -140,8 +157,14 @@ public class AirboatService extends Service {
 	 */
 	private LocationListener locationListener = new LocationListener() {
 		public void onStatusChanged(String provider, int status, Bundle extras) {
+
+			String a = String.format("onStatusChanged: provider = %s, status= %d",provider,status);
+			Log.w("jjb",a);
+			///////////// Add stuff here if you want to react to GPS drop outs, etc.
+
 		}
 		public void onProviderEnabled(String provider) {
+			Log.w("jjb","onProviderEnabled");
 		}
 		public void onProviderDisabled(String provider) {
 		}
@@ -167,23 +190,28 @@ public class AirboatService extends Service {
 					utmLoc.latitudeZone() > 'O');
 			UtmPose utm = new UtmPose(pose, origin);
 
+
+
 			/////////////////////////////////////////////////////////////////////
 			Log.w("jjb","the GPS phone listener has activated");
 
             RealMatrix z = MatrixUtils.createRealMatrix(2,1);
             z.setEntry(0,0,utm.pose.getX());
             z.setEntry(1,0,utm.pose.getY());
-
-			Log.w("jjb",z.toString());
-
             RealMatrix R = MatrixUtils.createRealMatrix(2,2);
             R.setEntry(0, 0, 5.0);
             R.setEntry(0,0,5.0);
             Datum datum = new Datum(SENSOR_TYPES.GPS,java.lang.System.currentTimeMillis(),z,R);
-            //lutra.platform.boatEKF.newDatum(datum);
             datumListener.newDatum(datum);
-			Log.w("jjb","datumListener should be activated right now");
+
+			//location.getSpeed() --> could we use this to get velocities?
+			//String a = String.format("location.getSpeed() = %f",location.getSpeed());
+			//Log.w("jjb",a);
+
+
 			/////////////////////////////////////////////////////////////////////
+
+
 
 			logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
                     + utmLoc.latitudeZone() + ", " + location.getAltitude()
@@ -204,6 +232,25 @@ public class AirboatService extends Service {
 				//			System.currentTimeMillis());
 				//	logger.info("COMPASS: " + yaw);
 				//}
+
+
+
+
+				/////////////////////////////////////////////////////////////////////
+				//String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
+				//Log.w("jjb", "the compass listener has activated" + threadID);
+
+				RealMatrix z = MatrixUtils.createRealMatrix(1,1);
+				z.setEntry(0,0,yaw);
+				RealMatrix R = MatrixUtils.createRealMatrix(1,1);
+				R.setEntry(0, 0, Math.PI/12.0); // 15 degrees
+				Datum datum = new Datum(SENSOR_TYPES.COMPASS,java.lang.System.currentTimeMillis(),z,R);
+				datumListener.newDatum(datum);
+				/////////////////////////////////////////////////////////////////////
+
+
+
+
 			}
 		}
 
@@ -236,6 +283,23 @@ public class AirboatService extends Service {
 			gyroValues[2] = rotationMatrix[6] * event.values[0]
 					+ rotationMatrix[7] * event.values[1] + rotationMatrix[8]
 					* event.values[2];
+
+
+			/*
+			/////////////////////////////////////////////////////////////////////
+			//Log.w("jjb","the gyro listener has activated");
+
+			RealMatrix z = MatrixUtils.createRealMatrix(1,1);
+			z.setEntry(0,0,(double)gyroValues[2]);
+			RealMatrix R = MatrixUtils.createRealMatrix(1,1);
+			R.setEntry(0, 0, 5.0);
+			R.setEntry(0,0,5.0);
+			Datum datum = new Datum(SENSOR_TYPES.GYRO,java.lang.System.currentTimeMillis(),z,R);
+			datumListener.newDatum(datum);
+			/////////////////////////////////////////////////////////////////////
+			*/
+
+
 
 			//if (_airboatImpl != null)
 			//	_airboatImpl.setPhoneGyro(gyroValues);
@@ -333,6 +397,9 @@ public class AirboatService extends Service {
 		//	Log.w(TAG, "Attempted to start while running.");
 		//	return Service.START_STICKY;
 		//}
+		//if (lutra != null) {
+		//	Log.w(TAG, "Attempted to start while running.");
+		//}
 
 		// start tracing to "/sdcard/trace_crw.trace"
 		// Debug.startMethodTracing("trace_crw");
@@ -369,14 +436,20 @@ public class AirboatService extends Service {
 				.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
 		sm.registerListener(rotationVectorListener, rotation_vector,
 				SensorManager.SENSOR_DELAY_NORMAL);
-		// Hook up to the GPS system
+
+		// Hook up to the GPS system ////////////////////////////////////////////////////////////
 		LocationManager gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 		Criteria c = new Criteria();
 		c.setAccuracy(Criteria.ACCURACY_FINE);
 		c.setPowerRequirement(Criteria.NO_REQUIREMENT);
 		String provider = gps.getBestProvider(c, false);
-		gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0,
-				locationListener);
+		//gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0, locationListener);
+		gps.requestLocationUpdates(provider, 0, 0, locationListener);
+
+		//GpsStatus gpsStatus = gps.getGpsStatus(null);
+		//String a = String.format("gps time to first fix = %d ms",gpsStatus.getTimeToFirstFix());
+		//Log.w("jjb",a);
+
 
         /*////////////////////////////////////////////////////////////////////////
 		// Create an intent filter to listen for device disconnections
@@ -414,9 +487,70 @@ public class AirboatService extends Service {
 		_ipAddress = "heyheyhey";
 		_teamSize = 1;
 		lutra = new LutraGAMS(_id,_teamSize,_ipAddress);
+		lutra.start(lutra);
         datumListener = lutra.platform.boatEKF;
 
-		Log.w("jjb","AirboatService.datumListener is set to boatEKF");
+		/*
+		class helloThread extends BaseThread {
+			KnowledgeBase data;
+
+			@Override
+			public void init(KnowledgeBase data) {
+				this.data = data;
+			}
+
+			@Override
+			public void run() {
+				while (terminated.get() == 0) {
+					Log.w("jjb", "Hello, Madara/GAMS world!");
+				}
+			}
+		}
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                // Controllers require a knowledge base. This one will have no networking.
+				Log.w("jjb","Creating knowledge base...");
+                KnowledgeBase knowledge = new KnowledgeBase();
+
+				Log.w("jjb", "Passing knowledge base to base controller...");
+                BaseController controller = new BaseController(knowledge);
+
+                // give our agent id 0 of 4 processes
+                controller.initVars(0, 4);
+
+                // initialize the debugger platform and algorithm
+                controller.initPlatform(new DebuggerPlatform());
+                controller.initAlgorithm(new DebuggerAlgorithm());
+
+				Threader threader = new Threader(knowledge);
+
+
+				threader.run(2.0, "My hello thread", new helloThread());
+				try {
+					java.lang.Thread.sleep(2000);
+				}
+				catch (java.lang.InterruptedException ex) {
+				}
+				threader.terminate("My hello thread");
+				try {
+					threader.wait();
+				}
+				catch (InterruptedException ex) {
+				}
+
+
+                Log.w("jjb","Running controller every 1s for 10s...");
+                controller.run(1.0, 20.0);
+
+                knowledge.print();
+
+				threader.free();
+                controller.free();
+                knowledge.free();
+            }
+        }).start();
+		*/
 
 
         /*////////////////////////////////////////////////////////////////////////
@@ -486,6 +620,7 @@ public class AirboatService extends Service {
 			}
 		}).start();
 		*/
+
 
 		/*
 		// Log the velocity gains before starting the service
@@ -577,6 +712,7 @@ public class AirboatService extends Service {
      * http://stackoverflow.com/questions/12421814/how-can-i-read-a-text-file-in-android
      */
     private void readMadaraConfig() {
+		/*
         //Find the directory for the SD Card using the API
         File sdcard = Environment.getExternalStorageDirectory();
 
@@ -604,7 +740,7 @@ public class AirboatService extends Service {
         }
         catch (IOException e) {
             logger.error(e.getMessage());
-        }
+        }*/
     }
 
 	/**
@@ -618,6 +754,9 @@ public class AirboatService extends Service {
 	 */
 	@Override
 	public void onDestroy() {
+
+		Log.w("jjb","AirboatService.onDestroy()");
+
 		// Stop tracing to "/sdcard/trace_crw.trace"
 		Debug.stopMethodTracing();
 
@@ -640,7 +779,7 @@ public class AirboatService extends Service {
 		}
 
 		// Disconnect from USB event receiver
-		unregisterReceiver(_usbStatusReceiver);
+		//unregisterReceiver(_usbStatusReceiver);
 
 		// Disconnect from the Android sensors
 		SensorManager sm;
@@ -680,8 +819,7 @@ public class AirboatService extends Service {
         _algorithm.shutdown();
         _platform.shutdown();
         */
-		lutra.knowledge.free();
-		lutra.controller.free();
+		lutra.shutdown();
 
 		// Disable this as a foreground service
 		stopForeground(true);
@@ -719,6 +857,7 @@ public class AirboatService extends Service {
 	/**
 	 * Listen for disconnection events for accessory and close connection.
 	 */
+
 	BroadcastReceiver _usbStatusReceiver = new BroadcastReceiver() {
 		@Override
 		public void onReceive(Context context, Intent intent) {
@@ -742,5 +881,6 @@ public class AirboatService extends Service {
 			}
 		}
 	};
+
 
 }
