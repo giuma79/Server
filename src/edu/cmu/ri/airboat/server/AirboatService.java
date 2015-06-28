@@ -39,6 +39,8 @@ import com.google.code.microlog4android.format.PatternFormatter;
 
 import org.apache.commons.math.linear.MatrixUtils;
 import org.apache.commons.math.linear.RealMatrix;
+import org.apache.commons.math.stat.regression.SimpleRegression;
+
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
@@ -55,7 +57,13 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
+import java.util.EventListener;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.StringTokenizer;
 
 import javax.measure.unit.NonSI;
@@ -97,6 +105,23 @@ import com.gams.algorithms.DebuggerAlgorithm;
 public class AirboatService extends Service {
     /////////////////////////////////////////
     DatumListener datumListener;
+	List<Datum> gpsHistory; // maintain a list of GPS data within some time window
+	double gpsHistoryTimeWindow = 3.0; // if a gps point is older than X seconds, abandon it
+
+	// until i get an actual USB polling listener running, need to fake motor commands
+	void MotorCommands() {
+		double v = 0;
+		double w = 0;
+		RealMatrix z = MatrixUtils.createRealMatrix(2,1);
+		z.setEntry(0,0,v);
+		z.setEntry(1,0,w);
+		RealMatrix R = MatrixUtils.createRealMatrix(2,2);
+		R.setEntry(0, 0, 0.0);
+		R.setEntry(0,0,0.0);
+		Long currentTime = java.lang.System.currentTimeMillis();
+		Datum datum = new Datum(SENSOR_TYPES.MOTOR,currentTime,z,R);
+		datumListener.newDatum(datum);
+	}
 
     /////////////////////////////////////////
 
@@ -193,7 +218,7 @@ public class AirboatService extends Service {
 
 
 			/////////////////////////////////////////////////////////////////////
-			Log.w("jjb","the GPS phone listener has activated");
+			Log.w("jjb", "the GPS phone listener has activated");
 
             RealMatrix z = MatrixUtils.createRealMatrix(2,1);
             z.setEntry(0,0,utm.pose.getX());
@@ -201,21 +226,60 @@ public class AirboatService extends Service {
             RealMatrix R = MatrixUtils.createRealMatrix(2,2);
             R.setEntry(0, 0, 5.0);
             R.setEntry(0,0,5.0);
-            Datum datum = new Datum(SENSOR_TYPES.GPS,java.lang.System.currentTimeMillis(),z,R);
+			Long currentTime = java.lang.System.currentTimeMillis();
+            Datum datum = new Datum(SENSOR_TYPES.GPS,currentTime,z,R);
             datumListener.newDatum(datum);
 
-			//location.getSpeed() --> could we use this to get velocities?
-			//String a = String.format("location.getSpeed() = %f",location.getSpeed());
-			//Log.w("jjb",a);
+			gpsHistory.add(datum);
+			for (int i = gpsHistory.size()-1; i > -1; i--) {
+				if ((currentTime.doubleValue() - gpsHistory.get(i).getTimestamp().doubleValue())/1000.0 > gpsHistoryTimeWindow) {
+					gpsHistory.remove(i);
+				}
+			}
+
+			if (gpsHistory.size() < 3) {return;}
+
+			// Least squares linear regression with respect to time
+			//RealMatrix relevantGPS = MatrixUtils.createRealMatrix(gpsHistory.size(),3);
+			double[][] xvst = new double[gpsHistory.size()][2];
+			double [][] yvst = new double [gpsHistory.size()][2];
+			for (int i = 0; i < gpsHistory.size(); i++) {
+				double t = gpsHistory.get(i).getTimestamp().doubleValue()/1000.0;
+				xvst[i][0] = t;
+				yvst[i][0] = t;
+				xvst[i][1] = gpsHistory.get(i).getZ().getEntry(0,0);
+				yvst[i][1] = gpsHistory.get(i).getZ().getEntry(1,0);
+				//relevantGPS.setEntry(i,0,gpsHistory.get(i).getTimestamp().doubleValue()/1000.0); // time (s)
+				//relevantGPS.setEntry(i,1,gpsHistory.get(i).getZ().getEntry(0,0)); // x
+				//relevantGPS.setEntry(i,1,gpsHistory.get(i).getZ().getEntry(1,0)); // y
+			}
+			SimpleRegression regX = new SimpleRegression();
+			SimpleRegression regY = new SimpleRegression();
+			regX.addData(xvst);
+			regY.addData(yvst);
+			double xdot = regX.getSlope();
+			double ydot = regY.getSlope();
+
+			RealMatrix z2 = MatrixUtils.createRealMatrix(2,1);
+			z2.setEntry(0,0,utm.pose.getX());
+			z2.setEntry(1, 0, utm.pose.getY());
+			RealMatrix R2 = MatrixUtils.createRealMatrix(2,2);
+			R2.setEntry(0, 0, 5.0);
+			R2.setEntry(0, 0, 5.0);
+			Datum datum2 = new Datum(SENSOR_TYPES.DGPS,currentTime,z,R);
+			datumListener.newDatum(datum2);
+
 
 
 			/////////////////////////////////////////////////////////////////////
 
 
 
+			/*
 			logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
                     + utmLoc.latitudeZone() + ", " + location.getAltitude()
                     + ", " + location.getBearing());
+            */
 		}
 	};
 	private final SensorEventListener rotationVectorListener = new SensorEventListener() {
@@ -246,6 +310,12 @@ public class AirboatService extends Service {
 				R.setEntry(0, 0, Math.PI/12.0); // 15 degrees
 				Datum datum = new Datum(SENSOR_TYPES.COMPASS,java.lang.System.currentTimeMillis(),z,R);
 				datumListener.newDatum(datum);
+
+
+
+				// ******
+				MotorCommands();
+
 				/////////////////////////////////////////////////////////////////////
 
 
@@ -285,7 +355,7 @@ public class AirboatService extends Service {
 					* event.values[2];
 
 
-			/*
+
 			/////////////////////////////////////////////////////////////////////
 			//Log.w("jjb","the gyro listener has activated");
 
@@ -297,7 +367,7 @@ public class AirboatService extends Service {
 			Datum datum = new Datum(SENSOR_TYPES.GYRO,java.lang.System.currentTimeMillis(),z,R);
 			datumListener.newDatum(datum);
 			/////////////////////////////////////////////////////////////////////
-			*/
+
 
 
 
@@ -342,7 +412,12 @@ public class AirboatService extends Service {
 
 		// TODO: optimize this to allocate resources up here and handle multiple start commands
 
+		////////////////////////////////////////////////////////////////
         Log.w("jjb","AirboatService.onCreate()");
+		gpsHistory = new ArrayList<Datum>();
+		////////////////////////////////////////////////////////////////
+
+
 	}
 
 	/**

@@ -17,10 +17,12 @@ public class BoatMotionController {
 
     public BoatMotionController(KnowledgeBase knowledge) {
         this.knowledge = knowledge;
+        x_KB = new DoubleVector();
         x_KB.setName(this.knowledge,".x");
     }
 
     public void control() {
+
     }
 
 }

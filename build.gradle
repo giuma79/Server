@@ -107,9 +107,11 @@ dependencies {
     //compile files('src/main/jniLibs/jscience-4.3.jar')
     //compile files('src/main/jniLibs/madara.jar')
     //compile files('src/main/jniLibs/microlog4android-1.0.0.jar')
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile project(':madara')
-    compile project(':gams')
+    compile files('libs/crwlib_core.jar')
+    compile files('libs/gams.jar')
+    compile files('libs/jscience-4.3.jar')
+    compile files('libs/madara.jar')
+    compile files('libs/microlog4android-1.0.0.jar')
 }
 
 

@@ -7,7 +7,7 @@ import org.apache.commons.math.linear.RealMatrix;
 
 
 enum SENSOR_TYPES {
-    GPS, COMPASS, GYRO, IMU
+    GPS, COMPASS, GYRO, IMU, DGPS, MOTOR
 }
 
 /**
@@ -61,6 +61,12 @@ public class Datum {
         }
         if (this.type == SENSOR_TYPES.IMU) {
             return "IMU";
+        }
+        if (this.type ==  SENSOR_TYPES.DGPS) {
+            return "DGPS";
+        }
+        if (this.type == SENSOR_TYPES.MOTOR) {
+            return "MOTOR";
         }
         return "UNKNOWN";
     }

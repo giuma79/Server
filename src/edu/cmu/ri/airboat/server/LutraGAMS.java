@@ -1,21 +1,12 @@
 package edu.cmu.ri.airboat.server;
 
-import android.util.Log;
-
 import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
 
 import com.gams.algorithms.BaseAlgorithm;
-import com.gams.algorithms.DebuggerAlgorithm;
 import com.gams.controllers.BaseController;
-import com.gams.platforms.BasePlatform;
-import com.gams.platforms.DebuggerPlatform;
-import com.gams.utility.Axes;
-import com.gams.utility.Position;
 import com.madara.KnowledgeBase;
-import com.madara.threads.BaseThread;
-import com.madara.threads.Threader;
 import com.madara.transport.QoSTransportSettings;
 import com.madara.transport.TransportType;
 
@@ -58,11 +49,11 @@ public class LutraGAMS extends AbstractVehicleServer {
         algorithm = new DwellAlgorithm(lutra, ipAddress);
         controller.initPlatform(platform); // --> the culprit (see platform's threader.run inside platform.init)
         controller.initAlgorithm(algorithm);
-        //platform.start();
+        platform.start();
         new Thread(new Runnable() {
             @Override
             public void run() {
-                controller.run(1.0,3.0);
+                controller.run(1.0,20.0);
                 knowledge.print();
             }
         }).start();

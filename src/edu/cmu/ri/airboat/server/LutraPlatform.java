@@ -49,10 +49,12 @@ public class LutraPlatform extends DebuggerPlatform {
     class FilterAndControllerThread extends BaseThread {
         @Override
         public void run() {
-            boatEKF.predict();
-            boatMotionController.control();
-            String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
-            Log.w("jjb","FilterAndControllerThread iteration" + threadID);
+            if (boatEKF.isGPSInitialized && boatEKF.isCompassInitialized) {
+                boatEKF.predict();
+                boatMotionController.control();
+                //String threadID = String.format(" -- thread # %d", Thread.currentThread().getId());
+                //Log.w("jjb", "FilterAndControllerThread iteration" + threadID);
+            }
         }
     }
 
@@ -90,6 +92,7 @@ public class LutraPlatform extends DebuggerPlatform {
         evalSettings.setDelaySendingModifieds(true);
         threader = new Threader(knowledge);
         boatEKF = new BoatEKF(knowledge);
+        boatMotionController = new BoatMotionController(knowledge);
     }
 
     @Override
@@ -290,8 +293,11 @@ public class LutraPlatform extends DebuggerPlatform {
     }
 
     public void shutdown() {
+
         // stop threads
         threader.terminate();
+
+        boatEKF.stop();
 
         // Free MADARA containers
         threader.free();

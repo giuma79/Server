@@ -3,8 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Server.iml" filepath="$PROJECT_DIR$/Server.iml" />
-      <module fileurl="file://$PROJECT_DIR$/gams/gams.iml" filepath="$PROJECT_DIR$/gams/gams.iml" />
-      <module fileurl="file://$PROJECT_DIR$/madara/madara.iml" filepath="$PROJECT_DIR$/madara/madara.iml" />
     </modules>
   </component>
 </project>
