@@ -290,6 +290,9 @@ public class AirboatService extends Service {
 				SensorManager.getRotationMatrixFromVector(rotationMatrix,
 						event.values);
 				double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
+				//while (Math.abs(yaw) > Math.PI) {
+				//	yaw = yaw - 2*Math.PI*Math.signum(yaw);
+				//}
 
 				//if (_airboatImpl != null) {
 				//	_airboatImpl.filter.compassUpdate(yaw,
@@ -307,7 +310,7 @@ public class AirboatService extends Service {
 				RealMatrix z = MatrixUtils.createRealMatrix(1,1);
 				z.setEntry(0,0,yaw);
 				RealMatrix R = MatrixUtils.createRealMatrix(1,1);
-				R.setEntry(0, 0, Math.PI/12.0); // 15 degrees
+				R.setEntry(0, 0, Math.PI/60.0); // 3 degrees
 				Datum datum = new Datum(SENSOR_TYPES.COMPASS,java.lang.System.currentTimeMillis(),z,R);
 				datumListener.newDatum(datum);
 
@@ -362,8 +365,7 @@ public class AirboatService extends Service {
 			RealMatrix z = MatrixUtils.createRealMatrix(1,1);
 			z.setEntry(0,0,(double)gyroValues[2]);
 			RealMatrix R = MatrixUtils.createRealMatrix(1,1);
-			R.setEntry(0, 0, 5.0);
-			R.setEntry(0,0,5.0);
+			R.setEntry(0, 0, 5.0e-4);
 			Datum datum = new Datum(SENSOR_TYPES.GYRO,java.lang.System.currentTimeMillis(),z,R);
 			datumListener.newDatum(datum);
 			/////////////////////////////////////////////////////////////////////

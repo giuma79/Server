@@ -19,14 +19,13 @@ public class BoatEKF implements DatumListener {
     RealMatrix H; // dz/dx associated with z
     RealMatrix R; // covariance associated with z
 
-    int stateSize = 8; // state is global except for expected-motor velocities
+    public final int stateSize = 8; // state is global except for expected-motor velocities
     // state = [x y theta Vm Wm fx fy ft]
 
     double[] initial_x = new double[stateSize];
     RealMatrix x = MatrixUtils.createColumnRealMatrix(initial_x); // state
     RealMatrix P = MatrixUtils.createRealIdentityMatrix(stateSize); // stateCov
     RealMatrix K; // Kalman gain
-    //RealMatrix Q = MatrixUtils.createRealIdentityMatrix(stateSize); // growth of uncertainty with time
     RealMatrix QBase = MatrixUtils.createRealIdentityMatrix(stateSize); // growth of uncertainty with time
     RealMatrix G = MatrixUtils.createRealIdentityMatrix(stateSize); // coordinate transformation of uncertainty
     RealMatrix Phi = MatrixUtils.createRealIdentityMatrix(stateSize); // state transition (x_{k+1} = Phi*x_{k})
@@ -46,9 +45,10 @@ public class BoatEKF implements DatumListener {
         this.knowledge = knowledge;
         x_KB = new DoubleVector();
         x_KB.setName(knowledge, ".x");
+        x_KB.resize(stateSize);
 
         // default Q and P (use other constructor to override these)
-        QBase = QBase.scalarMultiply(0.001);
+        QBase = QBase.scalarMultiply(0.01);
         P = P.scalarMultiply(0.1);
         P.setEntry(0,0,1.0); // default GPS covariance is much larger than other parts of state
         P.setEntry(1,1,1.0); // default GPS covariance is much larger than other parts of state
@@ -68,13 +68,15 @@ public class BoatEKF implements DatumListener {
     }
 
     public synchronized void updateKnowledgeBase() {
-        Log.d("jjb","---------------------------------");
+        //Log.d("jjb", "---------------------------------");
         for (int i = 0; i < stateSize; i++) {
-            String message = String.format("x(%d) = %f",i,x.getEntry(i,0));
-            Log.d("jjb",message);
             x_KB.set(i, x.getEntry(i,0));
+            //String a = String.format("x_KB(%d) = %5.3e",i,x_KB.get(i));
+            //Log.d("jjb",a);
         }
-        Log.d("jjb","---------------------------------");
+        //Log.d("jjb", "x = " + realMatrixToString(x));
+
+        //Log.d("jjb", "---------------------------------");
     }
 
     @Override
@@ -82,9 +84,9 @@ public class BoatEKF implements DatumListener {
 
         //String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
         //Log.w("jjb","received datum z = " + datum.getZ().toString() + threadID);
-        String datum_data = realMatrixToString(datum.getZ());
-        String datum_info = String.format("Received %s, z = %s",datum.typeString(),datum_data);
-        Log.w("jjb",datum_info);
+        //String datum_data = realMatrixToString(datum.getZ());
+        //String datum_info = String.format("Received %s, z = %s",datum.typeString(),datum_data);
+        //Log.w("jjb",datum_info);
 
         //String timeString = String.format("EKF.t BEFORE = %d",t);
         //Long old_t = t;
@@ -219,30 +221,30 @@ public class BoatEKF implements DatumListener {
         // check "validation gate" - calculate Mahalanobis distance d = sqrt(dz'*inv(S)*dz)
         decomp = new LUDecompositionImpl(S);
         RealMatrix dtemp = dz.transpose().multiply(decomp.getSolver().getInverse()).multiply(dz);
-        double d = dtemp.getEntry(0,0);
+        double d = Math.sqrt(dtemp.getEntry(0,0));
 
         // if Mahalanobis distance is below threshold, update state estimate, x_{k+1} = x_{k} + K*(dz)
         // and update state covariance P_{k+1} = (I - KH)P
-        String a = String.format("Mahalanobis distance = %f",d);
-        Log.w("jjb", a);
-        if (d > 3.0) {
-            Log.w("jjb","WARNING, Mahalanobis distance is > 3. Measurement will be ignored.");
-        }
-        else {
+        //String a = String.format("Mahalanobis distance = %f",d);
+        //Log.w("jjb", a);
+        //if (d > 3.0) {
+        //    Log.w("jjb","WARNING, Mahalanobis distance is > 3. Measurement will be ignored.");
+        //}
+        //else {
             x = x.add(K.multiply(dz));
             P = (MatrixUtils.createRealIdentityMatrix(P.getRowDimension()).subtract(K.multiply(H))).multiply(P);
-        }
+        //}
 
         updateKnowledgeBase();
 
-        String PString = realMatrixToString(P);
-        Log.w("jjb","P = " + PString);
+        //String PString = realMatrixToString(P);
+        //Log.w("jjb","P = " + PString);
     }
 
     public synchronized void predict() {
 
-        String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
-        Log.w("jjb","BoatEKF.predict()" + threadID);
+        //String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
+        //Log.w("jjb","BoatEKF.predict()" + threadID);
 
         double dt = timeStep();
         String a = String.format("dt = %f",dt);
@@ -273,10 +275,10 @@ public class BoatEKF implements DatumListener {
         Phi_k.setEntry(2,7,-dt);
 
         // Update G with current state
-        G.setEntry(0,0,c);
-        G.setEntry(0,1,-s);
-        G.setEntry(1,0,s);
-        G.setEntry(1,1,c);
+        //G.setEntry(0,0,c);
+        //G.setEntry(0,1,-s);
+        //G.setEntry(1,0,s);
+        //G.setEntry(1,1,c);
 
         // Update state and state covariance
         x = Phi.multiply(x);

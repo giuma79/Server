@@ -46,10 +46,23 @@ public class LutraPlatform extends DebuggerPlatform {
     BoatEKF boatEKF;
     BoatMotionController boatMotionController;
     Threader threader;
+    boolean homeSet = false;
+
     class FilterAndControllerThread extends BaseThread {
+
         @Override
         public void run() {
             if (boatEKF.isGPSInitialized && boatEKF.isCompassInitialized) {
+                if (!homeSet) {
+                    self.device.home.set(0,knowledge.get(".x.0").toDouble());
+                    self.device.home.set(1,knowledge.get(".x.1").toDouble());
+                    self.device.home.set(2,knowledge.get(".x.2").toDouble());
+                    self.device.dest.set(0, knowledge.get(".x.0").toDouble());
+                    self.device.dest.set(1, knowledge.get(".x.1").toDouble());
+                    self.device.dest.set(2, knowledge.get(".x.2").toDouble());
+                    homeSet = true;
+                    knowledge.print();
+                }
                 boatEKF.predict();
                 boatMotionController.control();
                 //String threadID = String.format(" -- thread # %d", Thread.currentThread().getId());
@@ -92,18 +105,19 @@ public class LutraPlatform extends DebuggerPlatform {
         evalSettings.setDelaySendingModifieds(true);
         threader = new Threader(knowledge);
         boatEKF = new BoatEKF(knowledge);
-        boatMotionController = new BoatMotionController(knowledge);
+        boatMotionController = new BoatMotionController(knowledge,boatEKF.stateSize);
     }
 
     @Override
     public void init(BaseController controller) {
         super.init(controller);
-
-        //threader.run(100.0, "FilterAndController", new FilterAndControllerThread()); // --> causes a crash
     }
 
     public void start() {
-        threader.run(100.0, "FilterAndController", new FilterAndControllerThread()); // --> also causes a crash
+        self.device.dest.resize(3);
+        self.device.home.resize(3);
+        self.device.location.resize(3);
+        threader.run(20.0, "FilterAndController", new FilterAndControllerThread());
     }
 
 

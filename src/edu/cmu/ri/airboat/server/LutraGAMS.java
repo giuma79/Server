@@ -5,10 +5,13 @@ import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
 
 import com.gams.algorithms.BaseAlgorithm;
+//import com.gams.algorithms.DebuggerAlgorithm;
+//import com.gams.platforms.DebuggerPlatform;
 import com.gams.controllers.BaseController;
 import com.madara.KnowledgeBase;
 import com.madara.transport.QoSTransportSettings;
 import com.madara.transport.TransportType;
+
 
 
 /**
@@ -44,37 +47,20 @@ public class LutraGAMS extends AbstractVehicleServer {
 
     void start(final AbstractVehicleServer lutra) {
 
+
         controller.initVars(id, teamSize);
         platform = new LutraPlatform(knowledge);
         algorithm = new DwellAlgorithm(lutra, ipAddress);
-        controller.initPlatform(platform); // --> the culprit (see platform's threader.run inside platform.init)
+        controller.initPlatform(platform);
         controller.initAlgorithm(algorithm);
         platform.start();
         new Thread(new Runnable() {
             @Override
             public void run() {
-                controller.run(1.0,20.0);
-                knowledge.print();
+                controller.runHz(5.0,60.0,1.0); // run Hz, run duration, send Hz
+                //knowledge.print();
             }
         }).start();
-
-
-
-        /*
-        MAPE_Thread =  new Thread(new Runnable() {
-            @Override
-            public void run() {
-                controller.initVars(id, teamSize);
-                platform = new LutraPlatform(knowledge);
-                controller.initPlatform(platform);
-                algorithm = new DwellAlgorithm(lutra, ipAddress);
-                controller.initAlgorithm(algorithm);
-
-                controller.run(1.0,20.0);
-            }
-        });
-        MAPE_Thread.start();
-        */
 
         /*
         new Thread(new Runnable() {
@@ -105,20 +91,12 @@ public class LutraGAMS extends AbstractVehicleServer {
         }).start();
         */
 
-
     }
 
     void shutdown() {
         knowledge.free();
         controller.free();
     }
-
-
-
-
-
-
-
 
 
     //////////////////////////////////// Unused stuff START
