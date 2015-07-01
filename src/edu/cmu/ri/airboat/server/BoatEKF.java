@@ -2,12 +2,12 @@ package edu.cmu.ri.airboat.server;
 
 import android.util.Log;
 
-import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.MatrixUtils;
 import org.apache.commons.math.linear.RealMatrix;
 
 import com.madara.KnowledgeBase;
 import com.madara.containers.DoubleVector;
+
 
 /**
  * @author jjb
@@ -51,9 +51,10 @@ public class BoatEKF implements DatumListener {
         QBase = QBase.scalarMultiply(0.01);
         P = P.scalarMultiply(0.1);
         P.setEntry(0,0,1.0); // default GPS covariance is much larger than other parts of state
-        P.setEntry(1,1,1.0); // default GPS covariance is much larger than other parts of state
+        P.setEntry(1, 1, 1.0); // default GPS covariance is much larger than other parts of state
 
         Log.w("jjb", "BoatEKF has been constructed");
+
     }
 
     public BoatEKF(KnowledgeBase knowledge, RealMatrix x, RealMatrix P, RealMatrix QBase) {
@@ -63,20 +64,15 @@ public class BoatEKF implements DatumListener {
         this.QBase = QBase;
     }
 
-    public void stop() {
+    public void shutdown() {
         x_KB.free();
     }
 
     public synchronized void updateKnowledgeBase() {
-        //Log.d("jjb", "---------------------------------");
         for (int i = 0; i < stateSize; i++) {
             x_KB.set(i, x.getEntry(i,0));
-            //String a = String.format("x_KB(%d) = %5.3e",i,x_KB.get(i));
-            //Log.d("jjb",a);
         }
-        //Log.d("jjb", "x = " + realMatrixToString(x));
-
-        //Log.d("jjb", "---------------------------------");
+        knowledge.set("device." + knowledge.get(".id") + ".location",x.getSubMatrix(0,2,0,0).getColumn(0));
     }
 
     @Override
@@ -84,9 +80,9 @@ public class BoatEKF implements DatumListener {
 
         //String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
         //Log.w("jjb","received datum z = " + datum.getZ().toString() + threadID);
-        //String datum_data = realMatrixToString(datum.getZ());
-        //String datum_info = String.format("Received %s, z = %s",datum.typeString(),datum_data);
-        //Log.w("jjb",datum_info);
+        String datum_data = RMO.realMatrixToString(datum.getZ());
+        String datum_info = String.format("Received %s, z = %s",datum.typeString(),datum_data);
+        Log.w("jjb",datum_info);
 
         //String timeString = String.format("EKF.t BEFORE = %d",t);
         //Long old_t = t;
@@ -94,13 +90,6 @@ public class BoatEKF implements DatumListener {
         // update z and R
         z = datum.getZ();
         R = datum.getR();
-        predict();
-
-        //timeString = timeString + String.format(",  EKF.t AFTER = %d",t);
-        //timeString = timeString + String.format(",  datum.t = %d",datum.getTimestamp());
-        //timeString = timeString + String.format(",  EKF.dt = %d,  datum LAG = %d",t-old_t,t-datum.getTimestamp());
-        //Log.w("jjb",timeString);
-
 
         // warning if datum timestamp is too far away from filter's current time
         if ((datum.getTimestamp().doubleValue() - t.doubleValue())*1000.0 > ROLLBACK_LIMIT) {
@@ -123,11 +112,11 @@ public class BoatEKF implements DatumListener {
             if (datum.isType(SENSOR_TYPES.GPS)) {
                 x.setEntry(0,0,z.getEntry(0,0));
                 x.setEntry(1,0,z.getEntry(1,0));
+                x_KB.set(0,z.getEntry(0,0));
+                x_KB.set(1,z.getEntry(1,0));
                 isGPSInitialized = true;
 
-
                 Log.w("jjb", "GPS is now initialized");
-
                 return;
             }
         }
@@ -135,13 +124,22 @@ public class BoatEKF implements DatumListener {
         if (!isCompassInitialized) {
             if (datum.isType(SENSOR_TYPES.COMPASS)) {
                 x.setEntry(2,0,z.getEntry(0,0));
+                x_KB.set(2,z.getEntry(0,0));
                 isCompassInitialized = true;
 
                 Log.w("jjb", "Compass is now initialized");
-
                 return;
             }
         }
+
+        if (!(isGPSInitialized && isCompassInitialized)) { return; }
+
+        predict();
+
+        //timeString = timeString + String.format(",  EKF.t AFTER = %d",t);
+        //timeString = timeString + String.format(",  datum.t = %d",datum.getTimestamp());
+        //timeString = timeString + String.format(",  EKF.dt = %d,  datum LAG = %d",t-old_t,t-datum.getTimestamp());
+        //Log.w("jjb",timeString);
 
         // given datum.type, construct H
         setH(datum);
@@ -200,8 +198,7 @@ public class BoatEKF implements DatumListener {
     public synchronized void sensorUpdate() {
         // compute kalman gain = PH'inv(HPH'+R)
         RealMatrix Ktemp = H.multiply(P).multiply(H.transpose()).add(R);
-        LUDecompositionImpl decomp = new LUDecompositionImpl(Ktemp);
-        Ktemp = decomp.getSolver().getInverse();
+        Ktemp = RMO.inverse(Ktemp);
         Ktemp = P.multiply(H.transpose()).multiply(Ktemp);
         K = Ktemp.copy();
 
@@ -212,15 +209,14 @@ public class BoatEKF implements DatumListener {
         // compute innovation (dz), remember in EKF, dz = z - h(x), not z - Hx
         // z - Hx will work for simple measurements, where H is just ones
         // So z - Hx will work for GPS, compass, and gyro. Not sure about IMU just yet.
-        RealMatrix dz = MatrixUtils.createRealMatrix(z.getRowDimension(),1);
+        RealMatrix dz = MatrixUtils.createRealMatrix(z.getRowDimension(), 1);
         dz = z.subtract(H.multiply(x));
 
         // compute innovation covariance S = HPH' + R
         RealMatrix S = H.multiply(P).multiply(H.transpose());
 
         // check "validation gate" - calculate Mahalanobis distance d = sqrt(dz'*inv(S)*dz)
-        decomp = new LUDecompositionImpl(S);
-        RealMatrix dtemp = dz.transpose().multiply(decomp.getSolver().getInverse()).multiply(dz);
+        RealMatrix dtemp = dz.transpose().multiply(RMO.inverse(S)).multiply(dz);
         double d = Math.sqrt(dtemp.getEntry(0,0));
 
         // if Mahalanobis distance is below threshold, update state estimate, x_{k+1} = x_{k} + K*(dz)
@@ -237,7 +233,7 @@ public class BoatEKF implements DatumListener {
 
         updateKnowledgeBase();
 
-        //String PString = realMatrixToString(P);
+        //String PString = RMO.realMatrixToString(P);
         //Log.w("jjb","P = " + PString);
     }
 
@@ -311,17 +307,5 @@ public class BoatEKF implements DatumListener {
         }
     }
     */
-
-    public String realMatrixToString(RealMatrix A) {
-        String PString = "\n[";
-        for (int i = 0; i < A.getRowDimension(); i++) {
-            for (int j = 0; j < A.getColumnDimension()-1; j++) {
-                PString = PString + String.format(" %5.3e   ", A.getEntry(i, j));
-            }
-            PString = PString + String.format("%5.3e\n",A.getEntry(i,A.getColumnDimension()-1));
-        }
-        PString = PString + "]";
-        return PString;
-    }
 
 }

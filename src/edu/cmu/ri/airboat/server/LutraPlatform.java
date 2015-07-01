@@ -10,9 +10,12 @@ import com.gams.utility.Position;
 import com.gams.utility.Axes;
 import com.madara.EvalSettings;
 import com.madara.KnowledgeBase;
+import com.madara.containers.Double;
 import com.madara.threads.BaseThread;
 import com.madara.threads.Threader;
 
+import org.apache.commons.math.linear.MatrixUtils;
+import org.apache.commons.math.linear.RealMatrix;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.CoordinatesConverter;
@@ -47,6 +50,17 @@ public class LutraPlatform extends DebuggerPlatform {
     BoatMotionController boatMotionController;
     Threader threader;
     boolean homeSet = false;
+    final double velocityProfileThreshold = 10.0;
+    final double defaultSufficientProximity = 1.0;
+    final double defaultPeakVelocity = 2.0;
+    final double defaultAccel = defaultPeakVelocity/2.0; // 2 seconds to accelerate
+    final double defaultDecel = defaultPeakVelocity/2.0; // 2 seconds to decelerate
+    VelocityProfileListener velocityProfileListener;
+    Double distToDest;
+    Double sufficientProximity;
+    Double peakVelocity;
+    Double accel;
+    Double decel;
 
     class FilterAndControllerThread extends BaseThread {
 
@@ -106,6 +120,28 @@ public class LutraPlatform extends DebuggerPlatform {
         threader = new Threader(knowledge);
         boatEKF = new BoatEKF(knowledge);
         boatMotionController = new BoatMotionController(knowledge,boatEKF.stateSize);
+
+        distToDest = new Double();
+        distToDest.setName(knowledge,".distToDest");
+        distToDest.set(0);
+
+        sufficientProximity = new Double();
+        sufficientProximity.setName(knowledge, ".sufficientProximity");
+        sufficientProximity.set(defaultSufficientProximity);
+
+        peakVelocity = new Double();
+        peakVelocity.setName(knowledge, ".peakVelocity");
+        peakVelocity.set(defaultPeakVelocity);
+
+        accel = new Double();
+        accel.setName(knowledge, ".accel");
+        accel.set(defaultAccel);
+
+        decel = new Double();
+        decel.setName(knowledge, ".decel");
+        decel.set(defaultDecel);
+
+        velocityProfileListener = boatMotionController;
     }
 
     @Override
@@ -117,7 +153,7 @@ public class LutraPlatform extends DebuggerPlatform {
         self.device.dest.resize(3);
         self.device.home.resize(3);
         self.device.location.resize(3);
-        threader.run(20.0, "FilterAndController", new FilterAndControllerThread());
+        threader.run(100.0, "FilterAndController", new FilterAndControllerThread());
     }
 
 
@@ -128,6 +164,30 @@ public class LutraPlatform extends DebuggerPlatform {
      *
      */
     public int analyze() {
+
+        //TODO: Should make an algorithm to follow a chain of waypoints by changing the platform destination when you get near the current destination
+        //TODO: Algorithm that simply listens to the GUI for changes to its Madara variables
+        /*
+        * Look at distance from current location to desired location.
+        * If this distance is above some threshold, call move() to generate velocity profile.
+        * Generation of this profile will cause the controller to execute a P-PI cascade.
+        * If this distance is below the threshold, do nothing (a simple PID will be running to
+        *   automatically enforce station keeping).
+        *
+        * Platform doesn't get to change its destination. Algorithm or a user does that. Each iteration
+        *   in the MAPE loop, the platform just looks where it is and where its destination is.
+        *
+        *
+        *
+        */
+        //double distance = boatMotionController.getDistance();
+        if (distToDest.get() > velocityProfileThreshold) {
+            move(sufficientProximity.get(),peakVelocity.get(),accel.get(),decel.get());
+        }
+        else {
+
+        }
+
 
         return PlatformStatusEnum.OK.value();
     }
@@ -171,18 +231,27 @@ public class LutraPlatform extends DebuggerPlatform {
         return PlatformStatusEnum.OK.value();
     }
 
-    /**
-     * Initializes a move to the target position. This should be a non-blocking
-     * call.
-     *
-     * @param target the new position to move to
-     * @param proximity the minimum distance between current position and target
-     * position that terminates the move.
-     * @return status information (@see Status)
-     *
-     */
-    public int move(Position target, double proximity) {
+    public int move(double proximity, double peak_velocity, double accel, double decel) {
+        /*////////////////////////////////
+        * There are two primary controllers. The first is simple PID on position error, called
+        *   "station keeping", or "dwelling". The second is a P-PI position-velocity cascade.
+        * This second controller requires a velocity profile to follow.
+        *
+        * Move is called to generate a new velocity profile from current position to a new position.
+        *
+        *
+        *
+        */
+        RealMatrix velocityProfile = MatrixUtils.createRealMatrix(100,3);
 
+        // creation of velocity profile, Nx3 where columns are t,xdot,ydot
+
+        velocityProfileListener.newProfile(velocityProfile,proximity);
+        ///////////////////////////////////
+
+
+
+        /*
         // Convert from lat/long to UTM coordinates
         UTM utmLoc = UTM.latLongToUtm(
                 LatLong.valueOf(target.getX(), target.getY(), NonSI.DEGREE_ANGLE),
@@ -203,6 +272,7 @@ public class LutraPlatform extends DebuggerPlatform {
         self.device.source.set(0, self.device.location.get(0));
         self.device.source.set(1, self.device.location.get(1));
         self.device.source.set(2, self.device.location.get(2));
+        */
 
         return PlatformStatusEnum.OK.value();
     }
@@ -308,10 +378,19 @@ public class LutraPlatform extends DebuggerPlatform {
 
     public void shutdown() {
 
+        boatEKF.shutdown();
+        boatMotionController.shutdown();
+
         // stop threads
         threader.terminate();
 
-        boatEKF.stop();
+        // free any containers
+        distToDest.free();
+        sufficientProximity.free();
+        peakVelocity.free();
+        accel.free();
+        decel.free();
+
 
         // Free MADARA containers
         threader.free();

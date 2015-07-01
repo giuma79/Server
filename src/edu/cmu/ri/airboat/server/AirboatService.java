@@ -237,7 +237,12 @@ public class AirboatService extends Service {
 				}
 			}
 
+			//String gpsHistoryString = String.format("There are %d GPS measurements in the history",gpsHistory.size());
+			//Log.w("jjb",gpsHistoryString);
+
 			if (gpsHistory.size() < 3) {return;}
+
+
 
 			// Least squares linear regression with respect to time
 			//RealMatrix relevantGPS = MatrixUtils.createRealMatrix(gpsHistory.size(),3);
@@ -264,11 +269,13 @@ public class AirboatService extends Service {
 			z2.setEntry(0,0,utm.pose.getX());
 			z2.setEntry(1, 0, utm.pose.getY());
 			RealMatrix R2 = MatrixUtils.createRealMatrix(2,2);
-			R2.setEntry(0, 0, 5.0);
-			R2.setEntry(0, 0, 5.0);
-			Datum datum2 = new Datum(SENSOR_TYPES.DGPS,currentTime,z,R);
+			R2.setEntry(0, 0, 2.0);
+			R2.setEntry(0, 0, 2.0);
+			Datum datum2 = new Datum(SENSOR_TYPES.DGPS,currentTime,z2,R2);
 			datumListener.newDatum(datum2);
 
+			String DGPSString = String.format("DGPS has enough measurements to activate -- z = %s",RMO.realMatrixToString(z2));
+			Log.w("jjb",DGPSString);
 
 
 			/////////////////////////////////////////////////////////////////////

@@ -46,6 +46,7 @@ import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
 
 public class AirboatActivity extends Activity {
+
 	private static final String logTag = AirboatActivity.class.getName();
 	
 	public static final String PREFS_PRIVATE = "PREFS_PRIVATE";
