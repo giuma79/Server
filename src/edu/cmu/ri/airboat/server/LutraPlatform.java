@@ -68,12 +68,6 @@ public class LutraPlatform extends DebuggerPlatform {
         public void run() {
             if (boatEKF.isGPSInitialized && boatEKF.isCompassInitialized) {
                 if (!homeSet) {
-                    self.device.home.set(0,knowledge.get(".x.0").toDouble());
-                    self.device.home.set(1,knowledge.get(".x.1").toDouble());
-                    self.device.home.set(2,knowledge.get(".x.2").toDouble());
-                    self.device.dest.set(0, knowledge.get(".x.0").toDouble());
-                    self.device.dest.set(1, knowledge.get(".x.1").toDouble());
-                    self.device.dest.set(2, knowledge.get(".x.2").toDouble());
                     homeSet = true;
                     knowledge.print();
                 }
@@ -328,6 +322,14 @@ public class LutraPlatform extends DebuggerPlatform {
      *
      */
     public int sense() {
+
+        // move local .x localization state into device.id.location
+        // remember to add in device.id.home because .x is about (0,0)
+        double[] home = self.device.home.toRecord().toDoubleArray();
+        self.device.location.set(0,knowledge.get(".x.0").toDouble() + home[0]);
+        self.device.location.set(1,knowledge.get(".x.1").toDouble() + home[1]);
+        self.device.location.set(2,knowledge.get(".x.2").toDouble());
+
         return PlatformStatusEnum.OK.value();
     }
 

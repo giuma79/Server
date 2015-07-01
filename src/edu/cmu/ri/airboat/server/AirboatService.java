@@ -225,7 +225,7 @@ public class AirboatService extends Service {
             z.setEntry(1,0,utm.pose.getY());
             RealMatrix R = MatrixUtils.createRealMatrix(2,2);
             R.setEntry(0, 0, 5.0);
-            R.setEntry(0,0,5.0);
+            R.setEntry(1,1,5.0);
 			Long currentTime = java.lang.System.currentTimeMillis();
             Datum datum = new Datum(SENSOR_TYPES.GPS,currentTime,z,R);
             datumListener.newDatum(datum);
@@ -270,7 +270,7 @@ public class AirboatService extends Service {
 			z2.setEntry(1, 0, utm.pose.getY());
 			RealMatrix R2 = MatrixUtils.createRealMatrix(2,2);
 			R2.setEntry(0, 0, 2.0);
-			R2.setEntry(0, 0, 2.0);
+			R2.setEntry(1, 1, 2.0);
 			Datum datum2 = new Datum(SENSOR_TYPES.DGPS,currentTime,z2,R2);
 			datumListener.newDatum(datum2);
 

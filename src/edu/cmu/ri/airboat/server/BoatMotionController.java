@@ -17,7 +17,6 @@ public class BoatMotionController implements VelocityProfileListener {
 
     int stateSize;
     RealMatrix x;
-    RealMatrix xOld;
     RealMatrix xd;
     RealMatrix profile;
     KnowledgeBase knowledge;
@@ -36,9 +35,8 @@ public class BoatMotionController implements VelocityProfileListener {
         x_KB.setName(this.knowledge,".x");
         this.stateSize = stateSize;
         x_KB.resize(stateSize);
+        xError = MatrixUtils.createRealMatrix(3,1);
         x = MatrixUtils.createRealMatrix(stateSize,1);
-        xOld = MatrixUtils.createRealMatrix(stateSize,1); // might be used to find xdot, but other parts of state could be used
-        xError = MatrixUtils.createRealMatrix(stateSize,1);
         distance = new Double();
         distance.setName(knowledge,".distToDest");
         sufficientProximity = new Double();
@@ -88,16 +86,19 @@ public class BoatMotionController implements VelocityProfileListener {
     }
 
     void updateFromKnowledgeBase() {
-        // update destination
-
+        // remember to subtract device.{.id}.home from the destination so xd is centered about (0,0) like x
+        KnowledgeRecord home = knowledge.get("device."+ knowledge.get(".id") +".home");
         KnowledgeRecord xd_KR = knowledge.get("device."+ knowledge.get(".id") +".dest");
-        double[] xd_array; // new double [xd_KR.toDoubleArray().length];
-        xd_array = xd_KR.toDoubleArray();
+        double[] xd_array = xd_KR.toDoubleArray();
+        double[] home_array = home.toDoubleArray();
         xd = MatrixUtils.createColumnRealMatrix(xd_array);
+        xd = xd.subtract(MatrixUtils.createColumnRealMatrix(home_array));
+
         // update current state
         for (int i = 0; i < stateSize; i++) {
             x.setEntry(i,0,x_KB.get(i));
         }
+
         Log.w("jjb","xd = " + RMO.realMatrixToString(xd));
         Log.w("jjb","x = " + RMO.realMatrixToString(x));
     }

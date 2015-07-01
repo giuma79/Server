@@ -1,5 +1,7 @@
 package edu.cmu.ri.airboat.server;
 
+import com.madara.KnowledgeRecord;
+
 import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.MatrixUtils;
 import org.apache.commons.math.linear.RealMatrix;
@@ -24,9 +26,9 @@ public class RMO {
         String PString = "\n[";
         for (int i = 0; i < A.getRowDimension(); i++) {
             for (int j = 0; j < A.getColumnDimension()-1; j++) {
-                PString = PString + String.format(" %5.3e   ", A.getEntry(i, j));
+                PString = PString + String.format(" %8.6e   ", A.getEntry(i, j));
             }
-            PString = PString + String.format("%5.3e\n", A.getEntry(i, A.getColumnDimension() - 1));
+            PString = PString + String.format("%8.6e\n", A.getEntry(i, A.getColumnDimension() - 1));
         }
         PString = PString + "]";
         return PString;
