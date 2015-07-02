@@ -59,6 +59,7 @@ import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.EventListener;
 import java.util.Iterator;
@@ -91,141 +92,149 @@ import com.gams.algorithms.DebuggerAlgorithm;
 /**
  * Android Service to register sensor and Amarino handlers for Android.s
  * Contains a RosVehicleServer and a VehicleServer object.
- * 
+ *
  * @author pkv
  * @author kshaurya
- * 
+ *
  */
 public class AirboatService extends Service {
     /////////////////////////////////////////
     DatumListener datumListener;
-	List<Datum> gpsHistory; // maintain a list of GPS data within some time window
-	final double gpsHistoryTimeWindow = 3.0; // if a gps point is older than X seconds, abandon it
-	double[] imuVelocity = new double[2]; // acceleration is integrated into this sum
-	double[] imuAccel = new double[2]; // used to average acceleration over some dt
-	Long t; // current time in this thread
-	Long tAccel; // a special time keeper just for accelerometer data
-	Long t0; // used to grow the covariance of the IMU integrated velocity over time
-	double tSeconds;
-	final double imuCalibTime = 10.0; // number of seconds to calibrate a linear drift fit for the accelerometer
-	boolean imuCalibrated;
-	//double[][] imuCalX;
-	//double[][] imuCalY;
-	List<Double> imuCalX;
-	List<Double> imuCalY;
-	double imuDriftX;
-	double imuDriftY;
+    List<Datum> gpsHistory; // maintain a list of GPS data within some time window
+    final double gpsHistoryTimeWindow = 3.0; // if a gps point is older than X seconds, abandon it
+    double[] imuVelocity = new double[2]; // acceleration is integrated into this sum
+    Long t; // current time in this thread
+    Long tAccel; // a special time keeper just for accelerometer data
+    Long t0; // used to grow the covariance of the IMU integrated velocity over time
+    double tSeconds;
+    final double imuCalibTime = 60.0; // number of seconds to calibrate a linear drift fit for the accelerometer
+    // the first half of the calibration time is used to find a DC offset for acceleration
+    // the second half of the calibration time is then used to find a slope for velocity drift
+    boolean imuABiasCalibrated;
+    boolean imuVSlopeCalibrated;
+    List<double[]> imuVCalX, imuVCalY; // container used for velocities, used to calculate linear drift
+    List<double[]> imuACalX, imuACalY; // container used for accelerations, used to calculate linear drift
+    //double[][] imuVCalX, imuVCalY;
+    //double[][] imuACalX, imuACalY;
+    //List<Double> imuACalX, imuACalY; // the container for accelerations used to calculate the DC offset
+    List<Double> imuHistoryX, imuHistoryY; // the container used for the median filter
+    final int imuMedianFilterSize = 10; // a sliding median of accelerations reduces noise
+    double[][] imuATrend =  new double[2][2];
+    double[][] imuVTrend = new double[2][2];
+    //double imuABiasX, imuABiasY; // the DC offset in acceleration values
+    //double imuVmX, imuVmY; // the slopes of the velocity linear drift
+    //double imuVbX, imuVbY; // the intercept of the velocity linear drift
 
-	// until i get an actual USB polling listener running, need to fake motor commands
-	void MotorCommands() {
-		double v = 0;
-		double w = 0;
-		RealMatrix z = MatrixUtils.createRealMatrix(2,1);
-		z.setEntry(0,0,v);
-		z.setEntry(1,0,w);
-		RealMatrix R = MatrixUtils.createRealMatrix(2,2);
-		R.setEntry(0, 0, 0.0);
-		R.setEntry(0,0,0.0);
-		t = System.currentTimeMillis();
-		Datum datum = new Datum(SENSOR_TYPES.MOTOR,t,z,R);
-		datumListener.newDatum(datum);
-	}
+    // until i get an actual USB polling listener running, need to fake motor commands
+    void MotorCommands() {
+        double v = 0;
+        double w = 0;
+        RealMatrix z = MatrixUtils.createRealMatrix(2,1);
+        z.setEntry(0,0,v);
+        z.setEntry(1,0,w);
+        RealMatrix R = MatrixUtils.createRealMatrix(2,2);
+        R.setEntry(0, 0, 0.0);
+        R.setEntry(0,0,0.0);
+        t = System.currentTimeMillis();
+        Datum datum = new Datum(SENSOR_TYPES.MOTOR,t,z,R);
+        datumListener.newDatum(datum);
+    }
     /////////////////////////////////////////
 
-	private static final int SERVICE_ID = 11312;
-	private static final String TAG = AirboatService.class.getName();
-	private static final com.google.code.microlog4android.Logger logger = LoggerFactory
-			.getLogger();
+    private static final int SERVICE_ID = 11312;
+    private static final String TAG = AirboatService.class.getName();
+    private static final com.google.code.microlog4android.Logger logger = LoggerFactory
+            .getLogger();
 
-	// Default values for parameters
-	private static final String DEFAULT_LOG_PREFIX = "airboat_";
-	private static final int DEFAULT_UDP_PORT = 11411;
-	final int GPS_UPDATE_RATE = 100; // in milliseconds
+    // Default values for parameters
+    private static final String DEFAULT_LOG_PREFIX = "airboat_";
+    private static final int DEFAULT_UDP_PORT = 11411;
+    final int GPS_UPDATE_RATE = 100; // in milliseconds
 
-	// Intent fields definitions
-	public static final String UDP_REGISTRY_ADDR = "UDP_REGISTRY_ADDR";
-	public static final String UPDATE_RATE = "UPDATE_RATE";
+    // Intent fields definitions
+    public static final String UDP_REGISTRY_ADDR = "UDP_REGISTRY_ADDR";
+    public static final String UPDATE_RATE = "UPDATE_RATE";
 
-	// Binder object that receives interactions from clients.
-	private final IBinder _binder = new AirboatBinder();
+    // Binder object that receives interactions from clients.
+    private final IBinder _binder = new AirboatBinder();
 
-	// Reference to USB accessory
-	private UsbManager mUsbManager;
-	private UsbAccessory mUsbAccessory;
-	private ParcelFileDescriptor mUsbDescriptor;
+    // Reference to USB accessory
+    private UsbManager mUsbManager;
+    private UsbAccessory mUsbAccessory;
+    private ParcelFileDescriptor mUsbDescriptor;
 
-	// Flag indicating run status (Android has no way to query if a service is
-	// running)
-	public static boolean isRunning = false;
+    // Flag indicating run status (Android has no way to query if a service is
+    // running)
+    public static boolean isRunning = false;
 
-	// Member parameters
-	private InetSocketAddress _udpRegistryAddr;
+    // Member parameters
+    private InetSocketAddress _udpRegistryAddr;
 
-	// Objects implementing actual functionality
-	//private AirboatImpl _airboatImpl;
-	private LutraGAMS lutra;
-	private UdpVehicleService _udpService;
+    // Objects implementing actual functionality
+    //private AirboatImpl _airboatImpl;
+    private LutraGAMS lutra;
+    private UdpVehicleService _udpService;
 
-	// Lock objects that prevent the phone from sleeping
-	private WakeLock _wakeLock = null;
-	private WifiLock _wifiLock = null;
+    // Lock objects that prevent the phone from sleeping
+    private WakeLock _wakeLock = null;
+    private WifiLock _wifiLock = null;
 
-	// Logger that pipes log information for airboat classes to file
-	private FileAppender _fileAppender;
+    // Logger that pipes log information for airboat classes to file
+    private FileAppender _fileAppender;
 
-	// global variable to reference rotation vector values
-	private float[] rotationMatrix = new float[9];
+    // global variable to reference rotation vector values
+    private float[] rotationMatrix = new float[9];
 
     private int _id, _teamSize;
     private String _ipAddress;
 
-	AirboatImpl _airboatImpl;
-	public AirboatImpl getServer() {
-		return this._airboatImpl;
-	}
+    AirboatImpl _airboatImpl;
+    public AirboatImpl getServer() {
+        return this._airboatImpl;
+    }
 
-	/**
-	 * Handles GPS updates by calling the appropriate update.
-	 */
-	private LocationListener locationListener = new LocationListener() {
-		public void onStatusChanged(String provider, int status, Bundle extras) {
+    /**
+     * Handles GPS updates by calling the appropriate update.
+     */
+    private LocationListener locationListener = new LocationListener() {
+        public void onStatusChanged(String provider, int status, Bundle extras) {
 
-			String a = String.format("onStatusChanged: provider = %s, status= %d",provider,status);
-			Log.w("jjb",a);
-			///////////// Add stuff here if you want to react to GPS drop outs, etc.
+            String a = String.format("onStatusChanged: provider = %s, status= %d",provider,status);
+            Log.w("jjb",a);
+            ///////////// Add stuff here if you want to react to GPS drop outs, etc.
 
-		}
-		public void onProviderEnabled(String provider) {
-			Log.w("jjb","onProviderEnabled");
-		}
-		public void onProviderDisabled(String provider) {
-		}
+        }
+        public void onProviderEnabled(String provider) {
+            Log.w("jjb","onProviderEnabled");
+        }
+        public void onProviderDisabled(String provider) {
+        }
 
-		public void onLocationChanged(Location location) {
+        public void onLocationChanged(Location location) {
 
-			// Convert from lat/long to UTM coordinates
-			UTM utmLoc = UTM.latLongToUtm(
-					LatLong.valueOf(location.getLatitude(),
-							location.getLongitude(), NonSI.DEGREE_ANGLE),
-					ReferenceEllipsoid.WGS84);
+            // Convert from lat/long to UTM coordinates
+            UTM utmLoc = UTM.latLongToUtm(
+                    LatLong.valueOf(location.getLatitude(),
+                            location.getLongitude(), NonSI.DEGREE_ANGLE),
+                    ReferenceEllipsoid.WGS84);
 
-			// Convert to UTM data structure
-			Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
-					utmLoc.northingValue(SI.METER), (location.hasAltitude()
-							? location.getAltitude()
-							: 0.0), (location.hasBearing()
-							? Quaternion.fromEulerAngles(0.0, 0.0,
-									(90.0 - location.getBearing()) * Math.PI
-											/ 180.0)
-							: Quaternion.fromEulerAngles(0, 0, 0)));
-			Utm origin = new Utm(utmLoc.longitudeZone(),
-					utmLoc.latitudeZone() > 'O');
-			UtmPose utm = new UtmPose(pose, origin);
+            // Convert to UTM data structure
+            Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
+                    utmLoc.northingValue(SI.METER), (location.hasAltitude()
+                    ? location.getAltitude()
+                    : 0.0), (location.hasBearing()
+                    ? Quaternion.fromEulerAngles(0.0, 0.0,
+                    (90.0 - location.getBearing()) * Math.PI
+                            / 180.0)
+                    : Quaternion.fromEulerAngles(0, 0, 0)));
+            Utm origin = new Utm(utmLoc.longitudeZone(),
+                    utmLoc.latitudeZone() > 'O');
+            UtmPose utm = new UtmPose(pose, origin);
 
 
 
-			/////////////////////////////////////////////////////////////////////
-			Log.w("jjb", "the GPS phone listener has activated");
+            /////////////////////////////////////////////////////////////////////
+            Log.w("jjb", "the GPS phone listener has activated");
 
             RealMatrix z = MatrixUtils.createRealMatrix(2,1);
             z.setEntry(0,0,utm.pose.getX());
@@ -233,60 +242,60 @@ public class AirboatService extends Service {
             RealMatrix R = MatrixUtils.createRealMatrix(2,2);
             R.setEntry(0, 0, 10.0);
             R.setEntry(1,1,10.0);
-			t = System.currentTimeMillis();
+            t = System.currentTimeMillis();
             Datum datum = new Datum(SENSOR_TYPES.GPS,t,z,R);
             datumListener.newDatum(datum);
 
-			gpsHistory.add(datum);
-			for (int i = gpsHistory.size()-1; i > -1; i--) {
-				if ((t.doubleValue() - gpsHistory.get(i).getTimestamp().doubleValue())/1000.0 > gpsHistoryTimeWindow) {
-					gpsHistory.remove(i);
-				}
-			}
+            gpsHistory.add(datum);
+            for (int i = gpsHistory.size()-1; i > -1; i--) {
+                if ((t.doubleValue() - gpsHistory.get(i).getTimestamp().doubleValue())/1000.0 > gpsHistoryTimeWindow) {
+                    gpsHistory.remove(i);
+                }
+            }
 
-			//String gpsHistoryString = String.format("There are %d GPS measurements in the history",gpsHistory.size());
-			//Log.w("jjb",gpsHistoryString);
+            //String gpsHistoryString = String.format("There are %d GPS measurements in the history",gpsHistory.size());
+            //Log.w("jjb",gpsHistoryString);
 
-			if (gpsHistory.size() < 3) {return;}
-
-
-
-			// Least squares linear regression with respect to time
-			//RealMatrix relevantGPS = MatrixUtils.createRealMatrix(gpsHistory.size(),3);
-			double[][] xvst = new double[gpsHistory.size()][2];
-			double [][] yvst = new double [gpsHistory.size()][2];
-			for (int i = 0; i < gpsHistory.size(); i++) {
-				double t = gpsHistory.get(i).getTimestamp().doubleValue()/1000.0;
-				xvst[i][0] = t;
-				yvst[i][0] = t;
-				xvst[i][1] = gpsHistory.get(i).getZ().getEntry(0,0);
-				yvst[i][1] = gpsHistory.get(i).getZ().getEntry(1,0);
-			}
-			SimpleRegression regX = new SimpleRegression();
-			SimpleRegression regY = new SimpleRegression();
-			regX.addData(xvst);
-			regY.addData(yvst);
-			double xdot = regX.getSlope();
-			double ydot = regY.getSlope();
-
-			// reset potentially crazy imu integration velocities
-			//imuVelocity[0] = xdot;
-			//imuVelocity[1] = ydot;
-
-			RealMatrix z2 = MatrixUtils.createRealMatrix(2,1);
-			z2.setEntry(0,0,xdot);
-			z2.setEntry(1, 0, ydot);
-			RealMatrix R2 = MatrixUtils.createRealMatrix(2,2);
-			R2.setEntry(0, 0, 10.0);
-			R2.setEntry(1, 1, 10.0);
-			Datum datum2 = new Datum(SENSOR_TYPES.DGPS,t,z2,R2);
-			datumListener.newDatum(datum2);
-
-			String DGPSString = String.format("DGPS has enough measurements to activate -- z = %s",RMO.realMatrixToString(z2));
-			Log.w("jjb",DGPSString);
+            if (gpsHistory.size() < 3) {return;}
 
 
-			/////////////////////////////////////////////////////////////////////
+
+            // Least squares linear regression with respect to time
+            //RealMatrix relevantGPS = MatrixUtils.createRealMatrix(gpsHistory.size(),3);
+            double[][] xvst = new double[gpsHistory.size()][2];
+            double [][] yvst = new double [gpsHistory.size()][2];
+            for (int i = 0; i < gpsHistory.size(); i++) {
+                double t = gpsHistory.get(i).getTimestamp().doubleValue()/1000.0;
+                xvst[i][0] = t;
+                yvst[i][0] = t;
+                xvst[i][1] = gpsHistory.get(i).getZ().getEntry(0,0);
+                yvst[i][1] = gpsHistory.get(i).getZ().getEntry(1,0);
+            }
+            SimpleRegression regX = new SimpleRegression();
+            SimpleRegression regY = new SimpleRegression();
+            regX.addData(xvst);
+            regY.addData(yvst);
+            double xdot = regX.getSlope();
+            double ydot = regY.getSlope();
+
+            // reset potentially crazy imu integration velocities
+            //imuVelocity[0] = xdot;
+            //imuVelocity[1] = ydot;
+
+            RealMatrix z2 = MatrixUtils.createRealMatrix(2,1);
+            z2.setEntry(0,0,xdot);
+            z2.setEntry(1, 0, ydot);
+            RealMatrix R2 = MatrixUtils.createRealMatrix(2,2);
+            R2.setEntry(0, 0, 10.0);
+            R2.setEntry(1, 1, 10.0);
+            Datum datum2 = new Datum(SENSOR_TYPES.DGPS,t,z2,R2);
+            datumListener.newDatum(datum2);
+
+            String DGPSString = String.format("DGPS has enough measurements to activate -- z = %s",RMO.realMatrixToString(z2));
+            Log.w("jjb",DGPSString);
+
+
+            /////////////////////////////////////////////////////////////////////
 
 
 
@@ -295,130 +304,196 @@ public class AirboatService extends Service {
                     + utmLoc.latitudeZone() + ", " + location.getAltitude()
                     + ", " + location.getBearing());
             */
-		}
-	};
-	private final SensorEventListener rotationVectorListener = new SensorEventListener() {
-		@Override
-		public void onSensorChanged(SensorEvent event) {
-			if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
-				// TODO Auto-generated method stub
-				SensorManager.getRotationMatrixFromVector(rotationMatrix,
-						event.values);
-				double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
-				//while (Math.abs(yaw) > Math.PI) {
-				//	yaw = yaw - 2*Math.PI*Math.signum(yaw);
-				//}
+        }
+    };
+    private final SensorEventListener rotationVectorListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
+                // TODO Auto-generated method stub
+                SensorManager.getRotationMatrixFromVector(rotationMatrix,
+                        event.values);
+                double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
+                //while (Math.abs(yaw) > Math.PI) {
+                //	yaw = yaw - 2*Math.PI*Math.signum(yaw);
+                //}
 
-				//if (_airboatImpl != null) {
-				//	_airboatImpl.filter.compassUpdate(yaw,
-				//			System.currentTimeMillis());
-				//	logger.info("COMPASS: " + yaw);
-				//}
+                //if (_airboatImpl != null) {
+                //	_airboatImpl.filter.compassUpdate(yaw,
+                //			System.currentTimeMillis());
+                //	logger.info("COMPASS: " + yaw);
+                //}
 
-				/////////////////////////////////////////////////////////////////////
-				//String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
-				//Log.w("jjb", "the compass listener has activated" + threadID);
+                /////////////////////////////////////////////////////////////////////
+                //String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
+                //Log.w("jjb", "the compass listener has activated" + threadID);
 
-				RealMatrix z = MatrixUtils.createRealMatrix(1,1);
-				z.setEntry(0,0,yaw);
-				RealMatrix R = MatrixUtils.createRealMatrix(1,1);
-				R.setEntry(0, 0, Math.PI/60.0); // 3 degrees
-				t = System.currentTimeMillis();
-				Datum datum = new Datum(SENSOR_TYPES.COMPASS,t,z,R);
-				datumListener.newDatum(datum);
-
-
-				MotorCommands(); // ******************************************************************************
-
-				/////////////////////////////////////////////////////////////////////
+                RealMatrix z = MatrixUtils.createRealMatrix(1,1);
+                z.setEntry(0,0,yaw);
+                RealMatrix R = MatrixUtils.createRealMatrix(1,1);
+                R.setEntry(0, 0, Math.PI/60.0); // 3 degrees
+                t = System.currentTimeMillis();
+                Datum datum = new Datum(SENSOR_TYPES.COMPASS,t,z,R);
+                datumListener.newDatum(datum);
 
 
+                MotorCommands(); // ******************************************************************************
+
+                /////////////////////////////////////////////////////////////////////
 
 
-			}
-		}
 
-		@Override
-		public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		}
-	};
 
-	private final SensorEventListener imuListener = new SensorEventListener() {
-		@Override
-		public void onSensorChanged(SensorEvent event) {
-			// note: gravity has been excluded automatically
-			double[] linear_acceleration = new double[3];
-			linear_acceleration[0] = event.values[0]; // x
-			linear_acceleration[1] = event.values[1]; // y
-			linear_acceleration[2] = event.values[2]; // z
+            }
+        }
 
-			/////////////////////////////////////////////////////////////////////
-			//String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
-			//Log.w("jjb", "the compass listener has activated" + threadID);
-			Long old_t = tAccel;
-			tAccel = System.currentTimeMillis();
-			t = tAccel;
-			tSeconds = (tAccel.doubleValue()-t0.doubleValue())/1000.0;
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        }
+    };
 
-			if (imuCalibrated) {
-				// calibration corrections
-				linear_acceleration[0] = linear_acceleration[0] - imuDriftX;//*tSeconds;
-				linear_acceleration[1] = linear_acceleration[1] - imuDriftY;//*tSeconds;
-				double dt = (tAccel.doubleValue()-old_t.doubleValue())/1000.0;
-				imuVelocity[0] += dt*(linear_acceleration[0]+imuAccel[0])/2.0;
-				imuVelocity[1] += dt*(linear_acceleration[1]+imuAccel[1])/2.0;
-				RealMatrix z = MatrixUtils.createRealMatrix(2, 1);
-				z.setEntry(0, 0, imuVelocity[0]);
-				z.setEntry(1, 0, imuVelocity[1]);
-				RealMatrix R = MatrixUtils.createRealMatrix(2, 2);
-				double covarianceScale = 0.25 + Math.log(tSeconds);
-				R.setEntry(0, 0, covarianceScale); // needs to grow logarithmically until a baseline
-				R.setEntry(1, 1, covarianceScale); // needs to grow logarithmically until a baseline
-				Datum datum = new Datum(SENSOR_TYPES.IMU, t, z, R);
-				datumListener.newDatum(datum);
-				imuAccel[0] = linear_acceleration[0];
-				imuAccel[0] = linear_acceleration[1];
-			}
-			else {
-				if (tSeconds < imuCalibTime) {
-					//double[][] imuNewX = new double[][]{{tSeconds,linear_acceleration[0]}};
-					//double[][] imuNewY = new double[][]{{tSeconds,linear_acceleration[1]}};
-					//imuCalX = RMO.concat2D_double(imuCalX,imuNewX);
-					//imuCalY = RMO.concat2D_double(imuCalY,imuNewY);
-					imuCalX.add(linear_acceleration[0]);
-					imuCalY.add(linear_acceleration[1]);
-				}
-				else {
-					//SimpleRegression regX = new SimpleRegression();
-					//SimpleRegression regY = new SimpleRegression();
-					//regX.addData(imuCalX);
-					//regY.addData(imuCalY);
-					//imuDriftX = regX.getSlope();
-					//imuDriftY = regY.getSlope();
-					for (int i = 0; i < imuCalX.size(); i++) {
-						imuDriftX += imuCalX.get(i).doubleValue();
-						imuDriftY += imuCalY.get(i).doubleValue();
-					}
-					imuDriftX = imuDriftX/imuCalX.size();
-					imuDriftY = imuDriftY/imuCalY.size();
-					imuCalibrated = true;
-				}
-			}
-		}
+    private final SensorEventListener imuListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            // note: gravity has been excluded automatically
+            double[] linear_acceleration = new double[3];
+            linear_acceleration[0] = event.values[0]; // x
+            linear_acceleration[1] = event.values[1]; // y
+            linear_acceleration[2] = event.values[2]; // z
 
-		@Override
-		public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            Long old_t = tAccel;
+            tAccel = System.currentTimeMillis();
+            t = tAccel;
+            tSeconds = (tAccel.doubleValue()-t0.doubleValue())/1000.0;
+            double dt = (tAccel.doubleValue()-old_t.doubleValue())/1000.0;
 
-		}
-	};
+            if (imuABiasCalibrated) {
+                //linear_acceleration[0] = linear_acceleration[0] - imuABiasX;
+                //linear_acceleration[1] = linear_acceleration[1] - imuABiasY;
+                linear_acceleration[0] = linear_acceleration[0] - (imuATrend[0][0]*tSeconds + imuATrend[0][1]);
+                linear_acceleration[1] = linear_acceleration[1] - (imuATrend[1][0]*tSeconds + imuATrend[1][1]);
+                imuHistoryX.add(linear_acceleration[0]);
+                imuHistoryY.add(linear_acceleration[1]);
+                while (imuHistoryX.size() > imuMedianFilterSize) {
+                    imuHistoryX.remove(1); // remove the oldest
+                }
+                while (imuHistoryY.size() > imuMedianFilterSize) {
+                    imuHistoryY.remove(1); // remove the oldest
+                }
+                if (imuHistoryX.size() < imuMedianFilterSize) { return; }
+                // compute the median
+                double medianX = Median(imuHistoryX);
+                double medianY = Median(imuHistoryY);
+                // integrate
+                imuVelocity[0] += medianX*dt;
+                imuVelocity[1] += medianY*dt;
 
-	/**
-	 * UPDATE: 7/03/12 - Handles gyro updates by calling the appropriate update.
-	 */
-	private final SensorEventListener gyroListener = new SensorEventListener() {
-		@Override
-		public void onSensorChanged(SensorEvent event) {
-			// TODO Auto-generated method stub
+                if (imuVSlopeCalibrated) { // finally we can collect vaguely useful data
+                    imuVelocity[0] = imuVelocity[0] - (imuVTrend[0][0]*tSeconds + imuVTrend[0][1]);
+                    imuVelocity[1] = imuVelocity[1] - (imuVTrend[1][0]*tSeconds + imuVTrend[1][1]);
+
+                    //TODO: possibly median filter the velocity as well?
+                    RealMatrix z = MatrixUtils.createRealMatrix(2, 1);
+                    z.setEntry(0, 0, imuVelocity[0]);
+                    z.setEntry(1, 0, imuVelocity[1]);
+                    RealMatrix R = MatrixUtils.createRealMatrix(2, 2);
+                    double covarianceScale = 0.25 + Math.log(tSeconds);
+                    R.setEntry(0, 0, covarianceScale); // needs to grow logarithmically until a baseline
+                    R.setEntry(1, 1, covarianceScale); // needs to grow logarithmically until a baseline
+                    Datum datum = new Datum(SENSOR_TYPES.IMU, t, z, R);
+                    datumListener.newDatum(datum);
+                }
+                else {
+                    //double[][] imuNewX = new double[][]{{tSeconds,imuVelocity[0]}};
+                    //double[][] imuNewY = new double[][]{{tSeconds,imuVelocity[1]}};
+                    //imuVCalX = RMO.concat2D_double(imuVCalX,imuNewX);
+                    //imuVCalY = RMO.concat2D_double(imuVCalY,imuNewY);
+                    double[] x = new double[]{tSeconds,imuVelocity[0]};
+                    double[] y = new double[]{tSeconds,imuVelocity[1]};
+                    imuVCalX.add(x);
+                    imuVCalY.add(y);
+
+                    if (tSeconds > imuCalibTime) { // linear regression
+                        SimpleRegression regX = new SimpleRegression();
+                        SimpleRegression regY = new SimpleRegression();
+                        double[][] xarray = new double[imuVCalX.size()][2];
+                        double[][] yarray = new double[imuVCalX.size()][2];
+                        for (int i = 0; i < xarray.length; i++) {
+                            double[] x1dArray = imuVCalX.get(i);
+                            double[] y1dArray = imuVCalX.get(i);
+                            xarray[i] = x1dArray;
+                            yarray[i] = y1dArray;
+                        }
+                        regX.addData(xarray);
+                        regY.addData(yarray);
+                        //regX.addData((double[][]) imuVCalX.toArray());
+                        //regY.addData((double[][])imuVCalY.toArray());
+                        //imuVmX = regX.getSlope();
+                        //imuVmY = regY.getSlope();
+                        //imuVbX = regX.getIntercept();
+                        //imuVbY = regY.getIntercept();
+                        imuVTrend[0][0] = regX.getSlope();
+                        imuVTrend[0][1] = regX.getIntercept();
+                        imuVTrend[1][0] = regY.getSlope();
+                        imuVTrend[1][1] = regY.getIntercept();
+                        //imuVelocity[0] = 0; // reset the velocity integration
+                        //imuVelocity[1] = 0; // reset the velocity integration
+                        imuVSlopeCalibrated = true;
+                    }
+                }
+            }
+            else {
+                double[] x = new double[]{tSeconds,linear_acceleration[0]};
+                double[] y = new double[]{tSeconds,linear_acceleration[1]};
+                //imuACalX.add(linear_acceleration[0]);
+                //imuACalY.add(linear_acceleration[1]);
+                imuACalX.add(x);
+                imuACalY.add(y);
+                if (tSeconds > imuCalibTime/2.0) {
+                    SimpleRegression regX = new SimpleRegression();
+                    SimpleRegression regY = new SimpleRegression();
+                    double[][] xarray = new double[imuACalX.size()][2];
+                    double[][] yarray = new double[imuACalY.size()][2];
+                    for (int i = 0; i < xarray.length; i++) {
+                        double[] x1dArray = imuACalX.get(i);
+                        double[] y1dArray = imuACalY.get(i);
+                        xarray[i] = x1dArray;
+                        yarray[i] = y1dArray;
+                    }
+                    regX.addData(xarray);
+                    regY.addData(yarray);
+                    imuATrend[0][0] = regX.getSlope(); // x's m
+                    imuATrend[0][1] = regX.getIntercept(); // x's b
+                    imuATrend[1][0] = regY.getSlope(); // y's m
+                    imuATrend[1][1] = regY.getIntercept(); // y's b
+                    /*
+                    for (int i = 0; i < imuACalX.size(); i++) {
+                        imuABiasX += imuACalX.get(i).doubleValue();
+                        imuABiasY += imuACalY.get(i).doubleValue();
+                    }
+                    imuABiasX = imuABiasX/imuACalX.size();
+                    imuABiasY = imuABiasY/imuACalY.size();
+                    imuVCalX = new double[][]{{tSeconds,0}};
+                    imuVCalY = new double[][]{{tSeconds,0}};
+                    */
+                    imuABiasCalibrated = true;
+                }
+            }
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+        }
+    };
+
+    /**
+     * UPDATE: 7/03/12 - Handles gyro updates by calling the appropriate update.
+     */
+    private final SensorEventListener gyroListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            // TODO Auto-generated method stub
 			/*
 			 * Convert phone coordinates to world coordinates. use magnetometer
 			 * and accelerometer to get orientation Simple rotation is 90�
@@ -427,117 +502,119 @@ public class AirboatService extends Service {
 			 * M[ 5] | | values[1] | = gyroValues[1] // \ M[ 6] M[ 7] M[ 8] / \
 			 * values[2] / = gyroValues[2] //
 			 */
-			float[] gyroValues = new float[3];
-			gyroValues[0] = rotationMatrix[0] * event.values[0]
-					+ rotationMatrix[1] * event.values[1] + rotationMatrix[2]
-					* event.values[2];
-			gyroValues[1] = rotationMatrix[3] * event.values[0]
-					+ rotationMatrix[4] * event.values[1] + rotationMatrix[5]
-					* event.values[2];
-			gyroValues[2] = rotationMatrix[6] * event.values[0]
-					+ rotationMatrix[7] * event.values[1] + rotationMatrix[8]
-					* event.values[2];
+            float[] gyroValues = new float[3];
+            gyroValues[0] = rotationMatrix[0] * event.values[0]
+                    + rotationMatrix[1] * event.values[1] + rotationMatrix[2]
+                    * event.values[2];
+            gyroValues[1] = rotationMatrix[3] * event.values[0]
+                    + rotationMatrix[4] * event.values[1] + rotationMatrix[5]
+                    * event.values[2];
+            gyroValues[2] = rotationMatrix[6] * event.values[0]
+                    + rotationMatrix[7] * event.values[1] + rotationMatrix[8]
+                    * event.values[2];
 
-			/////////////////////////////////////////////////////////////////////
-			//Log.w("jjb","the gyro listener has activated");
+            /////////////////////////////////////////////////////////////////////
+            //Log.w("jjb","the gyro listener has activated");
 
-			RealMatrix z = MatrixUtils.createRealMatrix(1,1);
-			z.setEntry(0,0,(double)gyroValues[2]);
-			RealMatrix R = MatrixUtils.createRealMatrix(1,1);
-			R.setEntry(0, 0, 5.0e-4);
-			t = System.currentTimeMillis();
-			Datum datum = new Datum(SENSOR_TYPES.GYRO,t,z,R);
-			datumListener.newDatum(datum);
-			/////////////////////////////////////////////////////////////////////
-		}
-		@Override
-		public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		}
-	};
+            RealMatrix z = MatrixUtils.createRealMatrix(1,1);
+            z.setEntry(0,0,(double)gyroValues[2]);
+            RealMatrix R = MatrixUtils.createRealMatrix(1,1);
+            R.setEntry(0, 0, 5.0e-4);
+            t = System.currentTimeMillis();
+            Datum datum = new Datum(SENSOR_TYPES.GYRO,t,z,R);
+            datumListener.newDatum(datum);
+            /////////////////////////////////////////////////////////////////////
+        }
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        }
+    };
 
-	/**
-	 * Class for clients to access. Because we know this service always runs in
-	 * the same process as its clients, we don't deal with IPC.
-	 */
-	public class AirboatBinder extends Binder {
-		AirboatService getService() {
-			return AirboatService.this;
-		}
-	}
+    /**
+     * Class for clients to access. Because we know this service always runs in
+     * the same process as its clients, we don't deal with IPC.
+     */
+    public class AirboatBinder extends Binder {
+        AirboatService getService() {
+            return AirboatService.this;
+        }
+    }
 
-	@Override
-	public IBinder onBind(Intent intent) {
-		return _binder;
-	}
+    @Override
+    public IBinder onBind(Intent intent) {
+        return _binder;
+    }
 
-	@Override
-	public void onCreate() {
-		super.onCreate();
+    @Override
+    public void onCreate() {
+        super.onCreate();
 
-		// Disable all DNS lookups (safer for private/ad-hoc networks)
-		CrwSecurityManager.loadIfDNSIsSlow();
-		isRunning = true;
+        // Disable all DNS lookups (safer for private/ad-hoc networks)
+        CrwSecurityManager.loadIfDNSIsSlow();
+        isRunning = true;
 
-		// Disable strict-mode (TODO: remove this and use handlers)
-		StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder()
-				.permitAll().build();
-		StrictMode.setThreadPolicy(policy);
+        // Disable strict-mode (TODO: remove this and use handlers)
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder()
+                .permitAll().build();
+        StrictMode.setThreadPolicy(policy);
 
-		// Get USB Manager to handle USB accessories.
-		mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        // Get USB Manager to handle USB accessories.
+        mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
 
-		// TODO: optimize this to allocate resources up here and handle multiple start commands
+        // TODO: optimize this to allocate resources up here and handle multiple start commands
 
-		////////////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////
         Log.w("jjb","AirboatService.onCreate()");
-		gpsHistory = new ArrayList<Datum>();
-		t = System.currentTimeMillis();
-		tAccel = t;
-		t0 = t;
-		//imuCalX = new double[][]{{0,0}};
-		//imuCalY = new double[][]{{0,0}};
-		imuCalX = new ArrayList<Double>();
-		imuCalY = new ArrayList<Double>();
-		imuDriftX = 0;
-		imuDriftY = 0;
-		////////////////////////////////////////////////////////////////
+        gpsHistory = new ArrayList<Datum>();
+        t = System.currentTimeMillis();
+        tAccel = t;
+        t0 = t;
+        imuHistoryX = new ArrayList<>();
+        imuHistoryY = new ArrayList<>();
+        imuACalX = new ArrayList<>();
+        imuACalY = new ArrayList<>();
+        imuVCalX = new ArrayList<>();
+        imuVCalY = new ArrayList<>();
+        //imuABiasX = 0;
+        //imuABiasY = 0;
+        ////////////////////////////////////////////////////////////////
 
 
-	}
+    }
 
-	/**
-	 * Constructs a default filename from the current date and time.
-	 * 
-	 * @return the default filename for the current time.
-	 */
-	private static String defaultLogFilename() {
-		Date d = new Date();
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
-		return DEFAULT_LOG_PREFIX + sdf.format(d) + ".txt";
-	}
+    /**
+     * Constructs a default filename from the current date and time.
+     *
+     * @return the default filename for the current time.
+     */
+    private static String defaultLogFilename() {
+        Date d = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
+        return DEFAULT_LOG_PREFIX + sdf.format(d) + ".txt";
+    }
 
-	/**
-	 * Main service initialization: called whenever a request is made to start
-	 * the Airboat service.
-	 * 
-	 * This is where the vehicle implementation is started, sensors are
-	 * registered, and the update loop and RPC server are started.
-	 */
-	@Override
-	public int onStartCommand(final Intent intent, int flags, int startId) {
+    /**
+     * Main service initialization: called whenever a request is made to start
+     * the Airboat service.
+     *
+     * This is where the vehicle implementation is started, sensors are
+     * registered, and the update loop and RPC server are started.
+     */
+    @Override
+    public int onStartCommand(final Intent intent, int flags, int startId) {
 
         ////////////////////////////////////////////////
         Log.w("jjb","AirboatService.onStartCommand");
         ////////////////////////////////////////////////
 
 
-		super.onStartCommand(intent, flags, startId);
+        super.onStartCommand(intent, flags, startId);
 
-		// Ignore startup requests that don't include an intent
-		if (intent == null) {
-			Log.e(TAG, "Started with null intent.");
-			return Service.START_STICKY;
-		}
+        // Ignore startup requests that don't include an intent
+        if (intent == null) {
+            Log.e(TAG, "Started with null intent.");
+            return Service.START_STICKY;
+        }
 
         /* //////////////////////////////////////////////////////////////////////////////
 		// Ignore startup requests without an accessory.
@@ -552,62 +629,62 @@ public class AirboatService extends Service {
 
 
 
-		// Ensure that we do not reinitialize if not necessary
-		//if (_airboatImpl != null || _udpService != null) {
-		//	Log.w(TAG, "Attempted to start while running.");
-		//	return Service.START_STICKY;
-		//}
-		//if (lutra != null) {
-		//	Log.w(TAG, "Attempted to start while running.");
-		//}
+        // Ensure that we do not reinitialize if not necessary
+        //if (_airboatImpl != null || _udpService != null) {
+        //	Log.w(TAG, "Attempted to start while running.");
+        //	return Service.START_STICKY;
+        //}
+        //if (lutra != null) {
+        //	Log.w(TAG, "Attempted to start while running.");
+        //}
 
-		// start tracing to "/sdcard/trace_crw.trace"
-		// Debug.startMethodTracing("trace_crw");
+        // start tracing to "/sdcard/trace_crw.trace"
+        // Debug.startMethodTracing("trace_crw");
 
-		// Get context (used for system functions)
-		Context context = getApplicationContext();
+        // Get context (used for system functions)
+        Context context = getApplicationContext();
 
-		// Set up logging format to include time, tag, and value
-		PropertyConfigurator.getConfigurator(this).configure();
-		PatternFormatter formatter = new PatternFormatter();
-		formatter.setPattern("%r %d %m %T");
+        // Set up logging format to include time, tag, and value
+        PropertyConfigurator.getConfigurator(this).configure();
+        PatternFormatter formatter = new PatternFormatter();
+        formatter.setPattern("%r %d %m %T");
 
-		// Set up and register data logger to a date-stamped file
-		String logFilename = defaultLogFilename();
-		_fileAppender = new FileAppender();
-		_fileAppender.setFileName(logFilename);
-		_fileAppender.setAppend(true);
-		_fileAppender.setFormatter(formatter);
-		try {
-			_fileAppender.open();
-		} catch (IOException e) {
-			Log.w(TAG, "Failed to open data log file: " + logFilename, e);
-			sendNotification("Failed to open log: " + e.getMessage());
-		}
-		logger.addAppender(_fileAppender);
+        // Set up and register data logger to a date-stamped file
+        String logFilename = defaultLogFilename();
+        _fileAppender = new FileAppender();
+        _fileAppender.setFileName(logFilename);
+        _fileAppender.setAppend(true);
+        _fileAppender.setFormatter(formatter);
+        try {
+            _fileAppender.open();
+        } catch (IOException e) {
+            Log.w(TAG, "Failed to open data log file: " + logFilename, e);
+            sendNotification("Failed to open log: " + e.getMessage());
+        }
+        logger.addAppender(_fileAppender);
 
-		// Hook up to necessary Android sensors
-		SensorManager sm;
-		sm = (SensorManager) getSystemService(SENSOR_SERVICE);
-		Sensor gyro = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-		sm.registerListener(gyroListener, gyro, SensorManager.SENSOR_DELAY_NORMAL);
-		Sensor rotation_vector = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-		sm.registerListener(rotationVectorListener, rotation_vector, SensorManager.SENSOR_DELAY_NORMAL);
-		Sensor imu = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION); //excludes gravity!
-		sm.registerListener(imuListener,imu,SensorManager.SENSOR_DELAY_FASTEST);
+        // Hook up to necessary Android sensors
+        SensorManager sm;
+        sm = (SensorManager) getSystemService(SENSOR_SERVICE);
+        Sensor gyro = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        sm.registerListener(gyroListener, gyro, SensorManager.SENSOR_DELAY_NORMAL);
+        Sensor rotation_vector = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        sm.registerListener(rotationVectorListener, rotation_vector, SensorManager.SENSOR_DELAY_NORMAL);
+        Sensor imu = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION); //excludes gravity!
+        sm.registerListener(imuListener,imu,SensorManager.SENSOR_DELAY_FASTEST);
 
-		// Hook up to the GPS system ////////////////////////////////////////////////////////////
-		LocationManager gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-		Criteria c = new Criteria();
-		c.setAccuracy(Criteria.ACCURACY_FINE);
-		c.setPowerRequirement(Criteria.NO_REQUIREMENT);
-		String provider = gps.getBestProvider(c, false);
-		//gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0, locationListener);
-		gps.requestLocationUpdates(provider, 0, 0, locationListener);
+        // Hook up to the GPS system ////////////////////////////////////////////////////////////
+        LocationManager gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        Criteria c = new Criteria();
+        c.setAccuracy(Criteria.ACCURACY_FINE);
+        c.setPowerRequirement(Criteria.NO_REQUIREMENT);
+        String provider = gps.getBestProvider(c, false);
+        //gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0, locationListener);
+        gps.requestLocationUpdates(provider, 0, 0, locationListener);
 
-		//GpsStatus gpsStatus = gps.getGpsStatus(null);
-		//String a = String.format("gps time to first fix = %d ms",gpsStatus.getTimeToFirstFix());
-		//Log.w("jjb",a);
+        //GpsStatus gpsStatus = gps.getGpsStatus(null);
+        //String a = String.format("gps time to first fix = %d ms",gpsStatus.getTimeToFirstFix());
+        //Log.w("jjb",a);
 
 
         /*////////////////////////////////////////////////////////////////////////
@@ -641,13 +718,13 @@ public class AirboatService extends Service {
 
 
 
-		// Create the GAMS loop object ///////////////////////////////////////////////////////////////////////////////
-		//readMadaraConfig();
-		_id = 5;
-		_ipAddress = "heyheyhey";
-		_teamSize = 1;
-		lutra = new LutraGAMS(_id,_teamSize,_ipAddress);
-		lutra.start(lutra);
+        // Create the GAMS loop object ///////////////////////////////////////////////////////////////////////////////
+        //readMadaraConfig();
+        _id = 5;
+        _ipAddress = "heyheyhey";
+        _teamSize = 1;
+        lutra = new LutraGAMS(_id,_teamSize,_ipAddress);
+        lutra.start(lutra);
         datumListener = lutra.platform.boatEKF;
 
 		/*
@@ -823,49 +900,49 @@ public class AirboatService extends Service {
         }).start();
         */
 
-		// This is now a foreground service
-		{
-			// Set up the icon and ticker text
-			int icon = R.drawable.icon; // TODO: change this to notification
-										// icon
-			CharSequence tickerText = "Running normally.";
-			t = System.currentTimeMillis();
+        // This is now a foreground service
+        {
+            // Set up the icon and ticker text
+            int icon = R.drawable.icon; // TODO: change this to notification
+            // icon
+            CharSequence tickerText = "Running normally.";
+            t = System.currentTimeMillis();
 
-			// Set up the actual title and text
-			CharSequence contentTitle = "Airboat Server";
-			CharSequence contentText = tickerText;
-			Intent notificationIntent = new Intent(this, AirboatActivity.class);
-			PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-					notificationIntent, 0);
+            // Set up the actual title and text
+            CharSequence contentTitle = "Airboat Server";
+            CharSequence contentText = tickerText;
+            Intent notificationIntent = new Intent(this, AirboatActivity.class);
+            PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
+                    notificationIntent, 0);
 
-			// Add a notification to the menu
-			Notification notification = new Notification(icon, tickerText, t);
-			notification.setLatestEventInfo(context, contentTitle, contentText,
-					contentIntent);
-			startForeground(SERVICE_ID, notification);
-		}
+            // Add a notification to the menu
+            Notification notification = new Notification(icon, tickerText, t);
+            notification.setLatestEventInfo(context, contentTitle, contentText,
+                    contentIntent);
+            startForeground(SERVICE_ID, notification);
+        }
 
-		// Prevent phone from sleeping or turning off wifi
-		{
-			// Acquire a WakeLock to keep the CPU running
-			PowerManager pm = (PowerManager) context
-					.getSystemService(Context.POWER_SERVICE);
-			_wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-					"AirboatWakeLock");
-			_wakeLock.acquire();
+        // Prevent phone from sleeping or turning off wifi
+        {
+            // Acquire a WakeLock to keep the CPU running
+            PowerManager pm = (PowerManager) context
+                    .getSystemService(Context.POWER_SERVICE);
+            _wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                    "AirboatWakeLock");
+            _wakeLock.acquire();
 
-			// Acquire a WifiLock to keep the phone from turning off wifi
-			WifiManager wm = (WifiManager) context
-					.getSystemService(Context.WIFI_SERVICE);
-			_wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
-					"AirboatWifiLock");
-			_wifiLock.acquire();
-		}
+            // Acquire a WifiLock to keep the phone from turning off wifi
+            WifiManager wm = (WifiManager) context
+                    .getSystemService(Context.WIFI_SERVICE);
+            _wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                    "AirboatWifiLock");
+            _wifiLock.acquire();
+        }
 
-		// Indicate that the service should not be stopped arbitrarily
-		Log.i(TAG, "AirboatService started.");
-		return Service.START_STICKY;
-	}
+        // Indicate that the service should not be stopped arbitrarily
+        Log.i(TAG, "AirboatService started.");
+        return Service.START_STICKY;
+    }
 
     /**
      * Read in device id and team size from text file madara.config
@@ -903,74 +980,74 @@ public class AirboatService extends Service {
         }*/
     }
 
-	/**
-	 * Called when there are no longer any consumers of the service and
-	 * stopService has been called.
-	 * 
-	 * This is where the RPC server and update loops are killed, the sensors are
-	 * unregistered, and the current vehicle implementation is unhooked from all
-	 * of its callbacks and discarded (allowing safe spawning of a new
-	 * implementation when the service is restarted).
-	 */
-	@Override
-	public void onDestroy() {
+    /**
+     * Called when there are no longer any consumers of the service and
+     * stopService has been called.
+     *
+     * This is where the RPC server and update loops are killed, the sensors are
+     * unregistered, and the current vehicle implementation is unhooked from all
+     * of its callbacks and discarded (allowing safe spawning of a new
+     * implementation when the service is restarted).
+     */
+    @Override
+    public void onDestroy() {
 
-		Log.w("jjb","AirboatService.onDestroy()");
+        Log.w("jjb","AirboatService.onDestroy()");
 
-		// Stop tracing to "/sdcard/trace_crw.trace"
-		Debug.stopMethodTracing();
+        // Stop tracing to "/sdcard/trace_crw.trace"
+        Debug.stopMethodTracing();
 
-		// Shutdown the vehicle services
-		if (_udpService != null) {
-			try {
-				_udpService.shutdown();
-			} catch (Exception e) {
-				Log.e(TAG, "UdpVehicleService shutdown error", e);
-			}
-			_udpService = null;
-		}
+        // Shutdown the vehicle services
+        if (_udpService != null) {
+            try {
+                _udpService.shutdown();
+            } catch (Exception e) {
+                Log.e(TAG, "UdpVehicleService shutdown error", e);
+            }
+            _udpService = null;
+        }
 
-		// Release locks on wifi and CPU
-		if (_wakeLock != null) {
-			_wakeLock.release();
-		}
-		if (_wifiLock != null) {
-			_wifiLock.release();
-		}
+        // Release locks on wifi and CPU
+        if (_wakeLock != null) {
+            _wakeLock.release();
+        }
+        if (_wifiLock != null) {
+            _wifiLock.release();
+        }
 
-		// Disconnect from USB event receiver
-		//unregisterReceiver(_usbStatusReceiver);
+        // Disconnect from USB event receiver
+        //unregisterReceiver(_usbStatusReceiver);
 
-		// Disconnect from the Android sensors
-		SensorManager sm;
-		sm = (SensorManager) getSystemService(SENSOR_SERVICE);
-		sm.unregisterListener(gyroListener);
-		sm.unregisterListener(rotationVectorListener);
+        // Disconnect from the Android sensors
+        SensorManager sm;
+        sm = (SensorManager) getSystemService(SENSOR_SERVICE);
+        sm.unregisterListener(gyroListener);
+        sm.unregisterListener(rotationVectorListener);
 
-		// Disconnect from GPS updates
-		LocationManager gps;
-		gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-		gps.removeUpdates(locationListener);
+        // Disconnect from GPS updates
+        LocationManager gps;
+        gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        gps.removeUpdates(locationListener);
 
-		// Disconnect the data object from this service
-		if (_airboatImpl != null) {
-			try {
-				mUsbDescriptor.close();
-			} catch (IOException e) {
-			}
-			_airboatImpl.setConnected(false);
-			_airboatImpl.shutdown();
-			_airboatImpl = null;
-		}
+        // Disconnect the data object from this service
+        if (_airboatImpl != null) {
+            try {
+                mUsbDescriptor.close();
+            } catch (IOException e) {
+            }
+            _airboatImpl.setConnected(false);
+            _airboatImpl.shutdown();
+            _airboatImpl = null;
+        }
 
-		// Remove the data log (a new one will be created on restart)
-		if (_fileAppender != null) {
-			try {
-				_fileAppender.close();
-			} catch (IOException e) {
-				Log.e(TAG, "Data log shutdown error", e);
-			}
-		}
+        // Remove the data log (a new one will be created on restart)
+        if (_fileAppender != null) {
+            try {
+                _fileAppender.close();
+            } catch (IOException e) {
+                Log.e(TAG, "Data log shutdown error", e);
+            }
+        }
 
 		/*
         // Destroy MADARA objects
@@ -979,68 +1056,82 @@ public class AirboatService extends Service {
         _algorithm.shutdown();
         _platform.shutdown();
         */
-		lutra.shutdown();
+        lutra.shutdown();
 
-		// Disable this as a foreground service
-		stopForeground(true);
+        // Disable this as a foreground service
+        stopForeground(true);
 
-		Log.i(TAG, "AirboatService stopped.");
-		isRunning = false;
-		super.onDestroy();
-	}
+        Log.i(TAG, "AirboatService stopped.");
+        isRunning = false;
+        super.onDestroy();
+    }
 
-	public void sendNotification(CharSequence text) {
-		String ns = Context.NOTIFICATION_SERVICE;
-		NotificationManager notificationManager = (NotificationManager) getSystemService(ns);
+    public void sendNotification(CharSequence text) {
+        String ns = Context.NOTIFICATION_SERVICE;
+        NotificationManager notificationManager = (NotificationManager) getSystemService(ns);
 
-		// Set up the icon and ticker text
-		int icon = R.drawable.icon; // TODO: change this to notification icon
-		CharSequence tickerText = text;
-		t = System.currentTimeMillis();
+        // Set up the icon and ticker text
+        int icon = R.drawable.icon; // TODO: change this to notification icon
+        CharSequence tickerText = text;
+        t = System.currentTimeMillis();
 
-		// Set up the actual title and text
-		Context context = getApplicationContext();
-		CharSequence contentTitle = "Airboat Server";
-		CharSequence contentText = text;
-		Intent notificationIntent = new Intent(this, AirboatService.class);
-		PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
-				notificationIntent, 0);
+        // Set up the actual title and text
+        Context context = getApplicationContext();
+        CharSequence contentTitle = "Airboat Server";
+        CharSequence contentText = text;
+        Intent notificationIntent = new Intent(this, AirboatService.class);
+        PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
+                notificationIntent, 0);
 
-		Notification notification = new Notification(icon, tickerText, t);
-		notification.setLatestEventInfo(context, contentTitle, contentText,
-				contentIntent);
-		notification.flags |= Notification.FLAG_AUTO_CANCEL;
+        Notification notification = new Notification(icon, tickerText, t);
+        notification.setLatestEventInfo(context, contentTitle, contentText,
+                contentIntent);
+        notification.flags |= Notification.FLAG_AUTO_CANCEL;
 
-		notificationManager.notify(SERVICE_ID, notification);
-	}
+        notificationManager.notify(SERVICE_ID, notification);
+    }
 
-	/**
-	 * Listen for disconnection events for accessory and close connection.
-	 */
+    /**
+     * Listen for disconnection events for accessory and close connection.
+     */
 
-	BroadcastReceiver _usbStatusReceiver = new BroadcastReceiver() {
-		@Override
-		public void onReceive(Context context, Intent intent) {
+    BroadcastReceiver _usbStatusReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
 
-			// Retrieve the device that was just disconnected.
-			UsbAccessory accessory = (UsbAccessory) intent
-					.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
+            // Retrieve the device that was just disconnected.
+            UsbAccessory accessory = (UsbAccessory) intent
+                    .getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
 
-			// Check if this accessory matches the one we have open.
-			if (mUsbAccessory.equals(accessory)) {
-				try {
-					// Close the descriptor for our accessory.
-					// (This triggers server shutdown.)
-					mUsbDescriptor.close();
-					Log.e(TAG, "Closing accessory.");
-				} catch (IOException e) {
-					Log.w(TAG, "Failed to close accessory cleanly.", e);
-				}
+            // Check if this accessory matches the one we have open.
+            if (mUsbAccessory.equals(accessory)) {
+                try {
+                    // Close the descriptor for our accessory.
+                    // (This triggers server shutdown.)
+                    mUsbDescriptor.close();
+                    Log.e(TAG, "Closing accessory.");
+                } catch (IOException e) {
+                    Log.w(TAG, "Failed to close accessory cleanly.", e);
+                }
 
-				stopSelf();
-			}
-		}
-	};
+                stopSelf();
+            }
+        }
+    };
+
+    public static double Median(List<Double> values)
+    {
+        Collections.sort(values);
+
+        if (values.size() % 2 == 1)
+            return values.get((values.size()+1)/2-1);
+        else
+        {
+            double lower = values.get(values.size()/2-1);
+            double upper = values.get(values.size()/2);
+            return (lower + upper) / 2.0;
+        }
+    }
 
 
 }
