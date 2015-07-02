@@ -17,7 +17,7 @@ public class RMO {
         difference = x1.subtract(x2);
         double result = 0;
         for (int i = 0; i < x1.getRowDimension(); i++) {
-            result += difference.getEntry(i,0)*difference.getEntry(i,0);
+            result += difference.getEntry(i,0)*difference.getEntry(i, 0);
         }
         return Math.sqrt(result);
     }
@@ -55,7 +55,7 @@ public class RMO {
     }
 
     public static RealMatrix sumOverRows(RealMatrix a) {
-        RealMatrix result = MatrixUtils.createRealMatrix(1,a.getColumnDimension());
+        RealMatrix result = MatrixUtils.createRealMatrix(1, a.getColumnDimension());
         for (int i = 0; i < a.getRowDimension(); i++) {
             for (int j = 0; j < a.getColumnDimension(); j++) {
                 result.setEntry(0,j,result.getEntry(0,j)+a.getEntry(i,j));
@@ -79,6 +79,10 @@ public class RMO {
         return result;
     }
 
-
-
+    public static double[][] concat2D_double(double[][] a1, double[][] a2) {
+        double[][] result = new double[a1.length + a2.length][];
+        System.arraycopy(a1, 0, result, 0, a1.length);
+        System.arraycopy(a2, 0, result, a1.length, a2.length);
+        return result;
+    }
 }

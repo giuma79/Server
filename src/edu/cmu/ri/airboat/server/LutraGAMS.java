@@ -29,7 +29,6 @@ public class LutraGAMS extends AbstractVehicleServer {
     KnowledgeBase knowledge;
     BaseAlgorithm algorithm;
 
-
     public LutraGAMS(int id, int teamSize, String ipAddress) {
         this.id = id;
         this.teamSize = teamSize;
@@ -40,7 +39,6 @@ public class LutraGAMS extends AbstractVehicleServer {
         settings.setType(TransportType.MULTICAST_TRANSPORT);
         knowledge = new KnowledgeBase(ipAddress,settings);
         controller = new BaseController(knowledge);
-
     }
 
 
@@ -95,6 +93,7 @@ public class LutraGAMS extends AbstractVehicleServer {
     void shutdown() {
         knowledge.free();
         controller.free();
+        platform.shutdown();
     }
 
 

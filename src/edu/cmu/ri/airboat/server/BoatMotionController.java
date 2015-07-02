@@ -3,9 +3,6 @@ package edu.cmu.ri.airboat.server;
 import android.util.Log;
 
 import com.madara.KnowledgeBase;
-import com.madara.KnowledgeRecord;
-import com.madara.containers.Double;
-import com.madara.containers.DoubleVector;
 
 import org.apache.commons.math.linear.MatrixUtils;
 import org.apache.commons.math.linear.RealMatrix;
@@ -18,29 +15,20 @@ public class BoatMotionController implements VelocityProfileListener {
     int stateSize;
     RealMatrix x;
     RealMatrix xd;
-    RealMatrix profile;
+    RealMatrix profile; // current velocity profile to follow
+    RealMatrix xError;
     KnowledgeBase knowledge;
-    DoubleVector x_KB;
     Long t;
     boolean executingProfile;
-    Double distance;
-    Double sufficientProximity;
+    LutraMadaraContainers containers;
 
-    RealMatrix xError;
-
-
-    public BoatMotionController(KnowledgeBase knowledge, int stateSize) {
+    public BoatMotionController(KnowledgeBase knowledge, int stateSize,LutraMadaraContainers containers) {
         this.knowledge = knowledge;
-        x_KB = new DoubleVector();
-        x_KB.setName(this.knowledge,".x");
+        this.containers = containers;
         this.stateSize = stateSize;
-        x_KB.resize(stateSize);
         xError = MatrixUtils.createRealMatrix(3,1);
         x = MatrixUtils.createRealMatrix(stateSize,1);
-        distance = new Double();
-        distance.setName(knowledge,".distToDest");
-        sufficientProximity = new Double();
-        sufficientProximity.setName(knowledge,".sufficientProximity");
+        xd = MatrixUtils.createRealMatrix(3,1);
     }
 
     public void control() {
@@ -48,8 +36,8 @@ public class BoatMotionController implements VelocityProfileListener {
 
         // current position error
         xError = xd.subtract(x.getSubMatrix(0, 2, 0, 0));
-        distance.set(RMO.norm2(x.getSubMatrix(0, 1, 0, 0), xd.getSubMatrix(0, 1, 0, 0)));
-        if (distance.get() < sufficientProximity.get()) {
+        containers.distToDest.set(RMO.norm2(x.getSubMatrix(0, 1, 0, 0), xd.getSubMatrix(0, 1, 0, 0)));
+        if (containers.distToDest.get() < containers.sufficientProximity.get()) {
             executingProfile = false;
         }
 
@@ -87,16 +75,17 @@ public class BoatMotionController implements VelocityProfileListener {
 
     void updateFromKnowledgeBase() {
         // remember to subtract device.{.id}.home from the destination so xd is centered about (0,0) like x
-        KnowledgeRecord home = knowledge.get("device."+ knowledge.get(".id") +".home");
-        KnowledgeRecord xd_KR = knowledge.get("device."+ knowledge.get(".id") +".dest");
-        double[] xd_array = xd_KR.toDoubleArray();
-        double[] home_array = home.toDoubleArray();
-        xd = MatrixUtils.createColumnRealMatrix(xd_array);
-        xd = xd.subtract(MatrixUtils.createColumnRealMatrix(home_array));
+        //KnowledgeRecord home = containers.self.device.home.toRecord();
+        //KnowledgeRecord xd_KR = containers.self.device.dest.toRecord();
+        //double[] xd_array = xd_KR.toDoubleArray();
+        //double[] home_array = home.toDoubleArray();
+        //xd = MatrixUtils.createColumnRealMatrix(xd_array);
+        //xd = xd.subtract(MatrixUtils.createColumnRealMatrix(home_array));
+        xd = containers.NDV_to_RM(containers.self.device.dest).subtract(containers.NDV_to_RM(containers.self.device.home));
 
         // update current state
         for (int i = 0; i < stateSize; i++) {
-            x.setEntry(i,0,x_KB.get(i));
+            x.setEntry(i,0,containers.x.get(i));
         }
 
         Log.w("jjb","xd = " + RMO.realMatrixToString(xd));
@@ -109,9 +98,6 @@ public class BoatMotionController implements VelocityProfileListener {
     }
 
     public void shutdown() {
-        x_KB.free();
-        distance.free();
-        sufficientProximity.free();
     }
 
 

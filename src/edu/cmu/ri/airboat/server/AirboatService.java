@@ -88,12 +88,6 @@ import com.gams.algorithms.DebuggerAlgorithm;
 ///////////////////////////////////////////////////////
 
 
-
-
-
-
-
-
 /**
  * Android Service to register sensor and Amarino handlers for Android.s
  * Contains a RosVehicleServer and a VehicleServer object.
@@ -106,7 +100,21 @@ public class AirboatService extends Service {
     /////////////////////////////////////////
     DatumListener datumListener;
 	List<Datum> gpsHistory; // maintain a list of GPS data within some time window
-	double gpsHistoryTimeWindow = 3.0; // if a gps point is older than X seconds, abandon it
+	final double gpsHistoryTimeWindow = 3.0; // if a gps point is older than X seconds, abandon it
+	double[] imuVelocity = new double[2]; // acceleration is integrated into this sum
+	double[] imuAccel = new double[2]; // used to average acceleration over some dt
+	Long t; // current time in this thread
+	Long tAccel; // a special time keeper just for accelerometer data
+	Long t0; // used to grow the covariance of the IMU integrated velocity over time
+	double tSeconds;
+	final double imuCalibTime = 10.0; // number of seconds to calibrate a linear drift fit for the accelerometer
+	boolean imuCalibrated;
+	//double[][] imuCalX;
+	//double[][] imuCalY;
+	List<Double> imuCalX;
+	List<Double> imuCalY;
+	double imuDriftX;
+	double imuDriftY;
 
 	// until i get an actual USB polling listener running, need to fake motor commands
 	void MotorCommands() {
@@ -118,11 +126,10 @@ public class AirboatService extends Service {
 		RealMatrix R = MatrixUtils.createRealMatrix(2,2);
 		R.setEntry(0, 0, 0.0);
 		R.setEntry(0,0,0.0);
-		Long currentTime = java.lang.System.currentTimeMillis();
-		Datum datum = new Datum(SENSOR_TYPES.MOTOR,currentTime,z,R);
+		t = System.currentTimeMillis();
+		Datum datum = new Datum(SENSOR_TYPES.MOTOR,t,z,R);
 		datumListener.newDatum(datum);
 	}
-
     /////////////////////////////////////////
 
 	private static final int SERVICE_ID = 11312;
@@ -224,15 +231,15 @@ public class AirboatService extends Service {
             z.setEntry(0,0,utm.pose.getX());
             z.setEntry(1,0,utm.pose.getY());
             RealMatrix R = MatrixUtils.createRealMatrix(2,2);
-            R.setEntry(0, 0, 5.0);
-            R.setEntry(1,1,5.0);
-			Long currentTime = java.lang.System.currentTimeMillis();
-            Datum datum = new Datum(SENSOR_TYPES.GPS,currentTime,z,R);
+            R.setEntry(0, 0, 10.0);
+            R.setEntry(1,1,10.0);
+			t = System.currentTimeMillis();
+            Datum datum = new Datum(SENSOR_TYPES.GPS,t,z,R);
             datumListener.newDatum(datum);
 
 			gpsHistory.add(datum);
 			for (int i = gpsHistory.size()-1; i > -1; i--) {
-				if ((currentTime.doubleValue() - gpsHistory.get(i).getTimestamp().doubleValue())/1000.0 > gpsHistoryTimeWindow) {
+				if ((t.doubleValue() - gpsHistory.get(i).getTimestamp().doubleValue())/1000.0 > gpsHistoryTimeWindow) {
 					gpsHistory.remove(i);
 				}
 			}
@@ -254,9 +261,6 @@ public class AirboatService extends Service {
 				yvst[i][0] = t;
 				xvst[i][1] = gpsHistory.get(i).getZ().getEntry(0,0);
 				yvst[i][1] = gpsHistory.get(i).getZ().getEntry(1,0);
-				//relevantGPS.setEntry(i,0,gpsHistory.get(i).getTimestamp().doubleValue()/1000.0); // time (s)
-				//relevantGPS.setEntry(i,1,gpsHistory.get(i).getZ().getEntry(0,0)); // x
-				//relevantGPS.setEntry(i,1,gpsHistory.get(i).getZ().getEntry(1,0)); // y
 			}
 			SimpleRegression regX = new SimpleRegression();
 			SimpleRegression regY = new SimpleRegression();
@@ -265,13 +269,17 @@ public class AirboatService extends Service {
 			double xdot = regX.getSlope();
 			double ydot = regY.getSlope();
 
+			// reset potentially crazy imu integration velocities
+			//imuVelocity[0] = xdot;
+			//imuVelocity[1] = ydot;
+
 			RealMatrix z2 = MatrixUtils.createRealMatrix(2,1);
-			z2.setEntry(0,0,utm.pose.getX());
-			z2.setEntry(1, 0, utm.pose.getY());
+			z2.setEntry(0,0,xdot);
+			z2.setEntry(1, 0, ydot);
 			RealMatrix R2 = MatrixUtils.createRealMatrix(2,2);
-			R2.setEntry(0, 0, 2.0);
-			R2.setEntry(1, 1, 2.0);
-			Datum datum2 = new Datum(SENSOR_TYPES.DGPS,currentTime,z2,R2);
+			R2.setEntry(0, 0, 10.0);
+			R2.setEntry(1, 1, 10.0);
+			Datum datum2 = new Datum(SENSOR_TYPES.DGPS,t,z2,R2);
 			datumListener.newDatum(datum2);
 
 			String DGPSString = String.format("DGPS has enough measurements to activate -- z = %s",RMO.realMatrixToString(z2));
@@ -307,9 +315,6 @@ public class AirboatService extends Service {
 				//	logger.info("COMPASS: " + yaw);
 				//}
 
-
-
-
 				/////////////////////////////////////////////////////////////////////
 				//String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
 				//Log.w("jjb", "the compass listener has activated" + threadID);
@@ -318,13 +323,12 @@ public class AirboatService extends Service {
 				z.setEntry(0,0,yaw);
 				RealMatrix R = MatrixUtils.createRealMatrix(1,1);
 				R.setEntry(0, 0, Math.PI/60.0); // 3 degrees
-				Datum datum = new Datum(SENSOR_TYPES.COMPASS,java.lang.System.currentTimeMillis(),z,R);
+				t = System.currentTimeMillis();
+				Datum datum = new Datum(SENSOR_TYPES.COMPASS,t,z,R);
 				datumListener.newDatum(datum);
 
 
-
-				// ******
-				MotorCommands();
+				MotorCommands(); // ******************************************************************************
 
 				/////////////////////////////////////////////////////////////////////
 
@@ -338,6 +342,76 @@ public class AirboatService extends Service {
 		public void onAccuracyChanged(Sensor sensor, int accuracy) {
 		}
 	};
+
+	private final SensorEventListener imuListener = new SensorEventListener() {
+		@Override
+		public void onSensorChanged(SensorEvent event) {
+			// note: gravity has been excluded automatically
+			double[] linear_acceleration = new double[3];
+			linear_acceleration[0] = event.values[0]; // x
+			linear_acceleration[1] = event.values[1]; // y
+			linear_acceleration[2] = event.values[2]; // z
+
+			/////////////////////////////////////////////////////////////////////
+			//String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
+			//Log.w("jjb", "the compass listener has activated" + threadID);
+			Long old_t = tAccel;
+			tAccel = System.currentTimeMillis();
+			t = tAccel;
+			tSeconds = (tAccel.doubleValue()-t0.doubleValue())/1000.0;
+
+			if (imuCalibrated) {
+				// calibration corrections
+				linear_acceleration[0] = linear_acceleration[0] - imuDriftX;//*tSeconds;
+				linear_acceleration[1] = linear_acceleration[1] - imuDriftY;//*tSeconds;
+				double dt = (tAccel.doubleValue()-old_t.doubleValue())/1000.0;
+				imuVelocity[0] += dt*(linear_acceleration[0]+imuAccel[0])/2.0;
+				imuVelocity[1] += dt*(linear_acceleration[1]+imuAccel[1])/2.0;
+				RealMatrix z = MatrixUtils.createRealMatrix(2, 1);
+				z.setEntry(0, 0, imuVelocity[0]);
+				z.setEntry(1, 0, imuVelocity[1]);
+				RealMatrix R = MatrixUtils.createRealMatrix(2, 2);
+				double covarianceScale = 0.25 + Math.log(tSeconds);
+				R.setEntry(0, 0, covarianceScale); // needs to grow logarithmically until a baseline
+				R.setEntry(1, 1, covarianceScale); // needs to grow logarithmically until a baseline
+				Datum datum = new Datum(SENSOR_TYPES.IMU, t, z, R);
+				datumListener.newDatum(datum);
+				imuAccel[0] = linear_acceleration[0];
+				imuAccel[0] = linear_acceleration[1];
+			}
+			else {
+				if (tSeconds < imuCalibTime) {
+					//double[][] imuNewX = new double[][]{{tSeconds,linear_acceleration[0]}};
+					//double[][] imuNewY = new double[][]{{tSeconds,linear_acceleration[1]}};
+					//imuCalX = RMO.concat2D_double(imuCalX,imuNewX);
+					//imuCalY = RMO.concat2D_double(imuCalY,imuNewY);
+					imuCalX.add(linear_acceleration[0]);
+					imuCalY.add(linear_acceleration[1]);
+				}
+				else {
+					//SimpleRegression regX = new SimpleRegression();
+					//SimpleRegression regY = new SimpleRegression();
+					//regX.addData(imuCalX);
+					//regY.addData(imuCalY);
+					//imuDriftX = regX.getSlope();
+					//imuDriftY = regY.getSlope();
+					for (int i = 0; i < imuCalX.size(); i++) {
+						imuDriftX += imuCalX.get(i).doubleValue();
+						imuDriftY += imuCalY.get(i).doubleValue();
+					}
+					imuDriftX = imuDriftX/imuCalX.size();
+					imuDriftY = imuDriftY/imuCalY.size();
+					imuCalibrated = true;
+				}
+			}
+		}
+
+		@Override
+		public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+		}
+	};
+
 	/**
 	 * UPDATE: 7/03/12 - Handles gyro updates by calling the appropriate update.
 	 */
@@ -364,8 +438,6 @@ public class AirboatService extends Service {
 					+ rotationMatrix[7] * event.values[1] + rotationMatrix[8]
 					* event.values[2];
 
-
-
 			/////////////////////////////////////////////////////////////////////
 			//Log.w("jjb","the gyro listener has activated");
 
@@ -373,15 +445,10 @@ public class AirboatService extends Service {
 			z.setEntry(0,0,(double)gyroValues[2]);
 			RealMatrix R = MatrixUtils.createRealMatrix(1,1);
 			R.setEntry(0, 0, 5.0e-4);
-			Datum datum = new Datum(SENSOR_TYPES.GYRO,java.lang.System.currentTimeMillis(),z,R);
+			t = System.currentTimeMillis();
+			Datum datum = new Datum(SENSOR_TYPES.GYRO,t,z,R);
 			datumListener.newDatum(datum);
 			/////////////////////////////////////////////////////////////////////
-
-
-
-
-			//if (_airboatImpl != null)
-			//	_airboatImpl.setPhoneGyro(gyroValues);
 		}
 		@Override
 		public void onAccuracyChanged(Sensor sensor, int accuracy) {
@@ -424,6 +491,15 @@ public class AirboatService extends Service {
 		////////////////////////////////////////////////////////////////
         Log.w("jjb","AirboatService.onCreate()");
 		gpsHistory = new ArrayList<Datum>();
+		t = System.currentTimeMillis();
+		tAccel = t;
+		t0 = t;
+		//imuCalX = new double[][]{{0,0}};
+		//imuCalY = new double[][]{{0,0}};
+		imuCalX = new ArrayList<Double>();
+		imuCalY = new ArrayList<Double>();
+		imuDriftX = 0;
+		imuDriftY = 0;
 		////////////////////////////////////////////////////////////////
 
 
@@ -514,12 +590,11 @@ public class AirboatService extends Service {
 		SensorManager sm;
 		sm = (SensorManager) getSystemService(SENSOR_SERVICE);
 		Sensor gyro = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-		sm.registerListener(gyroListener, gyro,
-				SensorManager.SENSOR_DELAY_NORMAL);
-		Sensor rotation_vector = sm
-				.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-		sm.registerListener(rotationVectorListener, rotation_vector,
-				SensorManager.SENSOR_DELAY_NORMAL);
+		sm.registerListener(gyroListener, gyro, SensorManager.SENSOR_DELAY_NORMAL);
+		Sensor rotation_vector = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+		sm.registerListener(rotationVectorListener, rotation_vector, SensorManager.SENSOR_DELAY_NORMAL);
+		Sensor imu = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION); //excludes gravity!
+		sm.registerListener(imuListener,imu,SensorManager.SENSOR_DELAY_FASTEST);
 
 		// Hook up to the GPS system ////////////////////////////////////////////////////////////
 		LocationManager gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -563,6 +638,7 @@ public class AirboatService extends Service {
 		// Create the data object
 		//_airboatImpl = new AirboatImpl(this, usbWriter);
         */ ////////////////////////////////////////////////////////////////////////
+
 
 
 		// Create the GAMS loop object ///////////////////////////////////////////////////////////////////////////////
@@ -753,7 +829,7 @@ public class AirboatService extends Service {
 			int icon = R.drawable.icon; // TODO: change this to notification
 										// icon
 			CharSequence tickerText = "Running normally.";
-			long when = System.currentTimeMillis();
+			t = System.currentTimeMillis();
 
 			// Set up the actual title and text
 			CharSequence contentTitle = "Airboat Server";
@@ -763,7 +839,7 @@ public class AirboatService extends Service {
 					notificationIntent, 0);
 
 			// Add a notification to the menu
-			Notification notification = new Notification(icon, tickerText, when);
+			Notification notification = new Notification(icon, tickerText, t);
 			notification.setLatestEventInfo(context, contentTitle, contentText,
 					contentIntent);
 			startForeground(SERVICE_ID, notification);
@@ -920,7 +996,7 @@ public class AirboatService extends Service {
 		// Set up the icon and ticker text
 		int icon = R.drawable.icon; // TODO: change this to notification icon
 		CharSequence tickerText = text;
-		long when = System.currentTimeMillis();
+		t = System.currentTimeMillis();
 
 		// Set up the actual title and text
 		Context context = getApplicationContext();
@@ -930,7 +1006,7 @@ public class AirboatService extends Service {
 		PendingIntent contentIntent = PendingIntent.getActivity(this, 0,
 				notificationIntent, 0);
 
-		Notification notification = new Notification(icon, tickerText, when);
+		Notification notification = new Notification(icon, tickerText, t);
 		notification.setLatestEventInfo(context, contentTitle, contentText,
 				contentIntent);
 		notification.flags |= Notification.FLAG_AUTO_CANCEL;

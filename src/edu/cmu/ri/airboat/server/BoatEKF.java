@@ -7,7 +7,6 @@ import org.apache.commons.math.linear.RealMatrix;
 
 import com.madara.KnowledgeBase;
 import com.madara.KnowledgeRecord;
-import com.madara.containers.DoubleVector;
 
 
 /**
@@ -39,14 +38,13 @@ public class BoatEKF implements DatumListener {
     public boolean isCompassInitialized = false;
 
     KnowledgeBase knowledge;
-    DoubleVector x_KB;
+    LutraMadaraContainers containers;
 
-    public BoatEKF(KnowledgeBase knowledge) {
+    public BoatEKF(KnowledgeBase knowledge,LutraMadaraContainers containers) {
         t = java.lang.System.currentTimeMillis();
         this.knowledge = knowledge;
-        x_KB = new DoubleVector();
-        x_KB.setName(knowledge, ".x");
-        x_KB.resize(stateSize);
+        this.containers = containers;
+        containers.x.resize(stateSize);
 
         // default Q and P (use other constructor to override these)
         QBase = QBase.scalarMultiply(0.01);
@@ -58,20 +56,19 @@ public class BoatEKF implements DatumListener {
 
     }
 
-    public BoatEKF(KnowledgeBase knowledge, RealMatrix x, RealMatrix P, RealMatrix QBase) {
-        this(knowledge);
+    public BoatEKF(KnowledgeBase knowledge, LutraMadaraContainers containers, RealMatrix x, RealMatrix P, RealMatrix QBase) {
+        this(knowledge,containers);
         this.x = x;
         this.P = P;
         this.QBase = QBase;
     }
 
     public void shutdown() {
-        x_KB.free();
     }
 
     public synchronized void updateKnowledgeBase() {
         for (int i = 0; i < stateSize; i++) {
-            x_KB.set(i, x.getEntry(i,0));
+            containers.x.set(i, x.getEntry(i, 0));
         }
         //knowledge.set("device." + knowledge.get(".id") + ".location",x.getSubMatrix(0,2,0,0).getColumn(0));
         // can't update device.{.id}.location here b/c it will broadcast too often
@@ -84,9 +81,11 @@ public class BoatEKF implements DatumListener {
 
         //String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
         //Log.w("jjb","received datum z = " + datum.getZ().toString() + threadID);
-        String datum_data = RMO.realMatrixToString(datum.getZ());
-        String datum_info = String.format("Received %s, z = %s",datum.typeString(),datum_data);
-        Log.w("jjb",datum_info);
+        if (!datum.isType(SENSOR_TYPES.GYRO) && !datum.isType(SENSOR_TYPES.COMPASS)) {
+            String datum_data = RMO.realMatrixToString(datum.getZ());
+            String datum_info = String.format("Received %s, z = %s",datum.typeString(),datum_data);
+            Log.w("jjb",datum_info);
+        }
 
         //String timeString = String.format("EKF.t BEFORE = %d",t);
         //Long old_t = t;
@@ -94,10 +93,11 @@ public class BoatEKF implements DatumListener {
         // update z and R
         if (datum.isType(SENSOR_TYPES.GPS)) { // subtract home so localization is centered around (0,0)
             RealMatrix _z = datum.getZ();
-            KnowledgeRecord x_KR = knowledge.get("device." + knowledge.get(".id") + ".home");
-            double[] x_array = x_KR.toDoubleArray();
-            RealMatrix x_RM = MatrixUtils.createColumnRealMatrix(x_array);
-            z = _z.subtract(x_RM.getSubMatrix(0,1,0,0));
+            //KnowledgeRecord home_KR = containers.self.device.home.toRecord();
+            //double[] home_array = home_KR.toDoubleArray();
+            //RealMatrix home_RM = MatrixUtils.createColumnRealMatrix(home_array);
+            RealMatrix home_RM = containers.NDV_to_RM(containers.self.device.home);
+            z = _z.subtract(home_RM.getSubMatrix(0,1,0,0));
         }
         else {
             z = datum.getZ();
@@ -125,14 +125,18 @@ public class BoatEKF implements DatumListener {
         if (!isGPSInitialized) {
             if (datum.isType(SENSOR_TYPES.GPS)) {
                 double[] _z = new double[] {z.getEntry(0,0),z.getEntry(1,0),x.getEntry(2,0)};
-                knowledge.set("device."+knowledge.get(".id")+".location",_z);
-                knowledge.set("device."+knowledge.get(".id")+".home",_z);
-                knowledge.set("device."+knowledge.get(".id")+".dest",_z);
+
+                for (int i = 0; i < 3; i++) {
+                    containers.self.device.location.set(i,_z[i]);
+                    containers.self.device.home.set(i,_z[i]);
+                    containers.self.device.dest.set(i,_z[i]);
+                    containers.self.device.source.set(i,_z[i]);
+                }
 
                 x.setEntry(0,0,0);
                 x.setEntry(1,0,0);
-                x_KB.set(0,0);
-                x_KB.set(1,0);
+                containers.x.set(0,0);
+                containers.x.set(1,0);
                 isGPSInitialized = true;
 
                 Log.w("jjb", "GPS is now initialized");
@@ -142,16 +146,20 @@ public class BoatEKF implements DatumListener {
 
         if (!isCompassInitialized) {
             if (datum.isType(SENSOR_TYPES.COMPASS)) {
-                KnowledgeRecord x_KR = knowledge.get("device."+ knowledge.get(".id") +".location");
-                double[] x_array = x_KR.toDoubleArray();
+                //KnowledgeRecord x_KR = containers.self.device.location.toRecord();
+                //double[] x_array = x_KR.toDoubleArray();
+                double[] x_array = containers.NDV_to_DA(containers.self.device.location);
                 double[] _z = new double[] {x_array[0],x_array[1],z.getEntry(0,0)};
 
-                knowledge.set("device."+knowledge.get(".id")+".location",_z);
-                knowledge.set("device."+knowledge.get(".id")+".home",_z);
-                knowledge.set("device."+knowledge.get(".id")+".dest",_z);
+                for (int i = 0; i < 3; i++) {
+                    containers.self.device.location.set(i,_z[i]);
+                    containers.self.device.home.set(i,_z[i]);
+                    containers.self.device.dest.set(i,_z[i]);
+                    containers.self.device.source.set(i,_z[i]);
+                }
 
                 x.setEntry(2,0,z.getEntry(0,0));
-                x_KB.set(2,z.getEntry(0,0));
+                containers.x.set(2,z.getEntry(0,0));
                 isCompassInitialized = true;
 
                 Log.w("jjb", "Compass is now initialized");
@@ -204,8 +212,8 @@ public class BoatEKF implements DatumListener {
             newH.setEntry(1,2,fx*c+fy*s);
             newH.setEntry(1,5,s);
             newH.setEntry(1,6,c);
-            newH.setEntry(2,4,1.0);
-            newH.setEntry(2,7,-1.0);
+            //newH.setEntry(2,4,1.0);
+            //newH.setEntry(2,7,-1.0);
         }
         else if (datum.getType() == SENSOR_TYPES.MOTOR) {
             newH.setEntry(0,3,1.0);
@@ -314,7 +322,7 @@ public class BoatEKF implements DatumListener {
     public synchronized double timeStep() {
         // Update dt
         Long old_t = t;
-        t = java.lang.System.currentTimeMillis();
+        t = System.currentTimeMillis();
         return (t.doubleValue() - old_t.doubleValue())/1000.0;
     }
 

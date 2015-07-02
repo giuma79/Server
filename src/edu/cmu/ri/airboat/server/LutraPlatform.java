@@ -42,8 +42,8 @@ import robotutils.Quaternion;
  * @author nbb
  *
  */
-//public class LutraPlatform extends BasePlatform {
-public class LutraPlatform extends DebuggerPlatform {
+public class LutraPlatform extends BasePlatform {
+//public class LutraPlatform extends DebuggerPlatform {
 
     KnowledgeBase knowledge;
     BoatEKF boatEKF;
@@ -56,11 +56,7 @@ public class LutraPlatform extends DebuggerPlatform {
     final double defaultAccel = defaultPeakVelocity/2.0; // 2 seconds to accelerate
     final double defaultDecel = defaultPeakVelocity/2.0; // 2 seconds to decelerate
     VelocityProfileListener velocityProfileListener;
-    Double distToDest;
-    Double sufficientProximity;
-    Double peakVelocity;
-    Double accel;
-    Double decel;
+    LutraMadaraContainers containers;
 
     class FilterAndControllerThread extends BaseThread {
 
@@ -112,8 +108,11 @@ public class LutraPlatform extends DebuggerPlatform {
         evalSettings = new EvalSettings();
         evalSettings.setDelaySendingModifieds(true);
         threader = new Threader(knowledge);
-        boatEKF = new BoatEKF(knowledge);
-        boatMotionController = new BoatMotionController(knowledge,boatEKF.stateSize);
+
+
+        /*
+        boatEKF = new BoatEKF(knowledge,containers);
+        boatMotionController = new BoatMotionController(knowledge,boatEKF.stateSize,containers);
 
         distToDest = new Double();
         distToDest.setName(knowledge,".distToDest");
@@ -136,18 +135,24 @@ public class LutraPlatform extends DebuggerPlatform {
         decel.set(defaultDecel);
 
         velocityProfileListener = boatMotionController;
+        */
     }
 
     @Override
     public void init(BaseController controller) {
         super.init(controller);
+        containers = new LutraMadaraContainers(knowledge,self); // has to occur AFTER super.init, or "self" will be null
+        boatEKF = new BoatEKF(knowledge,containers); // has to occur after containers() b/c it needs "self"
+        boatMotionController = new BoatMotionController(knowledge,boatEKF.stateSize,containers);
+        velocityProfileListener = boatMotionController;
     }
 
     public void start() {
         self.device.dest.resize(3);
         self.device.home.resize(3);
         self.device.location.resize(3);
-        threader.run(100.0, "FilterAndController", new FilterAndControllerThread());
+        self.device.source.resize(3);
+        threader.run(25.0, "FilterAndController", new FilterAndControllerThread());
     }
 
 
@@ -175,8 +180,10 @@ public class LutraPlatform extends DebuggerPlatform {
         *
         */
         //double distance = boatMotionController.getDistance();
-        if (distToDest.get() > velocityProfileThreshold) {
-            move(sufficientProximity.get(),peakVelocity.get(),accel.get(),decel.get());
+        if (containers.distToDest.get() > velocityProfileThreshold) {
+            createProfile(containers.sufficientProximity.get(),
+                          containers.peakVelocity.get(),
+                          containers.accel.get(),containers.decel.get());
         }
         else {
 
@@ -225,27 +232,7 @@ public class LutraPlatform extends DebuggerPlatform {
         return PlatformStatusEnum.OK.value();
     }
 
-    public int move(double proximity, double peak_velocity, double accel, double decel) {
-        /*////////////////////////////////
-        * There are two primary controllers. The first is simple PID on position error, called
-        *   "station keeping", or "dwelling". The second is a P-PI position-velocity cascade.
-        * This second controller requires a velocity profile to follow.
-        *
-        * Move is called to generate a new velocity profile from current position to a new position.
-        *
-        *
-        *
-        */
-        RealMatrix velocityProfile = MatrixUtils.createRealMatrix(100,3);
-
-        // creation of velocity profile, Nx3 where columns are t,xdot,ydot
-
-        velocityProfileListener.newProfile(velocityProfile,proximity);
-        ///////////////////////////////////
-
-
-
-        /*
+    public int move(Position target, double proximity) {
         // Convert from lat/long to UTM coordinates
         UTM utmLoc = UTM.latLongToUtm(
                 LatLong.valueOf(target.getX(), target.getY(), NonSI.DEGREE_ANGLE),
@@ -266,9 +253,25 @@ public class LutraPlatform extends DebuggerPlatform {
         self.device.source.set(0, self.device.location.get(0));
         self.device.source.set(1, self.device.location.get(1));
         self.device.source.set(2, self.device.location.get(2));
-        */
 
         return PlatformStatusEnum.OK.value();
+    }
+
+    public void createProfile(double proximity, double peak_velocity, double accel, double decel) {
+        /*////////////////////////////////
+        * There are two primary controllers. The first is simple PID on position error, called
+        *   "station keeping", or "dwelling". The second is a P-PI position-velocity cascade.
+        * This second controller requires a velocity profile to follow.
+        *
+        * createProfile is called to generate a new velocity profile from current position to a new position.
+        *
+        */
+        RealMatrix velocityProfile = MatrixUtils.createRealMatrix(100,3);
+
+        // creation of velocity profile, Nx3 where columns are t,xdot,ydot
+
+        velocityProfileListener.newProfile(velocityProfile,proximity);
+        ///////////////////////////////////
     }
 
     /**
@@ -387,14 +390,9 @@ public class LutraPlatform extends DebuggerPlatform {
         threader.terminate();
 
         // free any containers
-        distToDest.free();
-        sufficientProximity.free();
-        peakVelocity.free();
-        accel.free();
-        decel.free();
+        containers.freeAll();
 
-
-        // Free MADARA containers
+        // Free threader
         threader.free();
     }
 }
