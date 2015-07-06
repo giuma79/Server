@@ -81,11 +81,15 @@ public class BoatEKF implements DatumListener {
 
         //String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
         //Log.w("jjb","received datum z = " + datum.getZ().toString() + threadID);
-        if (!datum.isType(SENSOR_TYPES.GYRO) && !datum.isType(SENSOR_TYPES.COMPASS)) {
+
+        if (!(datum.isType(SENSOR_TYPES.GYRO) ||
+              datum.isType(SENSOR_TYPES.COMPASS) ||
+              datum.isType(SENSOR_TYPES.MOTOR)))      {
             String datum_data = RMO.realMatrixToString(datum.getZ());
             String datum_info = String.format("Received %s, z = %s",datum.typeString(),datum_data);
             Log.w("jjb",datum_info);
         }
+
 
         //String timeString = String.format("EKF.t BEFORE = %d",t);
         //Long old_t = t;
@@ -106,17 +110,17 @@ public class BoatEKF implements DatumListener {
         R = datum.getR();
 
         // warning if datum timestamp is too far away from filter's current time
-        if ((datum.getTimestamp().doubleValue() - t.doubleValue())*1000.0 > ROLLBACK_LIMIT) {
+        if ((datum.getTimestamp().doubleValue() - t.doubleValue())/1000.0 > ROLLBACK_LIMIT) {
             String warning = String.format(
-                    "WARNING: %s sensor is more than %f seconds AHEAD filter",datum.typeString(),ROLLBACK_LIMIT);
+                    "WARNING: %s sensor is more than %f seconds AHEAD of filter",datum.typeString(),ROLLBACK_LIMIT);
             //System.out.println(warning);
-            Log.w("datum timestamp",warning);
+            Log.w("jjb",warning);
         }
-        else if ((datum.getTimestamp().doubleValue() - t.doubleValue())*1000.0 < -ROLLBACK_LIMIT) {
+        else if ((datum.getTimestamp().doubleValue() - t.doubleValue())/1000.0 < -ROLLBACK_LIMIT) {
             String warning = String.format(
-                    "WARNING: %s sensor is more than %f seconds BEHIND filter",datum.typeString(),ROLLBACK_LIMIT);
+                    "WARNING: %s sensor is more than %f seconds BEHIND of filter",datum.typeString(),ROLLBACK_LIMIT);
             //System.out.println(warning);
-            Log.w("datum timestamp",warning);
+            Log.w("jjb",warning);
         }
 
 
@@ -167,7 +171,10 @@ public class BoatEKF implements DatumListener {
             }
         }
 
-        if (!(isGPSInitialized && isCompassInitialized)) { return; }
+        if (!(isGPSInitialized && isCompassInitialized)) {
+            timeStep();
+            return;
+        }
 
         predict();
 

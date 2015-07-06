@@ -1,5 +1,7 @@
 package edu.cmu.ri.airboat.server;
 
+import android.graphics.Matrix;
+import android.location.Location;
 import android.util.Log;
 
 import com.gams.controllers.BaseController;
@@ -39,7 +41,7 @@ import robotutils.Quaternion;
 /**
  * GAMS BasePlatform implementation
  *
- * @author nbb
+ * @author jjb
  *
  */
 public class LutraPlatform extends BasePlatform {
@@ -50,13 +52,11 @@ public class LutraPlatform extends BasePlatform {
     BoatMotionController boatMotionController;
     Threader threader;
     boolean homeSet = false;
-    final double velocityProfileThreshold = 10.0;
-    final double defaultSufficientProximity = 1.0;
-    final double defaultPeakVelocity = 2.0;
-    final double defaultAccel = defaultPeakVelocity/2.0; // 2 seconds to accelerate
-    final double defaultDecel = defaultPeakVelocity/2.0; // 2 seconds to decelerate
     VelocityProfileListener velocityProfileListener;
     LutraMadaraContainers containers;
+    THRUST_TYPES thrustType;
+    Long t;
+
 
     class FilterAndControllerThread extends BaseThread {
 
@@ -75,83 +75,30 @@ public class LutraPlatform extends BasePlatform {
         }
     }
 
-    // Speed profile following --> updated each time profile.move() is called ***
-    /*
-    * 1) Assume that the boat is already pointed straight at the target (no trajectory planning)
-    * 2) Using estimate of current velocity along that ideal line between current point and target point
-     *     as initial speed, establish a trapezoidal speed profile.
-    * 3) Parallel, independent, and simple PID control on rotation, just like in current POINT_AND_SHOOT.
-     *     Any rotation velocity will be superimposed on top of speed commands.
-    * 4) P-PI cascaded position and velocity control to follow the trapezoidal velocity profile
-    * 5) The actions will be suboptimal for sure, but the trapezoid will be updated several times a second,
-     *     and as the boat nears a straight-away, the boat approaches the ideal
-    *
-    * Alternatively, you could do tank-steering moves at the way points. Point right at the goal from the
-     * beginning. Or at least wait until you are pointing within +/- 30 degrees before starting the trapezoid.
-     * That seems like a much easier alternative. Otherwise you'll need trajectory generation.
-    */
-    List<java.lang.Double> velocityProfile;
-    double sustainedSpeed;
-    double accelTime; // t1
-    double sustainTime; // t2
-    double finishTime; // t3
-    double moveDistance;
-
     ////////////////////////////////////////////////////////////////////////
     String ipAddress;
 
     // Delay for sending modified fields
     EvalSettings evalSettings;
 
-    public LutraPlatform(KnowledgeBase knowledge) {
+    public LutraPlatform(KnowledgeBase knowledge, THRUST_TYPES thrustType) {
         this.knowledge = knowledge;
         evalSettings = new EvalSettings();
         evalSettings.setDelaySendingModifieds(true);
         threader = new Threader(knowledge);
-
-
-        /*
-        boatEKF = new BoatEKF(knowledge,containers);
-        boatMotionController = new BoatMotionController(knowledge,boatEKF.stateSize,containers);
-
-        distToDest = new Double();
-        distToDest.setName(knowledge,".distToDest");
-        distToDest.set(0);
-
-        sufficientProximity = new Double();
-        sufficientProximity.setName(knowledge, ".sufficientProximity");
-        sufficientProximity.set(defaultSufficientProximity);
-
-        peakVelocity = new Double();
-        peakVelocity.setName(knowledge, ".peakVelocity");
-        peakVelocity.set(defaultPeakVelocity);
-
-        accel = new Double();
-        accel.setName(knowledge, ".accel");
-        accel.set(defaultAccel);
-
-        decel = new Double();
-        decel.setName(knowledge, ".decel");
-        decel.set(defaultDecel);
-
-        velocityProfileListener = boatMotionController;
-        */
+        this.thrustType = thrustType;
     }
 
     @Override
     public void init(BaseController controller) {
         super.init(controller);
-        containers = new LutraMadaraContainers(knowledge,self); // has to occur AFTER super.init, or "self" will be null
-        boatEKF = new BoatEKF(knowledge,containers); // has to occur after containers() b/c it needs "self"
-        boatMotionController = new BoatMotionController(knowledge,boatEKF.stateSize,containers);
+        containers = new LutraMadaraContainers(knowledge,self,thrustType); // has to occur AFTER super.init, or "self" will be null
+        boatEKF = new BoatEKF(knowledge,containers); // has to occur AFTER containers() b/c it needs "self"
+        boatMotionController = new BoatMotionController(knowledge,boatEKF,containers);
         velocityProfileListener = boatMotionController;
     }
 
     public void start() {
-        self.device.dest.resize(3);
-        self.device.home.resize(3);
-        self.device.location.resize(3);
-        self.device.source.resize(3);
         threader.run(25.0, "FilterAndController", new FilterAndControllerThread());
     }
 
@@ -179,16 +126,22 @@ public class LutraPlatform extends BasePlatform {
         *
         *
         */
-        //double distance = boatMotionController.getDistance();
-        if (containers.distToDest.get() > velocityProfileThreshold) {
-            createProfile(containers.sufficientProximity.get(),
-                          containers.peakVelocity.get(),
-                          containers.accel.get(),containers.decel.get());
-        }
-        else {
 
-        }
 
+
+
+        t = System.currentTimeMillis();
+        ///////////////////////////////////////////
+        if ((boatEKF.isGPSInitialized) && (containers.executingProfile.get() != 1)) {
+            double[] goal = new double[]{10, 10};
+            moveLocalXY(goal, 1.5);
+        }
+        ///////////////////////////////////////////
+        if ((containers.distToDest.get() > containers.sufficientProximity.get()) &&
+                                           (containers.executingProfile.get() != 1)) {
+
+            createProfile(containers.sufficientProximity.get(), containers.peakVelocity.get(),0);
+        }
 
         return PlatformStatusEnum.OK.value();
     }
@@ -232,6 +185,16 @@ public class LutraPlatform extends BasePlatform {
         return PlatformStatusEnum.OK.value();
     }
 
+    public int moveLocalXY(double[] target, double proximity) {
+        double[] home = containers.NDV_to_DA(self.device.home);
+        self.device.dest.set(0,target[0]+home[0]);
+        self.device.dest.set(1,target[1]+home[1]);
+        self.device.source.set(0, self.device.location.get(0) + home[0]);
+        self.device.source.set(1, self.device.location.get(1) + home[1]);
+        containers.sufficientProximity.set(proximity);
+        return PlatformStatusEnum.OK.value();
+    }
+
     public int move(Position target, double proximity) {
         // Convert from lat/long to UTM coordinates
         UTM utmLoc = UTM.latLongToUtm(
@@ -249,15 +212,17 @@ public class LutraPlatform extends BasePlatform {
         // Write destination and source to device id path
         self.device.dest.set(0, target.getX());
         self.device.dest.set(1, target.getY());
-        self.device.dest.set(2, target.getZ());
+        //self.device.dest.set(2, target.getZ());
         self.device.source.set(0, self.device.location.get(0));
         self.device.source.set(1, self.device.location.get(1));
-        self.device.source.set(2, self.device.location.get(2));
+        //self.device.source.set(2, self.device.location.get(2));
+
+        containers.sufficientProximity.set(proximity);
 
         return PlatformStatusEnum.OK.value();
     }
 
-    public void createProfile(double proximity, double peak_velocity, double accel, double decel) {
+    public void createProfile(double proximity, double sustainedSpeed, double finalSpeed) {
         /*////////////////////////////////
         * There are two primary controllers. The first is simple PID on position error, called
         *   "station keeping", or "dwelling". The second is a P-PI position-velocity cascade.
@@ -266,12 +231,72 @@ public class LutraPlatform extends BasePlatform {
         * createProfile is called to generate a new velocity profile from current position to a new position.
         *
         */
-        RealMatrix velocityProfile = MatrixUtils.createRealMatrix(100,3);
+        final int timeSteps = 100;
+        RealMatrix velocityProfile = MatrixUtils.createRealMatrix(timeSteps, 2);
+        RealMatrix initialV = MatrixUtils.createRealMatrix(2,1);
+        initialV.setEntry(0,0,containers.x.get(3)*Math.cos(containers.x.get(2)) - containers.x.get(5));
+        initialV.setEntry(1,0,containers.x.get(3)*Math.sin(containers.x.get(2)) - containers.x.get(6));
+        RealMatrix xd = containers.NDV_to_RM(containers.self.device.dest).subtract(containers.NDV_to_RM(containers.self.device.home));
+        RealMatrix x = MatrixUtils.createRealMatrix(2,1);
+        x.setEntry(0, 0, containers.x.get(0));
+        x.setEntry(1,0,containers.x.get(1));
+        RealMatrix xError = xd.getSubMatrix(0,1,0,0).subtract(x);
+        RealMatrix xErrorNormalized = xError.scalarMultiply(1 / RMO.norm2(xError));
+        double v0 = RMO.dot(initialV, xErrorNormalized); // initial speed in the direction of the goal\
+        double vs = sustainedSpeed;
+        double vf = finalSpeed;
+        double t0 = t.doubleValue()/1000.0;
+        double ta = containers.defaultAccelTime;
+        double a = (vs-v0)/ta;
+        double[] clippedAccel = clipAccel(a,ta);
+        a = clippedAccel[0];
+        ta = clippedAccel[1];
+        double td = containers.defaultDecelTime;
+        double d = (vf-vs)/td;
+        clippedAccel = clipAccel(d,td);
+        d = clippedAccel[0];
+        td = clippedAccel[1];
+        double L = RMO.norm2(xError);
+        double ts = 1/vs*(L - 0.5*a*ta*ta - v0*ta - 0.5*d*td*td - vs*td);
+        double tf = ta+td+ts;
+        t0 = 0; // need the curve to start at relative zero
+        RealMatrix timeMatrix = RMO.linspace(t0,tf,velocityProfile.getRowDimension());
+        velocityProfile.setColumn(0, timeMatrix.getColumn(0));
+        for (int i = 0; i < velocityProfile.getRowDimension(); i++) {
+            double T = velocityProfile.getEntry(i,0);
+            double vT = 0;
+            if (T < ta) { // acceleration period
+                vT = v0 + T*a;
+            }
+            else if ((T > ta) && T < ta+ts) {
+                vT = vs;
+            }
+            else if (T > ta+ts) {
+                vT = vs + (T-(ta+ts))*d;
+            }
+            velocityProfile.setEntry(i, 1, vT);
+        }
+
 
         // creation of velocity profile, Nx3 where columns are t,xdot,ydot
 
         velocityProfileListener.newProfile(velocityProfile,proximity);
         ///////////////////////////////////
+    }
+
+    double[] clipAccel(double a, double t) {
+        if (Math.abs(a) > containers.maxAccel) { // need lower acceleration, higher time
+            // a --> maxAccel, a = maxAccel/a*a
+            // ta --> a/maxAccel*ta
+            a = containers.maxAccel;
+            t = t*containers.maxAccel/a;
+        }
+        else if (Math.abs(a) < containers.minAccel) { // need higher acceleration, lower time
+            a = containers.minAccel;
+            t = t*containers.minAccel/a;
+        }
+        double[] result = new double[]{a,t};
+        return result;
     }
 
     /**
@@ -328,10 +353,10 @@ public class LutraPlatform extends BasePlatform {
 
         // move local .x localization state into device.id.location
         // remember to add in device.id.home because .x is about (0,0)
-        double[] home = self.device.home.toRecord().toDoubleArray();
-        self.device.location.set(0,knowledge.get(".x.0").toDouble() + home[0]);
-        self.device.location.set(1,knowledge.get(".x.1").toDouble() + home[1]);
-        self.device.location.set(2,knowledge.get(".x.2").toDouble());
+        double[] home = containers.NDV_to_DA(self.device.home);
+        self.device.location.set(0,containers.x.get(0) + home[0]);
+        self.device.location.set(1,containers.x.get(1) + home[1]);
+        self.device.location.set(2,containers.x.get(2));
 
         return PlatformStatusEnum.OK.value();
     }

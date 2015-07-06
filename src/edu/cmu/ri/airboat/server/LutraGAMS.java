@@ -12,8 +12,6 @@ import com.madara.KnowledgeBase;
 import com.madara.transport.QoSTransportSettings;
 import com.madara.transport.TransportType;
 
-
-
 /**
  * @author jjb
  */
@@ -22,6 +20,7 @@ public class LutraGAMS extends AbstractVehicleServer {
     int id;
     int teamSize;
     public String ipAddress;
+    public THRUST_TYPES thrustType;
 
     BaseController controller;
     LutraPlatform platform;
@@ -29,10 +28,11 @@ public class LutraGAMS extends AbstractVehicleServer {
     KnowledgeBase knowledge;
     BaseAlgorithm algorithm;
 
-    public LutraGAMS(int id, int teamSize, String ipAddress) {
+    public LutraGAMS(int id, int teamSize, String ipAddress, THRUST_TYPES thrustType) {
         this.id = id;
         this.teamSize = teamSize;
         this.ipAddress = ipAddress;
+        this.thrustType = thrustType;
 
         settings = new QoSTransportSettings();
         settings.setHosts(new String[]{"239.255.0.1:4150"});
@@ -43,10 +43,8 @@ public class LutraGAMS extends AbstractVehicleServer {
 
 
     void start(final AbstractVehicleServer lutra) {
-
-
         controller.initVars(id, teamSize);
-        platform = new LutraPlatform(knowledge);
+        platform = new LutraPlatform(knowledge,thrustType);
         algorithm = new DwellAlgorithm(lutra, ipAddress);
         controller.initPlatform(platform);
         controller.initAlgorithm(algorithm);

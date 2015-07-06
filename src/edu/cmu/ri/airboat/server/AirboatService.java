@@ -104,26 +104,24 @@ public class AirboatService extends Service {
     final double gpsHistoryTimeWindow = 3.0; // if a gps point is older than X seconds, abandon it
     double[] imuVelocity = new double[2]; // acceleration is integrated into this sum
     Long t; // current time in this thread
+
+    /////***************
     Long tAccel; // a special time keeper just for accelerometer data
     Long t0; // used to grow the covariance of the IMU integrated velocity over time
     double tSeconds;
-    final double imuCalibTime = 60.0; // number of seconds to calibrate a linear drift fit for the accelerometer
+    final double imuCalibTime = 120.0; // number of seconds to calibrate a linear drift fit for the accelerometer
     // the first half of the calibration time is used to find a DC offset for acceleration
     // the second half of the calibration time is then used to find a slope for velocity drift
     boolean imuABiasCalibrated;
     boolean imuVSlopeCalibrated;
     List<double[]> imuVCalX, imuVCalY; // container used for velocities, used to calculate linear drift
     List<double[]> imuACalX, imuACalY; // container used for accelerations, used to calculate linear drift
-    //double[][] imuVCalX, imuVCalY;
-    //double[][] imuACalX, imuACalY;
-    //List<Double> imuACalX, imuACalY; // the container for accelerations used to calculate the DC offset
     List<Double> imuHistoryX, imuHistoryY; // the container used for the median filter
     final int imuMedianFilterSize = 10; // a sliding median of accelerations reduces noise
     double[][] imuATrend =  new double[2][2];
     double[][] imuVTrend = new double[2][2];
-    //double imuABiasX, imuABiasY; // the DC offset in acceleration values
-    //double imuVmX, imuVmY; // the slopes of the velocity linear drift
-    //double imuVbX, imuVbY; // the intercept of the velocity linear drift
+    double tIMUAStart,tIMUVStart;
+    /////***************
 
     // until i get an actual USB polling listener running, need to fake motor commands
     void MotorCommands() {
@@ -337,7 +335,7 @@ public class AirboatService extends Service {
                 datumListener.newDatum(datum);
 
 
-                MotorCommands(); // ******************************************************************************
+                //MotorCommands(); // ******************************************************************************
 
                 /////////////////////////////////////////////////////////////////////
 
@@ -355,6 +353,7 @@ public class AirboatService extends Service {
     private final SensorEventListener imuListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
+            /*
             // note: gravity has been excluded automatically
             double[] linear_acceleration = new double[3];
             linear_acceleration[0] = event.values[0]; // x
@@ -362,23 +361,22 @@ public class AirboatService extends Service {
             linear_acceleration[2] = event.values[2]; // z
 
             Long old_t = tAccel;
-            tAccel = System.currentTimeMillis();
-            t = tAccel;
+            t = System.currentTimeMillis();
+            tAccel = t;
             tSeconds = (tAccel.doubleValue()-t0.doubleValue())/1000.0;
             double dt = (tAccel.doubleValue()-old_t.doubleValue())/1000.0;
 
             if (imuABiasCalibrated) {
-                //linear_acceleration[0] = linear_acceleration[0] - imuABiasX;
-                //linear_acceleration[1] = linear_acceleration[1] - imuABiasY;
+                //double expMixA = 1 - 1/Math.exp(tSeconds-tIMUAStart);
                 linear_acceleration[0] = linear_acceleration[0] - (imuATrend[0][0]*tSeconds + imuATrend[0][1]);
                 linear_acceleration[1] = linear_acceleration[1] - (imuATrend[1][0]*tSeconds + imuATrend[1][1]);
                 imuHistoryX.add(linear_acceleration[0]);
                 imuHistoryY.add(linear_acceleration[1]);
                 while (imuHistoryX.size() > imuMedianFilterSize) {
-                    imuHistoryX.remove(1); // remove the oldest
+                    imuHistoryX.remove(0); // remove the oldest
                 }
                 while (imuHistoryY.size() > imuMedianFilterSize) {
-                    imuHistoryY.remove(1); // remove the oldest
+                    imuHistoryY.remove(0); // remove the oldest
                 }
                 if (imuHistoryX.size() < imuMedianFilterSize) { return; }
                 // compute the median
@@ -389,25 +387,21 @@ public class AirboatService extends Service {
                 imuVelocity[1] += medianY*dt;
 
                 if (imuVSlopeCalibrated) { // finally we can collect vaguely useful data
-                    imuVelocity[0] = imuVelocity[0] - (imuVTrend[0][0]*tSeconds + imuVTrend[0][1]);
-                    imuVelocity[1] = imuVelocity[1] - (imuVTrend[1][0]*tSeconds + imuVTrend[1][1]);
+                    double expMixV = 1 - 1/Math.exp(tSeconds-tIMUVStart);
+                    imuVelocity[0] = imuVelocity[0] - expMixV*(imuVTrend[0][0]*tSeconds + imuVTrend[0][1]);
+                    imuVelocity[1] = imuVelocity[1] - expMixV*(imuVTrend[1][0]*tSeconds + imuVTrend[1][1]);
 
-                    //TODO: possibly median filter the velocity as well?
                     RealMatrix z = MatrixUtils.createRealMatrix(2, 1);
                     z.setEntry(0, 0, imuVelocity[0]);
                     z.setEntry(1, 0, imuVelocity[1]);
                     RealMatrix R = MatrixUtils.createRealMatrix(2, 2);
-                    double covarianceScale = 0.25 + Math.log(tSeconds);
+                    double covarianceScale = 2 + Math.log(tSeconds);
                     R.setEntry(0, 0, covarianceScale); // needs to grow logarithmically until a baseline
                     R.setEntry(1, 1, covarianceScale); // needs to grow logarithmically until a baseline
                     Datum datum = new Datum(SENSOR_TYPES.IMU, t, z, R);
                     datumListener.newDatum(datum);
                 }
                 else {
-                    //double[][] imuNewX = new double[][]{{tSeconds,imuVelocity[0]}};
-                    //double[][] imuNewY = new double[][]{{tSeconds,imuVelocity[1]}};
-                    //imuVCalX = RMO.concat2D_double(imuVCalX,imuNewX);
-                    //imuVCalY = RMO.concat2D_double(imuVCalY,imuNewY);
                     double[] x = new double[]{tSeconds,imuVelocity[0]};
                     double[] y = new double[]{tSeconds,imuVelocity[1]};
                     imuVCalX.add(x);
@@ -416,28 +410,23 @@ public class AirboatService extends Service {
                     if (tSeconds > imuCalibTime) { // linear regression
                         SimpleRegression regX = new SimpleRegression();
                         SimpleRegression regY = new SimpleRegression();
-                        double[][] xarray = new double[imuVCalX.size()][2];
-                        double[][] yarray = new double[imuVCalX.size()][2];
-                        for (int i = 0; i < xarray.length; i++) {
+                        double[][] xArray = new double[imuVCalX.size()][2];
+                        double[][] yArray = new double[imuVCalX.size()][2];
+                        for (int i = 0; i < xArray.length; i++) {
                             double[] x1dArray = imuVCalX.get(i);
-                            double[] y1dArray = imuVCalX.get(i);
-                            xarray[i] = x1dArray;
-                            yarray[i] = y1dArray;
+                            double[] y1dArray = imuVCalY.get(i);
+                            xArray[i] = x1dArray;
+                            yArray[i] = y1dArray;
                         }
-                        regX.addData(xarray);
-                        regY.addData(yarray);
-                        //regX.addData((double[][]) imuVCalX.toArray());
-                        //regY.addData((double[][])imuVCalY.toArray());
-                        //imuVmX = regX.getSlope();
-                        //imuVmY = regY.getSlope();
-                        //imuVbX = regX.getIntercept();
-                        //imuVbY = regY.getIntercept();
+                        regX.addData(xArray);
+                        regY.addData(yArray);
                         imuVTrend[0][0] = regX.getSlope();
                         imuVTrend[0][1] = regX.getIntercept();
                         imuVTrend[1][0] = regY.getSlope();
                         imuVTrend[1][1] = regY.getIntercept();
-                        //imuVelocity[0] = 0; // reset the velocity integration
-                        //imuVelocity[1] = 0; // reset the velocity integration
+                        imuVelocity[0] = 0; // reset the velocity integration
+                        imuVelocity[1] = 0; // reset the velocity integration
+                        tIMUVStart = tSeconds;
                         imuVSlopeCalibrated = true;
                     }
                 }
@@ -445,40 +434,30 @@ public class AirboatService extends Service {
             else {
                 double[] x = new double[]{tSeconds,linear_acceleration[0]};
                 double[] y = new double[]{tSeconds,linear_acceleration[1]};
-                //imuACalX.add(linear_acceleration[0]);
-                //imuACalY.add(linear_acceleration[1]);
                 imuACalX.add(x);
                 imuACalY.add(y);
                 if (tSeconds > imuCalibTime/2.0) {
                     SimpleRegression regX = new SimpleRegression();
                     SimpleRegression regY = new SimpleRegression();
-                    double[][] xarray = new double[imuACalX.size()][2];
-                    double[][] yarray = new double[imuACalY.size()][2];
-                    for (int i = 0; i < xarray.length; i++) {
+                    double[][] xArray = new double[imuACalX.size()][2];
+                    double[][] yArray = new double[imuACalY.size()][2];
+                    for (int i = 0; i < xArray.length; i++) {
                         double[] x1dArray = imuACalX.get(i);
                         double[] y1dArray = imuACalY.get(i);
-                        xarray[i] = x1dArray;
-                        yarray[i] = y1dArray;
+                        xArray[i] = x1dArray;
+                        yArray[i] = y1dArray;
                     }
-                    regX.addData(xarray);
-                    regY.addData(yarray);
+                    regX.addData(xArray);
+                    regY.addData(yArray);
                     imuATrend[0][0] = regX.getSlope(); // x's m
                     imuATrend[0][1] = regX.getIntercept(); // x's b
                     imuATrend[1][0] = regY.getSlope(); // y's m
                     imuATrend[1][1] = regY.getIntercept(); // y's b
-                    /*
-                    for (int i = 0; i < imuACalX.size(); i++) {
-                        imuABiasX += imuACalX.get(i).doubleValue();
-                        imuABiasY += imuACalY.get(i).doubleValue();
-                    }
-                    imuABiasX = imuABiasX/imuACalX.size();
-                    imuABiasY = imuABiasY/imuACalY.size();
-                    imuVCalX = new double[][]{{tSeconds,0}};
-                    imuVCalY = new double[][]{{tSeconds,0}};
-                    */
+                    tIMUAStart = tSeconds;
                     imuABiasCalibrated = true;
                 }
             }
+            */
         }
 
         @Override
@@ -575,8 +554,6 @@ public class AirboatService extends Service {
         imuACalY = new ArrayList<>();
         imuVCalX = new ArrayList<>();
         imuVCalY = new ArrayList<>();
-        //imuABiasX = 0;
-        //imuABiasY = 0;
         ////////////////////////////////////////////////////////////////
 
 
@@ -670,8 +647,8 @@ public class AirboatService extends Service {
         sm.registerListener(gyroListener, gyro, SensorManager.SENSOR_DELAY_NORMAL);
         Sensor rotation_vector = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
         sm.registerListener(rotationVectorListener, rotation_vector, SensorManager.SENSOR_DELAY_NORMAL);
-        Sensor imu = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION); //excludes gravity!
-        sm.registerListener(imuListener,imu,SensorManager.SENSOR_DELAY_FASTEST);
+        //Sensor imu = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION); //excludes gravity
+        //sm.registerListener(imuListener,imu,SensorManager.SENSOR_DELAY_FASTEST);
 
         // Hook up to the GPS system ////////////////////////////////////////////////////////////
         LocationManager gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
@@ -723,7 +700,8 @@ public class AirboatService extends Service {
         _id = 5;
         _ipAddress = "heyheyhey";
         _teamSize = 1;
-        lutra = new LutraGAMS(_id,_teamSize,_ipAddress);
+        THRUST_TYPES thrustType = THRUST_TYPES.DIFFERENTIAL;
+        lutra = new LutraGAMS(_id,_teamSize,_ipAddress,thrustType);
         lutra.start(lutra);
         datumListener = lutra.platform.boatEKF;
 
@@ -949,6 +927,8 @@ public class AirboatService extends Service {
      * http://stackoverflow.com/questions/12421814/how-can-i-read-a-text-file-in-android
      */
     private void readMadaraConfig() {
+        //TODO: make this also specify if it is vectored or differential thrust
+
 		/*
         //Find the directory for the SD Card using the API
         File sdcard = Environment.getExternalStorageDirectory();

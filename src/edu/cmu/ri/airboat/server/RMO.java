@@ -11,7 +11,7 @@ import org.apache.commons.math.linear.RealMatrix;
  */
 public class RMO {
 
-    public static double norm2(RealMatrix x1, RealMatrix x2) {
+    public static double distance(RealMatrix x1, RealMatrix x2) {
         // assumes COLUMNS ONLY
         RealMatrix difference = MatrixUtils.createRealMatrix(x1.getRowDimension(), 1);
         difference = x1.subtract(x2);
@@ -20,6 +20,30 @@ public class RMO {
             result += difference.getEntry(i,0)*difference.getEntry(i, 0);
         }
         return Math.sqrt(result);
+    }
+
+    public static double dot(RealMatrix x1, RealMatrix x2) {
+        // assumes COLUMNS ONLY
+        double result = 0;
+        for (int i = 0; i < x1.getRowDimension(); i++) {
+            result += x1.getEntry(i,0)*x2.getEntry(i,0);
+        }
+        return result;
+    }
+
+    public static double norm2(RealMatrix x) {
+        // assumes COLUMNS ONLY
+        double result = 0;
+        result = dot(x,x);
+        return Math.sqrt(result);
+    }
+
+    public static RealMatrix linspace(double start, double end, int count) {
+        RealMatrix result = MatrixUtils.createRealMatrix(count,1);
+        for (int i = 0; i < count; i++) {
+            result.setEntry(i,0,start + (double)i/(count-1)*(end-start));
+        }
+        return result;
     }
 
     public static String realMatrixToString(RealMatrix A) {
