@@ -231,8 +231,8 @@ public class LutraPlatform extends BasePlatform {
         * createProfile is called to generate a new velocity profile from current position to a new position.
         *
         */
-        final int timeSteps = 100;
-        RealMatrix velocityProfile = MatrixUtils.createRealMatrix(timeSteps, 2);
+        final int timeSteps = 4;
+        RealMatrix velocityProfile = MatrixUtils.createRealMatrix(4, 2);
         RealMatrix initialV = MatrixUtils.createRealMatrix(2,1);
         initialV.setEntry(0,0,containers.x.get(3)*Math.cos(containers.x.get(2)) - containers.x.get(5));
         initialV.setEntry(1,0,containers.x.get(3)*Math.sin(containers.x.get(2)) - containers.x.get(6));
@@ -260,6 +260,15 @@ public class LutraPlatform extends BasePlatform {
         double ts = 1/vs*(L - 0.5*a*ta*ta - v0*ta - 0.5*d*td*td - vs*td);
         double tf = ta+td+ts;
         t0 = 0; // need the curve to start at relative zero
+        velocityProfile.setEntry(0,0,0);
+        velocityProfile.setEntry(0,1,v0);
+        velocityProfile.setEntry(1,0,ta);
+        velocityProfile.setEntry(1,1,vs);
+        velocityProfile.setEntry(2,0,ta+ts);
+        velocityProfile.setEntry(2,1,vs);
+        velocityProfile.setEntry(3,0,tf);
+        velocityProfile.setEntry(3,1,vf);
+        /*
         RealMatrix timeMatrix = RMO.linspace(t0,tf,velocityProfile.getRowDimension());
         velocityProfile.setColumn(0, timeMatrix.getColumn(0));
         for (int i = 0; i < velocityProfile.getRowDimension(); i++) {
@@ -276,9 +285,7 @@ public class LutraPlatform extends BasePlatform {
             }
             velocityProfile.setEntry(i, 1, vT);
         }
-
-
-        // creation of velocity profile, Nx3 where columns are t,xdot,ydot
+        */
 
         velocityProfileListener.newProfile(velocityProfile,proximity);
         ///////////////////////////////////

@@ -103,6 +103,22 @@ public class RMO {
         return result;
     }
 
+    public static double interpolate1D(RealMatrix XY, double x) {
+        // assumes first column is X data, second column is Y data, and X is in ascending sorted order
+        for (int i = 0; i < XY.getRowDimension(); i++) {
+            if (x >= XY.getEntry(i,0)) {
+                if (x == XY.getEntry(0,0)) { // edge case, equal to the FIRST row in XY
+                    return XY.getEntry(0,1);
+                }
+                if (x == XY.getEntry(XY.getRowDimension(),0)) { // edge case, equal to the LAST row in XY
+                    return XY.getEntry(XY.getRowDimension(),1);
+                }
+                return XY.getEntry(i,1) + (x-XY.getEntry(i,0))/(XY.getEntry(i+1,0)-XY.getEntry(i,0))*(XY.getEntry(i+1,1)-XY.getEntry(i,1));
+            }
+        }
+        throw new ArrayIndexOutOfBoundsException();
+    }
+
     public static double[][] concat2D_double(double[][] a1, double[][] a2) {
         double[][] result = new double[a1.length + a2.length][];
         System.arraycopy(a1, 0, result, 0, a1.length);

@@ -18,10 +18,13 @@ public class BoatMotionController implements VelocityProfileListener {
     RealMatrix profile; // current velocity profile to follow
     RealMatrix xError;
     RealMatrix xErrorOld; // used for derivative control
+    RealMatrix xErrorDiff; // used for derivative control
     KnowledgeBase knowledge;
     Long t;
     Long tOld;
     double dt;
+    double t0; // time at the start of the velocity profile
+    boolean t0set;
     LutraMadaraContainers containers;
     final double headingErrorThreshold = 20.0*Math.PI/180.0;
     final double[][] simplePIDGains = new double[][]{{0.2,0,0.3},{0.5,0.5,0.5}}; // rows: position, heading; cols: P,I,D
@@ -33,6 +36,7 @@ public class BoatMotionController implements VelocityProfileListener {
     double headingSignal;
     double distanceSignal;
     DatumListener datumListener;
+    VelocityMotorMap velocityMotorMap;
 
 
     public BoatMotionController(KnowledgeBase knowledge, BoatEKF boatEKF, LutraMadaraContainers containers) {
@@ -47,6 +51,7 @@ public class BoatMotionController implements VelocityProfileListener {
         simplePIDErrorAccumulator = new double[]{0,0,0};
         t = System.currentTimeMillis();
         datumListener = boatEKF;
+        velocityMotorMap = new VelocityMotorMap(containers);
     }
 
     public void control() {
@@ -78,36 +83,33 @@ public class BoatMotionController implements VelocityProfileListener {
         String distanceString = String.format("Distance from x to xd = %5.3e",containers.distToDest.get());
         Log.w("jjb",distanceString);
 
+        // Heading PID control is always operating!
+        for (int i = 0; i < 3; i++) {
+            simplePIDErrorAccumulator[i] += xError.getEntry(i,0);
+        }
+        xErrorDiff = xError.subtract(xErrorOld).scalarMultiply(1.0/dt);
+        headingSignal = simplePIDGains[1][0]*xError.getEntry(2,0) + // P
+                simplePIDGains[1][1]*simplePIDErrorAccumulator[2] + // I
+                simplePIDGains[1][2]*xErrorDiff.getEntry(2,0); // D
+
         // determine which controller to use, simple PID or P-PI pos./vel. cascade
         if (containers.executingProfile.get() == 1) {
             //TODO: find current velocity error using velocity profile
+            // TODO: set t0 AFTER the velocity control begins
             // Need to find where we hoped to be on the velocity profile curve
-            PPICascade(xError);
+            PPICascade();
         }
         else {
-            simplePID(xError);
+            simplePID();
         }
 
         motorCommands();
     }
 
-    void simplePID(RealMatrix xError) {
+    void simplePID() {
         // Operate on x,y, and theta concurrently.
         // The boat's heading should converge to the direction of water flow (i.e. fx,fy)
         // That way the boat just needs to go straight forward to stay on the right spot
-
-        for (int i = 0; i < 3; i++) {
-            simplePIDErrorAccumulator[i] += xError.getEntry(i,0);
-        }
-        RealMatrix xErrorDiff = xError.subtract(xErrorOld).scalarMultiply(1.0/dt);
-
-        // HEADING
-        // P
-        // I
-        // D
-        headingSignal = simplePIDGains[1][0]*xError.getEntry(2,0) +
-                        simplePIDGains[1][1]*simplePIDErrorAccumulator[2] +
-                        simplePIDGains[1][2]*xErrorDiff.getEntry(2,0);
 
         // POSITION
         // P
@@ -126,7 +128,7 @@ public class BoatMotionController implements VelocityProfileListener {
         distanceSignal = simplePIDGains[0][0]*1.0;
     }
 
-    void PPICascade(RealMatrix xError) {
+    void PPICascade() {
         // Operate in two phases
         // If the theta error is above some threshold, focus purely on that, ignoring the velocity profile
         // If the theta error is below that threshold, execute the P-PI cascade on the velocity profile
@@ -135,37 +137,22 @@ public class BoatMotionController implements VelocityProfileListener {
 
         // Determine which phase you are in based on current theta error
         // PID for heading is always occurring
+        double vd, wd; // the desired velocities
         if (Math.abs(xError.getEntry(2, 0)) < headingErrorThreshold) {
-
+            if (!t0set) {
+                t0 = t.doubleValue()/1000.0;
+                t0set = true;
+            }
+            double tRelative = t.doubleValue()/1000.0 - t0;
+            // linear interpolate desired velocity
+            vd = RMO.interpolate1D(profile,tRelative);
         }
-
-        double vd = 0, wd= 0; // the desired velocities
-
-
-        double[] motorSignals = desiredVelocityToMotorSignalMap(vd, wd);
-        distanceSignal = motorSignals[0];
-        headingSignal = motorSignals[1];
-    }
-
-    double[] desiredVelocityToMotorSignalMap(double v, double w) {
-        double[] result = new double[2];
-        //TODO: build the steady state map
-        // map from steady state velocity and % of safe motor signal
-        // map from steady state rotational velocity and % of safe motor-momentarm couple
-        // ***After finding the necessary motor commands for thrust and rotation, need to combine them
-        //      and scale them down to create the desired result
-        result[0] = 0;
-        result[1] = 0;
-        return result;
-    }
-
-    double[] motorSignalToVelocityInverseMap(double m0, double m1) {
-        double[] result = new double[2];
-        // TODO: invert the steady state map
-        // map from two motor signals to forward velocity and rotation velocity
-        result[0] = 0; // forward velocity
-        result[1] = 0; // rotation velocity
-        return result;
+        else {
+            vd = 0;
+        }
+        double[] signals = new double[2];
+        signals = velocityMotorMap.v_to_M(vd,0.0); //TODO: how does rotational velocity come into play here?
+        distanceSignal = signals[0];
     }
 
     void motorCommands() {
@@ -210,8 +197,8 @@ public class BoatMotionController implements VelocityProfileListener {
     public void newProfile(RealMatrix profile, double sufficientProximity) {
         this.profile = profile;
         containers.executingProfile.set(1);
-        // set basic PID error accumulators to zero
-        simplePIDErrorAccumulator = new double[]{0,0,0};
+        simplePIDErrorAccumulator = new double[]{0,0,0}; // set basic PID error accumulators to zero
+        t0set = false;
     }
 
     public void shutdown() {
