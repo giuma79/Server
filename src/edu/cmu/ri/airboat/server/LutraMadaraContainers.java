@@ -22,6 +22,17 @@ enum THRUST_TYPES {
     }
 }
 
+enum TELEOPERATION_TYPES {
+    NONE(0), GUI_WP(1), GUI_MS(2), RC(3);
+    // NONE --> control loops are always active (always try to arrive at and stay at current destination unless algorithm overrides)
+    // GUI_WP --> user selects waypoint(s) in a GUI. Boat controls arrival, but the boat does nothing after it arrives
+    // GUI_MS --> user is sending motor signals to the boats via a GUI. Boat control loops completely disabled
+    // RC --> user is sending motor signals to the boats via a radio controller. Boat control loops completely disabled
+    private final long value;
+    TELEOPERATION_TYPES(long value) { this.value = value; }
+    public final long getLongValue() { return value; }
+}
+
 /**
  * @author jjb
  */
@@ -40,6 +51,7 @@ public class LutraMadaraContainers {
     DoubleVector x;
     Integer executingProfile; // == 1 if controller is currently executing a velocity profile, == 0 otherwise
     Integer thrustType;
+    Integer teleopStatus; // see enum TELEOPERATION_TYPES
     DoubleVector motorCommands;
     final double defaultSufficientProximity = 3.0;
     final double defaultPeakVelocity = 2.0;
@@ -47,6 +59,7 @@ public class LutraMadaraContainers {
     final double defaultDecelTime = 5.0;
     final double maxAccel = 1.0; // no more than X m/s^2 capable at full power
     final double minAccel = 0.1; // no less than X m/s^2, or motor doesn't respond
+    final long defaultTeleopStatus = 0L;
 
     Self self;
 
@@ -81,6 +94,9 @@ public class LutraMadaraContainers {
         this.thrustType.set(thrustType.getLongValue());
         motorCommands = new DoubleVector();
         motorCommands.setName(knowledge,".motorCommands");
+        teleopStatus = new Integer();
+        teleopStatus.setName(knowledge,".teleopStatus");
+        teleopStatus.set(defaultTeleopStatus);
     }
 
     public void freeAll() {
@@ -91,6 +107,7 @@ public class LutraMadaraContainers {
         decel.free();
         x.free();
         executingProfile.free();
+        teleopStatus.free();
     }
 
     public void restoreDefaults() {
@@ -98,6 +115,7 @@ public class LutraMadaraContainers {
         peakVelocity.set(defaultPeakVelocity);
         accel.set(defaultAccelTime);
         decel.set(defaultDecelTime);
+        teleopStatus.set(defaultTeleopStatus);
     }
 
     public RealMatrix NDV_to_RM(NativeDoubleVector NDV) {
@@ -115,6 +133,21 @@ public class LutraMadaraContainers {
         KnowledgeRecord KR = NDV.toRecord();
         double[] result = KR.toDoubleArray();
         return result;
+    }
+
+    public double velocityTowardGoal() {
+        // calculate the boat's current velocity along the line between its current location and the goal
+        RealMatrix initialV = MatrixUtils.createRealMatrix(2,1);
+        initialV.setEntry(0,0,this.x.get(3)*Math.cos(this.x.get(2)) - this.x.get(5));
+        initialV.setEntry(1,0,this.x.get(3)*Math.sin(this.x.get(2)) - this.x.get(6));
+        RealMatrix xd = NDV_to_RM(self.device.dest).subtract(NDV_to_RM(self.device.home));
+        RealMatrix x = MatrixUtils.createRealMatrix(2,1);
+        x.setEntry(0, 0, this.x.get(0));
+        x.setEntry(1,0,this.x.get(1));
+        RealMatrix xError = xd.getSubMatrix(0,1,0,0).subtract(x);
+        RealMatrix xErrorNormalized = xError.scalarMultiply(1 / RMO.norm2(xError));
+        double v = RMO.dot(initialV, xErrorNormalized); // initial speed in the direction of the goal
+        return v;
     }
 
 }

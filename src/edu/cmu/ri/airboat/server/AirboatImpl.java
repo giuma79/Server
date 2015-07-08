@@ -193,7 +193,7 @@ public class AirboatImpl extends AbstractVehicleServer {
             int vehicle_type_index = _prefs.getInt(AirboatActivity.KEY_VEHICLE_TYPE, VehicleType.UNKNOWN.ordinal());
             VehicleType vehicle_type = VehicleType.values()[vehicle_type_index];
 
-            // Send vehicle command by converting raw command to appropriate vehicle model.
+             // Send vehicle command by converting raw command to appropriate vehicle model.
             JSONObject command = new JSONObject();
             switch (vehicle_type) {
                 case DIFFERENTIAL_THRUST:

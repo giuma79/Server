@@ -103,17 +103,17 @@ public class RMO {
         return result;
     }
 
-    public static double interpolate1D(RealMatrix XY, double x) {
+    public static double interpolate1D(RealMatrix XY, double x, int yCol) {
         // assumes first column is X data, second column is Y data, and X is in ascending sorted order
         for (int i = 0; i < XY.getRowDimension(); i++) {
             if (x >= XY.getEntry(i,0)) {
                 if (x == XY.getEntry(0,0)) { // edge case, equal to the FIRST row in XY
-                    return XY.getEntry(0,1);
+                    return XY.getEntry(0,yCol);
                 }
                 if (x == XY.getEntry(XY.getRowDimension(),0)) { // edge case, equal to the LAST row in XY
-                    return XY.getEntry(XY.getRowDimension(),1);
+                    return XY.getEntry(XY.getRowDimension(),yCol);
                 }
-                return XY.getEntry(i,1) + (x-XY.getEntry(i,0))/(XY.getEntry(i+1,0)-XY.getEntry(i,0))*(XY.getEntry(i+1,1)-XY.getEntry(i,1));
+                return XY.getEntry(i,yCol) + (x-XY.getEntry(i,0))/(XY.getEntry(i+1,0)-XY.getEntry(i,0))*(XY.getEntry(i+1,yCol)-XY.getEntry(i,yCol));
             }
         }
         throw new ArrayIndexOutOfBoundsException();

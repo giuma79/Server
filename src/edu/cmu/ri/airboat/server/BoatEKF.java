@@ -19,8 +19,8 @@ public class BoatEKF implements DatumListener {
     RealMatrix H; // dz/dx associated with z
     RealMatrix R; // covariance associated with z
 
-    public final int stateSize = 8; // state is global except for expected-motor velocities
-    // state = [x y theta Vm Wm fx fy ft]
+    public final int stateSize = 7; // state is global except for expected-motor velocities
+    // state = [x y theta Vm Wm fx fy]
 
     double[] initial_x = new double[stateSize];
     RealMatrix x = MatrixUtils.createColumnRealMatrix(initial_x); // state
@@ -197,7 +197,7 @@ public class BoatEKF implements DatumListener {
         double v = x.getEntry(3, 0);
         double fx = x.getEntry(5, 0);
         double fy = x.getEntry(6, 0);
-        double ft = x.getEntry(7,0);
+        //double ft = x.getEntry(7,0);
 
         RealMatrix newH = MatrixUtils.createRealMatrix(z.getRowDimension(),stateSize);
         if (datum.getType() == SENSOR_TYPES.GPS) {
@@ -209,7 +209,7 @@ public class BoatEKF implements DatumListener {
         }
         else if (datum.getType() == SENSOR_TYPES.GYRO) {
             newH.setEntry(0,4,1.0);
-            newH.setEntry(0,7,-1.0);
+            //newH.setEntry(0,7,-1.0);
         }
         else if (datum.getType() == SENSOR_TYPES.IMU) {
             newH.setEntry(0,2,fx*s-fy*c);
@@ -219,12 +219,10 @@ public class BoatEKF implements DatumListener {
             newH.setEntry(1,2,fx*c+fy*s);
             newH.setEntry(1,5,s);
             newH.setEntry(1,6,c);
-            //newH.setEntry(2,4,1.0);
-            //newH.setEntry(2,7,-1.0);
         }
         else if (datum.getType() == SENSOR_TYPES.MOTOR) {
             newH.setEntry(0,3,1.0);
-            newH.setEntry(1,4,1.0);
+            //newH.setEntry(1,4,1.0);
         }
         else if (datum.getType() == SENSOR_TYPES.DGPS) {
             newH.setEntry(0,2,-v*s);
@@ -301,7 +299,7 @@ public class BoatEKF implements DatumListener {
         Phi.setEntry(1,3,dt*s);
         Phi.setEntry(1,6,-dt);
         Phi.setEntry(2,4,dt);
-        Phi.setEntry(2,7,-dt);
+        //Phi.setEntry(2,7,-dt);
 
         Phi_k.setEntry(0,2,-dt*v*s);
         Phi_k.setEntry(0,3,dt*c);
@@ -310,7 +308,7 @@ public class BoatEKF implements DatumListener {
         Phi_k.setEntry(1,3,dt*s);
         Phi_k.setEntry(1,6,-dt);
         Phi_k.setEntry(2,4,dt);
-        Phi_k.setEntry(2,7,-dt);
+        //Phi_k.setEntry(2,7,-dt);
 
         // Update G with current state
         //G.setEntry(0,0,c);

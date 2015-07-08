@@ -69,8 +69,6 @@ public class LutraPlatform extends BasePlatform {
                 }
                 boatEKF.predict();
                 boatMotionController.control();
-                //String threadID = String.format(" -- thread # %d", Thread.currentThread().getId());
-                //Log.w("jjb", "FilterAndControllerThread iteration" + threadID);
             }
         }
     }
@@ -231,8 +229,9 @@ public class LutraPlatform extends BasePlatform {
         * createProfile is called to generate a new velocity profile from current position to a new position.
         *
         */
-        final int timeSteps = 4;
-        RealMatrix velocityProfile = MatrixUtils.createRealMatrix(4, 2);
+        final int timeSteps = 100;
+        RealMatrix velocityProfile = MatrixUtils.createRealMatrix(timeSteps, 3); // t, vel., pos.
+        /*
         RealMatrix initialV = MatrixUtils.createRealMatrix(2,1);
         initialV.setEntry(0,0,containers.x.get(3)*Math.cos(containers.x.get(2)) - containers.x.get(5));
         initialV.setEntry(1,0,containers.x.get(3)*Math.sin(containers.x.get(2)) - containers.x.get(6));
@@ -242,7 +241,9 @@ public class LutraPlatform extends BasePlatform {
         x.setEntry(1,0,containers.x.get(1));
         RealMatrix xError = xd.getSubMatrix(0,1,0,0).subtract(x);
         RealMatrix xErrorNormalized = xError.scalarMultiply(1 / RMO.norm2(xError));
-        double v0 = RMO.dot(initialV, xErrorNormalized); // initial speed in the direction of the goal\
+        double v0 = RMO.dot(initialV, xErrorNormalized); // initial speed in the direction of the goal
+        */
+        double v0 = containers.velocityTowardGoal();
         double vs = sustainedSpeed;
         double vf = finalSpeed;
         double t0 = t.doubleValue()/1000.0;
@@ -256,10 +257,11 @@ public class LutraPlatform extends BasePlatform {
         clippedAccel = clipAccel(d,td);
         d = clippedAccel[0];
         td = clippedAccel[1];
-        double L = RMO.norm2(xError);
+        double L = containers.distToDest.get();
         double ts = 1/vs*(L - 0.5*a*ta*ta - v0*ta - 0.5*d*td*td - vs*td);
         double tf = ta+td+ts;
         t0 = 0; // need the curve to start at relative zero
+        /*
         velocityProfile.setEntry(0,0,0);
         velocityProfile.setEntry(0,1,v0);
         velocityProfile.setEntry(1,0,ta);
@@ -268,9 +270,13 @@ public class LutraPlatform extends BasePlatform {
         velocityProfile.setEntry(2,1,vs);
         velocityProfile.setEntry(3,0,tf);
         velocityProfile.setEntry(3,1,vf);
-        /*
+        */
+
+        //TODO: create desired location column for the profile
+
         RealMatrix timeMatrix = RMO.linspace(t0,tf,velocityProfile.getRowDimension());
         velocityProfile.setColumn(0, timeMatrix.getColumn(0));
+        double dT = L;
         for (int i = 0; i < velocityProfile.getRowDimension(); i++) {
             double T = velocityProfile.getEntry(i,0);
             double vT = 0;
@@ -284,8 +290,19 @@ public class LutraPlatform extends BasePlatform {
                 vT = vs + (T-(ta+ts))*d;
             }
             velocityProfile.setEntry(i, 1, vT);
+            if (i == 0) {
+                dT = L;
+            }
+            else if (i == velocityProfile.getRowDimension()) {
+                dT = 0;
+            }
+            else {
+                dT = dT - (velocityProfile.getEntry(i-1,1)+vT)/2
+                        *(velocityProfile.getEntry(i,0)-velocityProfile.getEntry(i-1,0));
+            }
+            velocityProfile.setEntry(i, 2, dT);
         }
-        */
+
 
         velocityProfileListener.newProfile(velocityProfile,proximity);
         ///////////////////////////////////

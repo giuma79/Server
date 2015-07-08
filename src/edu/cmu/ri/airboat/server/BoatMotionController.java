@@ -85,25 +85,25 @@ public class BoatMotionController implements VelocityProfileListener {
 
         // Heading PID control is always operating!
         for (int i = 0; i < 3; i++) {
-            simplePIDErrorAccumulator[i] += xError.getEntry(i,0);
+            simplePIDErrorAccumulator[i] += xError.getEntry(i,0)*dt;
         }
         xErrorDiff = xError.subtract(xErrorOld).scalarMultiply(1.0/dt);
         headingSignal = simplePIDGains[1][0]*xError.getEntry(2,0) + // P
                 simplePIDGains[1][1]*simplePIDErrorAccumulator[2] + // I
                 simplePIDGains[1][2]*xErrorDiff.getEntry(2,0); // D
 
+        /////////////////////////////////////////////////////////////////////////////////////
         // determine which controller to use, simple PID or P-PI pos./vel. cascade
         if (containers.executingProfile.get() == 1) {
-            //TODO: find current velocity error using velocity profile
-            // TODO: set t0 AFTER the velocity control begins
-            // Need to find where we hoped to be on the velocity profile curve
             PPICascade();
         }
         else {
             simplePID();
         }
-
         motorCommands();
+        /////////////////////////////////////////////////////////////////////////////////////
+
+
     }
 
     void simplePID() {
@@ -137,7 +137,9 @@ public class BoatMotionController implements VelocityProfileListener {
 
         // Determine which phase you are in based on current theta error
         // PID for heading is always occurring
-        double vd, wd; // the desired velocities
+        double vd; // the desired velocity
+        double dd; // the desired distance from target
+
         if (Math.abs(xError.getEntry(2, 0)) < headingErrorThreshold) {
             if (!t0set) {
                 t0 = t.doubleValue()/1000.0;
@@ -145,32 +147,44 @@ public class BoatMotionController implements VelocityProfileListener {
             }
             double tRelative = t.doubleValue()/1000.0 - t0;
             // linear interpolate desired velocity
-            vd = RMO.interpolate1D(profile,tRelative);
+            vd = RMO.interpolate1D(profile,tRelative,1);
+            dd = RMO.interpolate1D(profile,tRelative,2);
+
+
+            //TODO: determine distanceSignal based on P-PI error signals
+            // use actual velocity (remember flow constants!), actual position to generate errors
         }
         else {
             vd = 0;
+            distanceSignal = 0;
         }
-        double[] signals = new double[2];
-        signals = velocityMotorMap.v_to_M(vd,0.0); //TODO: how does rotational velocity come into play here?
-        distanceSignal = signals[0];
+
+
     }
 
     void motorCommands() {
         // send motor signals
+        double signal0 = 0;
+        double signal1 = 0;
         if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
-            containers.motorCommands.set(0,map(clip(distanceSignal - headingSignal,-1,1)
-                    ,-1, 1,-SAFE_DIFFERENTIAL_THRUST, SAFE_DIFFERENTIAL_THRUST));
-            containers.motorCommands.set(1,map(clip(distanceSignal + headingSignal,-1,1)
-                    ,-1, 1,-SAFE_DIFFERENTIAL_THRUST, SAFE_DIFFERENTIAL_THRUST));
-
+            signal0 = map(clip(distanceSignal - headingSignal,-1,1)
+                    ,-1, 1,-SAFE_DIFFERENTIAL_THRUST, SAFE_DIFFERENTIAL_THRUST);
+            signal1 = map(clip(distanceSignal + headingSignal,-1,1)
+                    ,-1, 1,-SAFE_DIFFERENTIAL_THRUST, SAFE_DIFFERENTIAL_THRUST);
         }
         else if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
-            containers.motorCommands.set(0,map(clip(distanceSignal,-1,1)
-                    ,-1,1,-SAFE_VECTORED_THRUST,SAFE_VECTORED_THRUST));
-            containers.motorCommands.set(1,clip(headingSignal, -1, 1));
+            signal0 = map(clip(distanceSignal,-1,1),-1,1,-SAFE_VECTORED_THRUST,SAFE_VECTORED_THRUST);
+            signal1 = clip(headingSignal, -1, 1);
         }
 
-        double[] velocities = motorSignalToVelocityInverseMap(containers.motorCommands.get(0),containers.motorCommands.get(1));
+        if (containers.teleopStatus.get() == TELEOPERATION_TYPES.NONE.getLongValue()) {
+            containers.motorCommands.set(0, signal0);
+            containers.motorCommands.set(1, signal1);
+        }
+
+        //TODO: after the velocity maps are built, use them to treat expected velocities as a sensor
+        /*
+        double[] velocities = velocityMotorMap.Signal_to_VW(signal0,signal1);
         // send intended steady state velocities to the localization filter
         RealMatrix z = MatrixUtils.createRealMatrix(2,1);
         z.setEntry(0,0,velocities[0]);
@@ -179,6 +193,7 @@ public class BoatMotionController implements VelocityProfileListener {
         t = System.currentTimeMillis();
         Datum datum = new Datum(SENSOR_TYPES.MOTOR,t,z,R);
         datumListener.newDatum(datum);
+        */
     }
 
     void updateFromKnowledgeBase() {
