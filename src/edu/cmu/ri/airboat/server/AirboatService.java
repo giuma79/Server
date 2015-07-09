@@ -44,6 +44,7 @@ import org.apache.commons.math.stat.regression.SimpleRegression;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -72,6 +73,8 @@ import javax.measure.unit.SI;
 
 import edu.cmu.ri.crw.CrwNetworkUtils;
 import edu.cmu.ri.crw.CrwSecurityManager;
+import edu.cmu.ri.crw.VehicleServer;
+import edu.cmu.ri.crw.data.SensorData;
 import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
 import edu.cmu.ri.crw.udp.UdpVehicleService;
@@ -105,7 +108,7 @@ public class AirboatService extends Service {
     double[] imuVelocity = new double[2]; // acceleration is integrated into this sum
     Long t; // current time in this thread
 
-    /////***************
+    /////*************** Accelerometer calibration. Basically junk.
     Long tAccel; // a special time keeper just for accelerometer data
     Long t0; // used to grow the covariance of the IMU integrated velocity over time
     double tSeconds;
@@ -123,7 +126,18 @@ public class AirboatService extends Service {
     double tIMUAStart,tIMUVStart;
     /////***************
 
+    Threader threader;
+    class motorCmdThread extends BaseThread {
+        @Override
+        public void run() {
+            if (lutra.platform.containers.localized.get() == 1) {
+                sendMotorJSON();
+            }
+        }
+    }
+
     // until i get an actual USB polling listener running, need to fake motor commands
+    /*
     void MotorCommands() {
         double v = 0;
         double w = 0;
@@ -137,6 +151,7 @@ public class AirboatService extends Service {
         Datum datum = new Datum(SENSOR_TYPES.MOTOR,t,z,R);
         datumListener.newDatum(datum);
     }
+    */
     /////////////////////////////////////////
 
     private static final int SERVICE_ID = 11312;
@@ -160,6 +175,7 @@ public class AirboatService extends Service {
     private UsbManager mUsbManager;
     private UsbAccessory mUsbAccessory;
     private ParcelFileDescriptor mUsbDescriptor;
+    private PrintWriter usbWriter; ////////////////////////////////////////////////////////////////
 
     // Flag indicating run status (Android has no way to query if a service is
     // running)
@@ -333,10 +349,6 @@ public class AirboatService extends Service {
                 t = System.currentTimeMillis();
                 Datum datum = new Datum(SENSOR_TYPES.COMPASS,t,z,R);
                 datumListener.newDatum(datum);
-
-
-                //MotorCommands(); // ******************************************************************************
-
                 /////////////////////////////////////////////////////////////////////
 
 
@@ -593,13 +605,13 @@ public class AirboatService extends Service {
             return Service.START_STICKY;
         }
 
-        /* //////////////////////////////////////////////////////////////////////////////
+        //////////////////////////////////////////////////////////////////////////////
 		// Ignore startup requests without an accessory.
 		if (!intent.hasExtra(UsbManager.EXTRA_ACCESSORY)) {
 			Log.e(TAG, "Attempted to start without accessory.");
 			return Service.START_STICKY;
 		}
-		*/ //////////////////////////////////////////////////////////////////////////////
+		//////////////////////////////////////////////////////////////////////////////
 
 
 
@@ -611,9 +623,9 @@ public class AirboatService extends Service {
         //	Log.w(TAG, "Attempted to start while running.");
         //	return Service.START_STICKY;
         //}
-        //if (lutra != null) {
-        //	Log.w(TAG, "Attempted to start while running.");
-        //}
+        if (lutra != null) {
+        	Log.w(TAG, "Attempted to start while running.");
+        }
 
         // start tracing to "/sdcard/trace_crw.trace"
         // Debug.startMethodTracing("trace_crw");
@@ -664,7 +676,7 @@ public class AirboatService extends Service {
         //Log.w("jjb",a);
 
 
-        /*////////////////////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////////
 		// Create an intent filter to listen for device disconnections
 		IntentFilter filter = new IntentFilter(
 				UsbManager.ACTION_USB_ACCESSORY_DETACHED);
@@ -685,15 +697,12 @@ public class AirboatService extends Service {
 
 
 		// Create writer for output over USB
-		PrintWriter usbWriter = new PrintWriter(new OutputStreamWriter(
-				new FileOutputStream(mUsbDescriptor.getFileDescriptor())));
+		usbWriter = new PrintWriter(new OutputStreamWriter(new FileOutputStream(mUsbDescriptor.getFileDescriptor())));
 		final FileInputStream usbReader = new FileInputStream(mUsbDescriptor.getFileDescriptor());
+        ////////////////////////////////////////////////////////////////////////
 
 		// Create the data object
 		//_airboatImpl = new AirboatImpl(this, usbWriter);
-        */ ////////////////////////////////////////////////////////////////////////
-
-
 
         // Create the GAMS loop object ///////////////////////////////////////////////////////////////////////////////
         //readMadaraConfig();
@@ -768,7 +777,7 @@ public class AirboatService extends Service {
 		*/
 
 
-        /*////////////////////////////////////////////////////////////////////////
+        ////////////////////////////////////////////////////////////////////////
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
@@ -782,26 +791,49 @@ public class AirboatService extends Service {
 						String line = new String(buffer, 0, len);
 						
 						try {
-							if (_airboatImpl == null) {
+                            if (lutra == null) {
 								return;
-							} else {
-								_airboatImpl.onCommand(new JSONObject(line));
 							}
-						} catch (JSONException e) {
+                            else {
+                                receiveJSON(new JSONObject(line));
+							}
+						}
+                        catch (JSONException e) {
 							Log.w(TAG, "Failed to parse response '" + line + "'.", e);
 						}
 					}
-				} catch (IOException e) {
+				}
+                catch (IOException e) {
 					Log.d(TAG, "Accessory connection closed.", e);
 				}
 
 				try {
 					usbReader.close();
-				} catch (IOException e) {
+				}
+                catch (IOException e) {
 				}
 			}
 		}).start();
-		*/ ////////////////////////////////////////////////////////////////////////
+
+        threader = new Threader(lutra.knowledge);
+        threader.run(lutra.platform.containers.controlHz,"MotorJSONCommands",new motorCmdThread());
+
+        /*
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+            }
+        }).start();
+        */
+        /*
+        class MyNewThreaderThread extends BaseThread {
+            @Override
+            public void run() {
+            }
+        }
+         */
+		////////////////////////////////////////////////////////////////////////
 
 		/*
 		// Start up UDP vehicle service in the background
@@ -977,6 +1009,7 @@ public class AirboatService extends Service {
         // Stop tracing to "/sdcard/trace_crw.trace"
         Debug.stopMethodTracing();
 
+        /*
         // Shutdown the vehicle services
         if (_udpService != null) {
             try {
@@ -986,6 +1019,7 @@ public class AirboatService extends Service {
             }
             _udpService = null;
         }
+        */
 
         // Release locks on wifi and CPU
         if (_wakeLock != null) {
@@ -996,7 +1030,7 @@ public class AirboatService extends Service {
         }
 
         // Disconnect from USB event receiver
-        //unregisterReceiver(_usbStatusReceiver);
+        unregisterReceiver(_usbStatusReceiver);
 
         // Disconnect from the Android sensors
         SensorManager sm;
@@ -1009,6 +1043,7 @@ public class AirboatService extends Service {
         gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         gps.removeUpdates(locationListener);
 
+        /*
         // Disconnect the data object from this service
         if (_airboatImpl != null) {
             try {
@@ -1019,6 +1054,7 @@ public class AirboatService extends Service {
             _airboatImpl.shutdown();
             _airboatImpl = null;
         }
+        */
 
         // Remove the data log (a new one will be created on restart)
         if (_fileAppender != null) {
@@ -1029,13 +1065,10 @@ public class AirboatService extends Service {
             }
         }
 
-		/*
+
         // Destroy MADARA objects
-        _knowledge.free();
-        _controller.free();
-        _algorithm.shutdown();
-        _platform.shutdown();
-        */
+        threader.terminate();
+        threader.free();
         lutra.shutdown();
 
         // Disable this as a foreground service
@@ -1111,6 +1144,127 @@ public class AirboatService extends Service {
             double upper = values.get(values.size()/2);
             return (lower + upper) / 2.0;
         }
+    }
+
+    void receiveJSON(JSONObject cmd) {
+        @SuppressWarnings("unchecked")
+        Iterator<String> keyIterator = (Iterator<String>)cmd.keys();
+
+        // Iterate through JSON fields
+        while (keyIterator.hasNext()) {
+            String name = keyIterator.next();
+            try {
+                JSONObject value = cmd.getJSONObject(name);
+
+                if (name.startsWith("m")) {
+                    int motor = name.charAt(1) - 48;
+                    //logger.info("MOTOR" + motor + ": " + value.getDouble("v"));
+                }
+                else if (name.startsWith("s")) {
+                    int sensor = name.charAt(1) - 48;
+                    //logger.info("SENSOR" + sensor + ": " + value.toString());
+
+                    // Hacks to send sensor information
+                    if (value.has("type")) {
+                        String type = value.getString("type");
+                        if (type.equalsIgnoreCase("es2")) {
+                            SensorData reading = new SensorData();
+                            reading.channel = sensor;
+                            reading.type = VehicleServer.SensorType.TE;
+                            reading.data = new double[] {
+                                    value.getDouble("t"),
+                                    value.getDouble("c")
+                            };
+                            //sendSensor(sensor, reading);
+                        }
+                        else if (type.equalsIgnoreCase("hdf5")) {
+                            String nmea = value.getString("nmea");
+                            if (nmea.startsWith("$SDDBT")) {
+                                try {
+                                    double depth = Double.parseDouble(nmea.split(",")[3]);
+
+                                    SensorData reading = new SensorData();
+                                    reading.type = VehicleServer.SensorType.DEPTH;
+                                    reading.channel = sensor;
+                                    reading.data = new double[] { depth };
+
+                                    //sendSensor(sensor, reading);
+                                } catch(Exception e) {
+                                    //Log.w(logTag, "Failed to parse depth reading: " + nmea);
+                                }
+                            }
+                        }
+                        else if (type.equalsIgnoreCase("winch")) {
+                            SensorData reading = new SensorData();
+                            reading.channel = sensor;
+                            reading.type = VehicleServer.SensorType.UNKNOWN;
+                            reading.data = new double[] {
+                                    value.getDouble("depth")
+                            };
+                            //sendSensor(sensor, reading);
+
+                            // TODO: Remove this hack to store winch depth
+                            //winch_depth_ = reading.data[0];
+                        }
+                    }
+                } else {
+                    //Log.w(logTag, "Received unknown param '" + cmd + "'.");
+                }
+            } catch (JSONException e) {
+                //Log.w(logTag, "Malformed JSON command '" + cmd + "'.", e);
+                Log.w("jjb", "Malformed JSON command '" + cmd + "'.", e);
+            }
+        }
+
+    }
+
+    void sendMotorJSON() {
+        // Send vehicle command by converting raw command to appropriate vehicle model.
+        JSONObject command = new JSONObject();
+        double signal0 = lutra.platform.containers.motorCommands.get(0);
+        double signal1 = lutra.platform.containers.motorCommands.get(1);
+        if (lutra.platform.containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
+            // Construct objects to hold velocities
+            JSONObject velocity0 = new JSONObject();
+            JSONObject velocity1 = new JSONObject();
+
+            // Send velocities as a JSON command
+            try {
+                velocity0.put("v", (float) signal0);
+                velocity1.put("v", (float) signal1);
+                command.put("m0", velocity0);
+                command.put("m1", velocity1);
+                usbWriter.println(command.toString());
+                usbWriter.flush();
+            }
+            catch (JSONException e) {
+                //Log.w(logTag, "Failed to serialize command.", e); // TODO: remove this.
+                Log.w("jjb", "Failed to serialize command.",e);
+            }
+        }
+        else if (lutra.platform.containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
+            // Construct objects to hold velocities
+            JSONObject thrust = new JSONObject();
+            JSONObject rudder = new JSONObject();
+
+            // Send velocities as a JSON command
+            try {
+                thrust.put("v", (float) signal0);
+                rudder.put("p", (float) signal1);
+                command.put("m0", thrust);
+                command.put("s0", rudder);
+                usbWriter.println(command.toString());
+                usbWriter.flush();
+            } catch (JSONException e) {
+               // Log.w(logTag, "Failed to serialize command.", e); // TODO: remove this.
+                Log.w("jjb", "Failed to serialize command.",e);
+            }
+        }
+        else {
+            //Log.w(logTag, "Unknown vehicle type: " + vehicle_type);
+            Log.w("jjb","Unknown thrust type");
+        }
+
     }
 
 

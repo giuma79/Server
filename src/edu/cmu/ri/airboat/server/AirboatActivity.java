@@ -62,11 +62,11 @@ public class AirboatActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 
 		///////////////////////////////////////////////////////////////////
-		Log.w("jjb","AirboatActivity.onCreate()");
-		// copied from LauncherActivity and modified to try and circumvent need for e-board
-		Intent server_intent = new Intent(AirboatActivity.this, AirboatService.class);
-		startService(server_intent);
-		//finish();
+		//Log.w("jjb","AirboatActivity.onCreate()");
+		//// copied from LauncherActivity and modified to try and circumvent need for e-board
+		//Intent server_intent = new Intent(AirboatActivity.this, AirboatService.class);
+		//startService(server_intent);
+		////finish();
 		///////////////////////////////////////////////////////////////////
 
 

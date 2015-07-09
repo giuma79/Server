@@ -62,7 +62,8 @@ public class LutraPlatform extends BasePlatform {
 
         @Override
         public void run() {
-            if (boatEKF.isGPSInitialized && boatEKF.isCompassInitialized) {
+            //if (boatEKF.isGPSInitialized && boatEKF.isCompassInitialized) {
+            if (containers.localized.get() == 1) {
                 if (!homeSet) {
                     homeSet = true;
                     knowledge.print();
@@ -97,7 +98,7 @@ public class LutraPlatform extends BasePlatform {
     }
 
     public void start() {
-        threader.run(25.0, "FilterAndController", new FilterAndControllerThread());
+        threader.run(containers.controlHz, "FilterAndController", new FilterAndControllerThread());
     }
 
 
@@ -130,7 +131,7 @@ public class LutraPlatform extends BasePlatform {
 
         t = System.currentTimeMillis();
         ///////////////////////////////////////////
-        if ((boatEKF.isGPSInitialized) && (containers.executingProfile.get() != 1)) {
+        if ((containers.localized.get() == 1) && (containers.executingProfile.get() != 1)) {
             double[] goal = new double[]{10, 10};
             moveLocalXY(goal, 1.5);
         }

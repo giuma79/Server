@@ -50,8 +50,11 @@ public class LutraMadaraContainers {
     Double decel;
     DoubleVector x;
     Integer executingProfile; // == 1 if controller is currently executing a velocity profile, == 0 otherwise
-    Integer thrustType;
-    Integer teleopStatus; // see enum TELEOPERATION_TYPES
+    Integer thrustType; // see THRUST_TYPES enum
+    Integer teleopStatus; // see TELEOPERATION_TYPES enum
+    Integer gpsInitialized; // == 1 if the first GPS lock has come in
+    Integer compassInitialized; // == 1 if the first compass measurement has come in
+    Integer localized; // == 1 if both GPS and compass are initialized
     DoubleVector motorCommands;
     final double defaultSufficientProximity = 3.0;
     final double defaultPeakVelocity = 2.0;
@@ -60,6 +63,7 @@ public class LutraMadaraContainers {
     final double maxAccel = 1.0; // no more than X m/s^2 capable at full power
     final double minAccel = 0.1; // no less than X m/s^2, or motor doesn't respond
     final long defaultTeleopStatus = 0L;
+    final double controlHz = 25.0; // frequency of control loop and sending the corresponding JSON commands
 
     Self self;
 
@@ -97,6 +101,15 @@ public class LutraMadaraContainers {
         teleopStatus = new Integer();
         teleopStatus.setName(knowledge,".teleopStatus");
         teleopStatus.set(defaultTeleopStatus);
+        gpsInitialized = new Integer();
+        gpsInitialized.setName(knowledge,".gpsInitialized");
+        gpsInitialized.set(0);
+        compassInitialized = new Integer();
+        compassInitialized.setName(knowledge,".compassInitialized");
+        compassInitialized.set(0);
+        localized = new Integer();
+        localized.setName(knowledge,".localized");
+        localized.set(0);
     }
 
     public void freeAll() {
@@ -108,6 +121,9 @@ public class LutraMadaraContainers {
         x.free();
         executingProfile.free();
         teleopStatus.free();
+        gpsInitialized.free();
+        compassInitialized.free();
+        localized.free();
     }
 
     public void restoreDefaults() {

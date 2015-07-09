@@ -34,8 +34,8 @@ public class BoatEKF implements DatumListener {
     Long t; // current time
     final double ROLLBACK_LIMIT = 1.0; // seconds allowed for a rollback before measurements are just abandoned
 
-    public boolean isGPSInitialized = false;
-    public boolean isCompassInitialized = false;
+    //public boolean isGPSInitialized = false;
+    //public boolean isCompassInitialized = false;
 
     KnowledgeBase knowledge;
     LutraMadaraContainers containers;
@@ -126,7 +126,8 @@ public class BoatEKF implements DatumListener {
 
         // first GPS and compass (i.e. positions) datum are put into state directly
         // velocity parts of state are initialized at zero
-        if (!isGPSInitialized) {
+        //if (!isGPSInitialized) {
+        if (containers.gpsInitialized.get() == 0) {
             if (datum.isType(SENSOR_TYPES.GPS)) {
                 double[] _z = new double[] {z.getEntry(0,0),z.getEntry(1,0),x.getEntry(2,0)};
 
@@ -141,14 +142,19 @@ public class BoatEKF implements DatumListener {
                 x.setEntry(1,0,0);
                 containers.x.set(0,0);
                 containers.x.set(1,0);
-                isGPSInitialized = true;
+                //isGPSInitialized = true;
+                containers.gpsInitialized.set(1);
+                if (containers.compassInitialized.get() == 1) {
+                    containers.localized.set(1);
+                }
 
                 Log.w("jjb", "GPS is now initialized");
                 return;
             }
         }
 
-        if (!isCompassInitialized) {
+        //if (!isCompassInitialized) {
+        if (containers.compassInitialized.get() == 0) {
             if (datum.isType(SENSOR_TYPES.COMPASS)) {
                 //KnowledgeRecord x_KR = containers.self.device.location.toRecord();
                 //double[] x_array = x_KR.toDoubleArray();
@@ -164,14 +170,19 @@ public class BoatEKF implements DatumListener {
 
                 x.setEntry(2,0,z.getEntry(0,0));
                 containers.x.set(2,z.getEntry(0,0));
-                isCompassInitialized = true;
+                //isCompassInitialized = true;
+                containers.compassInitialized.set(1);
+                if (containers.gpsInitialized.get() == 1) {
+                    containers.localized.set(1);
+                }
 
                 Log.w("jjb", "Compass is now initialized");
                 return;
             }
         }
 
-        if (!(isGPSInitialized && isCompassInitialized)) {
+        //if (!(isGPSInitialized && isCompassInitialized)) {
+        if (containers.localized.get() == 0) {
             timeStep();
             return;
         }
