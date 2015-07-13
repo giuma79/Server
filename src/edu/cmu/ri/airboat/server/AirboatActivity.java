@@ -61,13 +61,13 @@ public class AirboatActivity extends Activity {
     @Override
 	public void onCreate(Bundle savedInstanceState) {
 
-		///////////////////////////////////////////////////////////////////
-		//Log.w("jjb","AirboatActivity.onCreate()");
-		//// copied from LauncherActivity and modified to try and circumvent need for e-board
-		//Intent server_intent = new Intent(AirboatActivity.this, AirboatService.class);
-		//startService(server_intent);
-		////finish();
-		///////////////////////////////////////////////////////////////////
+		/*///////////////////////////////////////////////////////////////////
+		Log.w("jjb","AirboatActivity.onCreate()");
+		// copied from LauncherActivity and modified to try and circumvent need for e-board
+		Intent server_intent = new Intent(AirboatActivity.this, AirboatService.class);
+		startService(server_intent);
+		//finish();
+		*////////////////////////////////////////////////////////////////////
 
 
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(AirboatActivity.this);
@@ -186,6 +186,8 @@ public class AirboatActivity extends Activity {
 
 
 
+
+
         // Periodically update status of toggle button
         final Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
@@ -196,6 +198,7 @@ public class AirboatActivity extends Activity {
 				handler.postDelayed(this, 300);
 			}
 		}, 0);
+
 
 
 
@@ -238,6 +241,7 @@ public class AirboatActivity extends Activity {
 				// start controller
 			}
 		});
+
 
 
 
@@ -317,6 +321,7 @@ public class AirboatActivity extends Activity {
 
 
 
+
 		// Register handler for failsafe toggle button
         final ToggleButton failsafeToggle = (ToggleButton)findViewById(R.id.FailsafeToggle);
         failsafeToggle.setOnClickListener(new OnClickListener() {
@@ -355,6 +360,8 @@ public class AirboatActivity extends Activity {
 
 
 
+
+
         // Periodically update status of failsafe button
         handler.postDelayed(new Runnable() {
 			@Override
@@ -366,7 +373,8 @@ public class AirboatActivity extends Activity {
 		}, 0);
 
 
-		/*
+
+
         // Register handler for homing button
         final Button homeButton = (Button)findViewById(R.id.HomeButton);
         homeButton.setOnClickListener(new OnClickListener() {
@@ -434,7 +442,7 @@ public class AirboatActivity extends Activity {
 				
 			}
 		});
-		*/
+
 
 		/*
         // Set text boxes to previous values

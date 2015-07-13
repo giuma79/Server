@@ -104,19 +104,32 @@ public class RMO {
     }
 
     public static double interpolate1D(RealMatrix XY, double x, int yCol) {
-        // assumes first column is X data, second column is Y data, and X is in ascending sorted order
-        for (int i = 0; i < XY.getRowDimension(); i++) {
-            if (x >= XY.getEntry(i,0)) {
-                if (x == XY.getEntry(0,0)) { // edge case, equal to the FIRST row in XY
-                    return XY.getEntry(0,yCol);
-                }
-                if (x == XY.getEntry(XY.getRowDimension(),0)) { // edge case, equal to the LAST row in XY
-                    return XY.getEntry(XY.getRowDimension(),yCol);
-                }
-                return XY.getEntry(i,yCol) + (x-XY.getEntry(i,0))/(XY.getEntry(i+1,0)-XY.getEntry(i,0))*(XY.getEntry(i+1,yCol)-XY.getEntry(i,yCol));
+        // assumes first column is X data, yCol column is Y data, and X is in ascending sorted order
+        if (x < XY.getEntry(0,0)) {throw new ArrayIndexOutOfBoundsException(); }
+        if (x > XY.getEntry(XY.getRowDimension()-1,0)) {throw new ArrayIndexOutOfBoundsException(); }
+        int above = -1;
+        int below = -1;
+        for (int i = 0; i < XY.getRowDimension()-1; i++) {
+            if (x == XY.getEntry(i, 0)) {
+                above = i;
+                below = i;
+                break;
+            }
+            if ((x > XY.getEntry(i, 0)) && (x < XY.getEntry(i + 1, 0))) {
+                above = i + 1;
+                below = i;
+                break;
             }
         }
-        throw new ArrayIndexOutOfBoundsException();
+        if (x == XY.getEntry(XY.getRowDimension()-1,0)) {
+            above = XY.getRowDimension()-1;
+            below = XY.getRowDimension()-1;
+        }
+        if (above < 0 || below < 0) {
+            throw new ArrayIndexOutOfBoundsException();
+        }
+        return XY.getEntry(below,yCol) + (x-XY.getEntry(below,0))/(XY.getEntry(above,0)-XY.getEntry(below,0))*
+                                         (XY.getEntry(above,yCol)-XY.getEntry(below,yCol));
     }
 
     public static double[][] concat2D_double(double[][] a1, double[][] a2) {

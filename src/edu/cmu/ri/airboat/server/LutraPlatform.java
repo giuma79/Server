@@ -294,7 +294,7 @@ public class LutraPlatform extends BasePlatform {
             if (i == 0) {
                 dT = L;
             }
-            else if (i == velocityProfile.getRowDimension()) {
+            else if (i == velocityProfile.getRowDimension()-1) {
                 dT = 0;
             }
             else {

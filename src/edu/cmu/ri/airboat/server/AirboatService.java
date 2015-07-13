@@ -105,10 +105,61 @@ public class AirboatService extends Service {
     DatumListener datumListener;
     List<Datum> gpsHistory; // maintain a list of GPS data within some time window
     final double gpsHistoryTimeWindow = 3.0; // if a gps point is older than X seconds, abandon it
-    double[] imuVelocity = new double[2]; // acceleration is integrated into this sum
     Long t; // current time in this thread
 
-    /////*************** Accelerometer calibration. Basically junk.
+    synchronized void gpsVelocity(Datum datum) {
+
+        t = System.currentTimeMillis();
+
+        gpsHistory.add(datum);
+
+        for (int i = gpsHistory.size()-1; i > -1; i--) {
+            if ((t.doubleValue() - gpsHistory.get(i).getTimestamp().doubleValue())/1000.0 > gpsHistoryTimeWindow) {
+                gpsHistory.remove(i);
+            }
+        }
+        //String gpsHistoryString = String.format("There are %d GPS measurements in the history",gpsHistory.size());
+        //Log.w("jjb",gpsHistoryString);
+
+        if (gpsHistory.size() < 3) {return;}
+
+        // Least squares linear regression with respect to time
+        //RealMatrix relevantGPS = MatrixUtils.createRealMatrix(gpsHistory.size(),3);
+        double[][] xvst = new double[gpsHistory.size()][2];
+        double [][] yvst = new double [gpsHistory.size()][2];
+        for (int i = 0; i < gpsHistory.size(); i++) {
+            double t = gpsHistory.get(i).getTimestamp().doubleValue()/1000.0;
+            xvst[i][0] = t;
+            yvst[i][0] = t;
+            xvst[i][1] = gpsHistory.get(i).getZ().getEntry(0,0);
+            yvst[i][1] = gpsHistory.get(i).getZ().getEntry(1,0);
+        }
+        SimpleRegression regX = new SimpleRegression();
+        SimpleRegression regY = new SimpleRegression();
+        regX.addData(xvst);
+        regY.addData(yvst);
+        double xdot = regX.getSlope();
+        double ydot = regY.getSlope();
+
+        // reset potentially crazy imu integration velocities
+        //imuVelocity[0] = xdot;
+        //imuVelocity[1] = ydot;
+
+        RealMatrix z = MatrixUtils.createRealMatrix(2,1);
+        z.setEntry(0,0,xdot);
+        z.setEntry(1, 0, ydot);
+        RealMatrix R = MatrixUtils.createRealMatrix(2,2);
+        R.setEntry(0, 0, 10.0);
+        R.setEntry(1, 1, 10.0);
+        Datum datum2 = new Datum(SENSOR_TYPES.DGPS,t,z,R);
+        datumListener.newDatum(datum2);
+
+        //String DGPSString = String.format("DGPS has enough measurements to activate -- z = %s",RMO.realMatrixToString(z));
+        //Log.w("jjb",DGPSString);
+    }
+
+    /////******************************************* Accelerometer calibration. Basically junk.
+    double[] imuVelocity = new double[2]; // acceleration is integrated into this sum
     Long tAccel; // a special time keeper just for accelerometer data
     Long t0; // used to grow the covariance of the IMU integrated velocity over time
     double tSeconds;
@@ -124,8 +175,7 @@ public class AirboatService extends Service {
     double[][] imuATrend =  new double[2][2];
     double[][] imuVTrend = new double[2][2];
     double tIMUAStart,tIMUVStart;
-    /////***************
-
+    /////*******************************************
     Threader threader;
     class motorCmdThread extends BaseThread {
         @Override
@@ -135,6 +185,15 @@ public class AirboatService extends Service {
             }
         }
     }
+    /*
+    class receiveJSONThread extends BaseThread {
+        @Override
+        public void run() {
+            if (lutra != null) {
+            }
+        }
+    }
+    */
 
     // until i get an actual USB polling listener running, need to fake motor commands
     /*
@@ -245,9 +304,6 @@ public class AirboatService extends Service {
                     utmLoc.latitudeZone() > 'O');
             UtmPose utm = new UtmPose(pose, origin);
 
-
-
-            /////////////////////////////////////////////////////////////////////
             Log.w("jjb", "the GPS phone listener has activated");
 
             RealMatrix z = MatrixUtils.createRealMatrix(2,1);
@@ -260,56 +316,7 @@ public class AirboatService extends Service {
             Datum datum = new Datum(SENSOR_TYPES.GPS,t,z,R);
             datumListener.newDatum(datum);
 
-            gpsHistory.add(datum);
-            for (int i = gpsHistory.size()-1; i > -1; i--) {
-                if ((t.doubleValue() - gpsHistory.get(i).getTimestamp().doubleValue())/1000.0 > gpsHistoryTimeWindow) {
-                    gpsHistory.remove(i);
-                }
-            }
-
-            //String gpsHistoryString = String.format("There are %d GPS measurements in the history",gpsHistory.size());
-            //Log.w("jjb",gpsHistoryString);
-
-            if (gpsHistory.size() < 3) {return;}
-
-
-
-            // Least squares linear regression with respect to time
-            //RealMatrix relevantGPS = MatrixUtils.createRealMatrix(gpsHistory.size(),3);
-            double[][] xvst = new double[gpsHistory.size()][2];
-            double [][] yvst = new double [gpsHistory.size()][2];
-            for (int i = 0; i < gpsHistory.size(); i++) {
-                double t = gpsHistory.get(i).getTimestamp().doubleValue()/1000.0;
-                xvst[i][0] = t;
-                yvst[i][0] = t;
-                xvst[i][1] = gpsHistory.get(i).getZ().getEntry(0,0);
-                yvst[i][1] = gpsHistory.get(i).getZ().getEntry(1,0);
-            }
-            SimpleRegression regX = new SimpleRegression();
-            SimpleRegression regY = new SimpleRegression();
-            regX.addData(xvst);
-            regY.addData(yvst);
-            double xdot = regX.getSlope();
-            double ydot = regY.getSlope();
-
-            // reset potentially crazy imu integration velocities
-            //imuVelocity[0] = xdot;
-            //imuVelocity[1] = ydot;
-
-            RealMatrix z2 = MatrixUtils.createRealMatrix(2,1);
-            z2.setEntry(0,0,xdot);
-            z2.setEntry(1, 0, ydot);
-            RealMatrix R2 = MatrixUtils.createRealMatrix(2,2);
-            R2.setEntry(0, 0, 10.0);
-            R2.setEntry(1, 1, 10.0);
-            Datum datum2 = new Datum(SENSOR_TYPES.DGPS,t,z2,R2);
-            datumListener.newDatum(datum2);
-
-            String DGPSString = String.format("DGPS has enough measurements to activate -- z = %s",RMO.realMatrixToString(z2));
-            Log.w("jjb",DGPSString);
-
-
-            /////////////////////////////////////////////////////////////////////
+            gpsVelocity(datum);
 
 
 
@@ -320,6 +327,7 @@ public class AirboatService extends Service {
             */
         }
     };
+
     private final SensorEventListener rotationVectorListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
@@ -608,7 +616,8 @@ public class AirboatService extends Service {
         //////////////////////////////////////////////////////////////////////////////
 		// Ignore startup requests without an accessory.
 		if (!intent.hasExtra(UsbManager.EXTRA_ACCESSORY)) {
-			Log.e(TAG, "Attempted to start without accessory.");
+			//Log.e(TAG, "Attempted to start without accessory.");
+            Log.w("jjb","Attempted to start without accessory.");
 			return Service.START_STICKY;
 		}
 		//////////////////////////////////////////////////////////////////////////////
@@ -624,7 +633,7 @@ public class AirboatService extends Service {
         //	return Service.START_STICKY;
         //}
         if (lutra != null) {
-        	Log.w(TAG, "Attempted to start while running.");
+        	Log.w("jjb", "Attempted to start while running.");
         }
 
         // start tracing to "/sdcard/trace_crw.trace"
@@ -676,6 +685,7 @@ public class AirboatService extends Service {
         //Log.w("jjb",a);
 
 
+
         ////////////////////////////////////////////////////////////////////////
 		// Create an intent filter to listen for device disconnections
 		IntentFilter filter = new IntentFilter(
@@ -690,10 +700,11 @@ public class AirboatService extends Service {
 		mUsbDescriptor = mUsbManager.openAccessory(mUsbAccessory);
 		if (mUsbDescriptor == null) {
 			// If the accessory fails to connect, terminate service.
-			Log.e(TAG, "Failed to open accessory.");
+			Log.e("jjb", "Failed to open accessory.");
 			stopSelf();
 			return Service.START_STICKY;
 		}
+
 
 
 		// Create writer for output over USB
@@ -781,6 +792,9 @@ public class AirboatService extends Service {
 		new Thread(new Runnable() {
 			@Override
 			public void run() {
+
+                Log.w("jjb","the receiveJSON thread is starting...");
+
 				// Start a loop to receive data from accessory.
 				try {
 					while (true) {
@@ -792,19 +806,23 @@ public class AirboatService extends Service {
 						
 						try {
                             if (lutra == null) {
+                                Log.w("jjb","lutra is null. something is wrong");
 								return;
 							}
                             else {
                                 receiveJSON(new JSONObject(line));
 							}
 						}
-                        catch (JSONException e) {
-							Log.w(TAG, "Failed to parse response '" + line + "'.", e);
+                        //catch (JSONException e) {
+                        catch (Exception e) {
+						//	Log.w(TAG, "Failed to parse response '" + line + "'.", e);
+                            Log.w("jjb","inner receiveJSON thread failure:\n "+line+" ",e);
 						}
 					}
 				}
                 catch (IOException e) {
-					Log.d(TAG, "Accessory connection closed.", e);
+					//Log.d(TAG, "Accessory connection closed.", e);
+                    Log.w("jjb","outer receiveJSON thread failure",e);
 				}
 
 				try {
@@ -951,6 +969,9 @@ public class AirboatService extends Service {
 
         // Indicate that the service should not be stopped arbitrarily
         Log.i(TAG, "AirboatService started.");
+
+        Log.w("jjb","onStartCommand() finished");
+
         return Service.START_STICKY;
     }
 
@@ -1150,6 +1171,8 @@ public class AirboatService extends Service {
         @SuppressWarnings("unchecked")
         Iterator<String> keyIterator = (Iterator<String>)cmd.keys();
 
+        Log.w("jjb","receiveJSON()...");
+
         // Iterate through JSON fields
         while (keyIterator.hasNext()) {
             String name = keyIterator.next();
@@ -1207,7 +1230,47 @@ public class AirboatService extends Service {
                             //winch_depth_ = reading.data[0];
                         }
                     }
-                } else {
+                }
+                else if (name.startsWith("g")) { ////////////////////// //TODO: finish new gps firmware
+                    int gpsReceiver = name.charAt(1) - 48;
+
+                    double latitude = 0;
+                    double longitude = 0;
+                    //double speed = 0;
+                    if (value.has("lati")) { latitude = value.getDouble("lati"); }
+                    if (value.has("longi")) { longitude = value.getDouble("longi"); }
+                    //if (value.has("speed")) { speed = value.getDouble("speed"); }
+
+                    String a = String.format(
+                            "eBoard GPS received:\n    LAT: %f\n    LONG: %f\n",
+                            latitude,longitude);
+                    Log.w("jjb",a);
+                    // Convert from lat/long to UTM coordinates
+                    // Convert to UTM data structure
+                    // Construct z, R, datum, and activate datumListener
+
+                    UTM utmLoc = UTM.latLongToUtm(LatLong.valueOf(latitude,longitude,NonSI.DEGREE_ANGLE),ReferenceEllipsoid.WGS84);
+                    Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
+                                             utmLoc.northingValue(SI.METER),
+                                             0.0, // altitude
+                                             Quaternion.fromEulerAngles(0.0, 0.0, 0.0));
+                    Utm origin = new Utm(utmLoc.longitudeZone(),utmLoc.latitudeZone() > '0');
+                    UtmPose utm = new UtmPose(pose,origin);
+
+                    RealMatrix z = MatrixUtils.createRealMatrix(2,1);
+                    z.setEntry(0,0,utm.pose.getX());
+                    z.setEntry(1,0,utm.pose.getY());
+                    RealMatrix R = MatrixUtils.createRealMatrix(2,2);
+                    R.setEntry(0, 0, 10.0);
+                    R.setEntry(1, 1, 10.0);
+                    t = System.currentTimeMillis();
+                    Datum datum = new Datum(SENSOR_TYPES.GPS,t,z,R);
+                    datumListener.newDatum(datum);
+
+                    gpsVelocity(datum);
+
+                } ////////////////////////////////////////////////////////////////////////////////////////////////
+                else {
                     //Log.w(logTag, "Received unknown param '" + cmd + "'.");
                 }
             } catch (JSONException e) {
@@ -1219,6 +1282,9 @@ public class AirboatService extends Service {
     }
 
     void sendMotorJSON() {
+
+        //Log.w("jjb","sendMotorJSON() thread iteration...");
+
         // Send vehicle command by converting raw command to appropriate vehicle model.
         JSONObject command = new JSONObject();
         double signal0 = lutra.platform.containers.motorCommands.get(0);
@@ -1266,6 +1332,4 @@ public class AirboatService extends Service {
         }
 
     }
-
-
 }

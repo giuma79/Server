@@ -71,9 +71,6 @@ public class LauncherActivity extends Activity {
             finish();
         }
 
-
-
-
     }
     
     @Override
