@@ -106,7 +106,7 @@ public class AirboatService extends Service {
     List<Datum> gpsHistory; // maintain a list of GPS data within some time window
     final double gpsHistoryTimeWindow = 3.0; // if a gps point is older than X seconds, abandon it
     Long t; // current time in this thread
-
+    double eBoardGPSTimestamp = 0.0;
     synchronized void gpsVelocity(Datum datum) {
 
         t = System.currentTimeMillis();
@@ -613,14 +613,14 @@ public class AirboatService extends Service {
             return Service.START_STICKY;
         }
 
-        //////////////////////////////////////////////////////////////////////////////
+        /* //////////////////////////////////////////////////////////////////////////////
 		// Ignore startup requests without an accessory.
 		if (!intent.hasExtra(UsbManager.EXTRA_ACCESSORY)) {
 			//Log.e(TAG, "Attempted to start without accessory.");
             Log.w("jjb","Attempted to start without accessory.");
 			return Service.START_STICKY;
 		}
-		//////////////////////////////////////////////////////////////////////////////
+		*/ //////////////////////////////////////////////////////////////////////////////
 
 
 
@@ -1234,16 +1234,21 @@ public class AirboatService extends Service {
                 else if (name.startsWith("g")) { ////////////////////// //TODO: finish new gps firmware
                     int gpsReceiver = name.charAt(1) - 48;
 
-                    double latitude = 0;
-                    double longitude = 0;
+                    double latitude = -999;
+                    double longitude = -999;
+                    double newTime = -999;
                     //double speed = 0;
-                    if (value.has("lati")) { latitude = value.getDouble("lati"); }
-                    if (value.has("longi")) { longitude = value.getDouble("longi"); }
+                    if (value.has("lati")) { latitude = value.getDouble("lati");} else {return;} // must receive!
+                    if (value.has("longi")) { longitude = value.getDouble("longi");} else {return;} // must receive!
+                    if (value.has("time")) { newTime = value.getDouble("time");}
                     //if (value.has("speed")) { speed = value.getDouble("speed"); }
 
+                    if (latitude == -999 || longitude == -999) { return;}
+                    if (newTime > eBoardGPSTimestamp) {eBoardGPSTimestamp = newTime;} else {return;} // must be new!
+
                     String a = String.format(
-                            "eBoard GPS received:\n    LAT: %f\n    LONG: %f\n",
-                            latitude,longitude);
+                            "eBoard GPS received at time %.1f:\n    LAT: %.5f\n    LONG: %.5f\n",
+                            eBoardGPSTimestamp,latitude,longitude);
                     Log.w("jjb",a);
                     // Convert from lat/long to UTM coordinates
                     // Convert to UTM data structure
@@ -1253,7 +1258,7 @@ public class AirboatService extends Service {
                     Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
                                              utmLoc.northingValue(SI.METER),
                                              0.0, // altitude
-                                             Quaternion.fromEulerAngles(0.0, 0.0, 0.0));
+                                             Quaternion.fromEulerAngles(0.0, 0.0, 0.0)); // bearing
                     Utm origin = new Utm(utmLoc.longitudeZone(),utmLoc.latitudeZone() > '0');
                     UtmPose utm = new UtmPose(pose,origin);
 

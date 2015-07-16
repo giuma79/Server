@@ -205,7 +205,7 @@ public class BoatMotionController implements VelocityProfileListener {
             x.setEntry(i,0,containers.x.get(i));
         }
 
-        //Log.w("jjb","xd = " + RMO.realMatrixToString(xd));
+        Log.w("jjb","xd = " + RMO.realMatrixToString(xd));
         //Log.w("jjb","x = " + RMO.realMatrixToString(x));
     }
 

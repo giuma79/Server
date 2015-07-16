@@ -61,7 +61,7 @@ public class AirboatActivity extends Activity {
     @Override
 	public void onCreate(Bundle savedInstanceState) {
 
-		/*///////////////////////////////////////////////////////////////////
+		/*//////////////////////////////////////////////////////////////////
 		Log.w("jjb","AirboatActivity.onCreate()");
 		// copied from LauncherActivity and modified to try and circumvent need for e-board
 		Intent server_intent = new Intent(AirboatActivity.this, AirboatService.class);
@@ -161,11 +161,10 @@ public class AirboatActivity extends Activity {
             @Override
             public void onClick(View v) {
                 // Don't allow re-clicking until the service status updates
-                //connectToggle.setEnabled(false);////////////////////////////////////////////////////////
-				connectToggle.setEnabled(true);
+                connectToggle.setEnabled(false);
 
                 // Create an intent to properly start the vehicle server
-                Intent intent = new Intent(AirboatActivity.this, LauncherActivity.class);
+				Intent intent = new Intent(AirboatActivity.this, LauncherActivity.class);
                 intent.putExtra(AirboatService.UDP_REGISTRY_ADDR, masterAddress.getText().toString());
 
                 // Save the current preferences to the phone

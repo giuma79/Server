@@ -62,8 +62,7 @@ public class LauncherActivity extends Activity {
             // TODO: only detect Platypus Hardware!
             // At the moment, just use the first accessory (only one is
             // supported in android right now).
-            PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(
-                    ACTION_USB_PERMISSION), 0);
+            PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
             usbManager.requestPermission(usbAccessoryList[0], permissionIntent);
         } else {
             Log.d(TAG, "Exiting vehicle service launcher: No devices found.");
@@ -101,8 +100,7 @@ public class LauncherActivity extends Activity {
                     // Permission was granted, if the device exists: open it.
                     if (intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)) {
                         if (accessory != null) {
-                            Intent server_intent = new Intent(LauncherActivity.this,
-                                    AirboatService.class);
+                            Intent server_intent = new Intent(LauncherActivity.this, AirboatService.class);
                             server_intent.fillIn(intent, 0);
                             server_intent.fillIn(getIntent(), 0);
                             startService(server_intent);
