@@ -1,5 +1,8 @@
 package edu.cmu.ri.airboat.server;
 
+import android.location.Location;
+
+import com.gams.utility.Position;
 import com.gams.variables.Self;
 import com.madara.KnowledgeBase;
 import com.madara.KnowledgeRecord;
@@ -10,6 +13,17 @@ import com.madara.containers.Integer;
 
 import org.apache.commons.math.linear.MatrixUtils;
 import org.apache.commons.math.linear.RealMatrix;
+import org.jscience.geography.coordinates.LatLong;
+import org.jscience.geography.coordinates.UTM;
+import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
+
+import javax.measure.unit.NonSI;
+import javax.measure.unit.SI;
+
+import edu.cmu.ri.crw.data.Utm;
+import edu.cmu.ri.crw.data.UtmPose;
+import robotutils.Pose3D;
+import robotutils.Quaternion;
 
 enum THRUST_TYPES {
     VECTORED(0), DIFFERENTIAL(1);
@@ -124,6 +138,7 @@ public class LutraMadaraContainers {
         gpsInitialized.free();
         compassInitialized.free();
         localized.free();
+        motorCommands.free();
     }
 
     public void restoreDefaults() {
@@ -137,8 +152,7 @@ public class LutraMadaraContainers {
     public RealMatrix NDV_to_RM(NativeDoubleVector NDV) {
         // NativeDoubleVector to RealMatrix column conversion
         // Useful for pulling out self.device.home, .location, .dest, and .source
-        KnowledgeRecord KR = NDV.toRecord();
-        double[] DA = KR.toDoubleArray();
+        double[] DA = NDV_to_DA(NDV);
         RealMatrix result = MatrixUtils.createColumnRealMatrix(DA);
         return result;
     }
@@ -146,6 +160,7 @@ public class LutraMadaraContainers {
     public double[] NDV_to_DA(NativeDoubleVector NDV) {
         // NativeDoubleVector to double[] conversion
         // Useful for pulling out self.device.home, .location, .dest, and .source
+        // e.g. double[] home = containers.NDV_to_DA(self.device.home);
         KnowledgeRecord KR = NDV.toRecord();
         double[] result = KR.toDoubleArray();
         return result;
@@ -164,6 +179,33 @@ public class LutraMadaraContainers {
         RealMatrix xErrorNormalized = xError.scalarMultiply(1 / RMO.norm2(xError));
         double v = RMO.dot(initialV, xErrorNormalized); // initial speed in the direction of the goal
         return v;
+    }
+
+    public double[] UTMPoseToLocalXY(UtmPose utm) {
+        double[] result = new double[] {0.0,0.0};
+        double[] home = NDV_to_DA(self.device.home);
+        result[0] = utm.pose.getX() - home[0];
+        result[1] = utm.pose.getY() - home[1];
+        return result;
+    }
+
+    public double[] PositionToLocalXY(Position position) {
+        double [] result = new double[] {0.0,0.0};
+        double[] home = NDV_to_DA(self.device.home);
+        // Convert from lat/long to UTM coordinates
+        UTM utmLoc = UTM.latLongToUtm(
+                LatLong.valueOf(position.getX(), position.getY(), NonSI.DEGREE_ANGLE),
+                ReferenceEllipsoid.WGS84);
+
+        // Convert to UTM data structure
+        Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
+                utmLoc.northingValue(SI.METER), position.getZ(),
+                Quaternion.fromEulerAngles(0, 0, 0));
+        Utm origin = new Utm(utmLoc.longitudeZone(),
+                utmLoc.latitudeZone() > 'O');
+        UtmPose utm = new UtmPose(pose, origin);
+        result = UTMPoseToLocalXY(utm);
+        return result;
     }
 
 }

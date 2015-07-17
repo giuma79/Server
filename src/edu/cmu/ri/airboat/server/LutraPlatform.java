@@ -184,40 +184,24 @@ public class LutraPlatform extends BasePlatform {
         return PlatformStatusEnum.OK.value();
     }
 
-    public int moveLocalXY(double[] target, double proximity) {
+    void moveLocalXY(double[] localTarget, double proximity) {
+        // moving in local X,Y requires recreation of Utm global X,Y using current home container Utm
+
         double[] home = containers.NDV_to_DA(self.device.home);
-        self.device.dest.set(0,target[0]+home[0]);
-        self.device.dest.set(1,target[1]+home[1]);
+        self.device.dest.set(0,localTarget[0]+home[0]);
+        self.device.dest.set(1,localTarget[1]+home[1]);
         self.device.source.set(0, self.device.location.get(0) + home[0]);
         self.device.source.set(1, self.device.location.get(1) + home[1]);
         containers.sufficientProximity.set(proximity);
-        return PlatformStatusEnum.OK.value();
     }
 
     public int move(Position target, double proximity) {
-        // Convert from lat/long to UTM coordinates
-        UTM utmLoc = UTM.latLongToUtm(
-                LatLong.valueOf(target.getX(), target.getY(), NonSI.DEGREE_ANGLE),
-                ReferenceEllipsoid.WGS84);
+        moveLocalXY(containers.PositionToLocalXY(target), proximity);
+        return PlatformStatusEnum.OK.value();
+    }
 
-        // Convert to UTM data structure
-        Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
-                utmLoc.northingValue(SI.METER), target.getZ(),
-                Quaternion.fromEulerAngles(0, 0, 0));
-        Utm origin = new Utm(utmLoc.longitudeZone(),
-                utmLoc.latitudeZone() > 'O');
-        UtmPose utm = new UtmPose(pose, origin);
-
-        // Write destination and source to device id path
-        self.device.dest.set(0, target.getX());
-        self.device.dest.set(1, target.getY());
-        //self.device.dest.set(2, target.getZ());
-        self.device.source.set(0, self.device.location.get(0));
-        self.device.source.set(1, self.device.location.get(1));
-        //self.device.source.set(2, self.device.location.get(2));
-
-        containers.sufficientProximity.set(proximity);
-
+    public int move(UtmPose utm, double proximity) {
+        moveLocalXY(containers.UTMPoseToLocalXY(utm), proximity);
         return PlatformStatusEnum.OK.value();
     }
 
@@ -411,6 +395,7 @@ public class LutraPlatform extends BasePlatform {
      */
     public void setUtmPose(KnowledgeBase knowledge, String knowledgePath, UtmPose utmPose) {
 
+        /*
         // Write pose to ip address path
         knowledge.set(knowledgePath + ".x", utmPose.pose.getX(), evalSettings);
         knowledge.set(knowledgePath + ".y", utmPose.pose.getY(), evalSettings);
@@ -429,6 +414,7 @@ public class LutraPlatform extends BasePlatform {
         self.device.location.set(0, latLong.latitudeValue(NonSI.DEGREE_ANGLE));
         self.device.location.set(1, latLong.longitudeValue(NonSI.DEGREE_ANGLE));
         self.device.location.set(2, utmPose.pose.getZ());
+        */
     }
 
     public void shutdown() {

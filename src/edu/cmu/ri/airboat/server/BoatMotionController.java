@@ -29,7 +29,7 @@ public class BoatMotionController implements VelocityProfileListener {
     final double headingErrorThreshold = 20.0*Math.PI/180.0;
     final double[][] simplePIDGains = new double[][]{{0.2,0,0.3},{0.5,0.5,0.5}}; // rows: position, heading; cols: P,I,D
     final double[] PPIGains = new double[]{1.0,1.0,1.0}; // cols: Pos-P, Vel-P, Vel-I
-    double PPIErrorAccumulator; // just velocity error
+    double PPIErrorAccumulator; // [Pos-P*(pos error) + vel error] accumulation
     double[] simplePIDErrorAccumulator; // cols: x,y,th
     public static final double SAFE_DIFFERENTIAL_THRUST = 0.4;
     public static final double SAFE_VECTORED_THRUST = 0.6;
@@ -64,9 +64,9 @@ public class BoatMotionController implements VelocityProfileListener {
         // current position error
         xError.setSubMatrix(xd.getSubMatrix(0, 1, 0, 0).subtract(x.getSubMatrix(0, 1, 0, 0)).getData(), 0, 0);
         // current heading error
-        // Error magnitude must be <= 180 degrees. Wrap the error into [0,180]
         double angleToGoal = Math.atan2(xError.getEntry(1,0),xError.getEntry(0,0));
         double angleError = x.getEntry(2,0) - angleToGoal;
+        // Error magnitude must be <= 180 degrees. Wrap the error into [0,180]
         while (Math.abs(angleError) > Math.PI) {
             angleError = angleError - Math.signum(angleError)*2*Math.PI;
         }
@@ -150,19 +150,17 @@ public class BoatMotionController implements VelocityProfileListener {
             vd = RMO.interpolate1D(profile,tRelative,1);
             dd = RMO.interpolate1D(profile,tRelative,2);
 
+            // use actual velocity towards goal (use velocityTowardGoal()), actual distance from goal (distToDest container) to generate errors
             double vError = vd - containers.velocityTowardGoal();
             double dError = dd - containers.distToDest.get();
             //TODO: determine thrustSignal based on P-PI error signals
-            // use actual velocity towards goal (use velocityTowardGoal()), actual distance from goal (distToDest container) to generate errors
-
-
+            PPIErrorAccumulator += PPIGains[0]*dd + vd;
+            thrustSignal = PPIGains[1]*(PPIGains[0]*dd + vd) + PPIGains[2]*PPIErrorAccumulator;
         }
         else {
-            vd = 0;
-            thrustSignal = 0;
+            //TODO: perhaps make this exponentially decay each iteration instead?
+            thrustSignal *= 0.5;
         }
-
-
     }
 
     void motorCommands() {
@@ -186,6 +184,7 @@ public class BoatMotionController implements VelocityProfileListener {
         }
 
         //TODO: after the velocity maps are built, use them to treat expected velocities as a sensor
+        //TODO: alternatively, gather JSON's from arduino and put that through the map as the faux sensor
         /*
         double[] velocities = velocityMotorMap.Signal_to_VW(signal0,signal1);
         // send intended steady state velocities to the localization filter
