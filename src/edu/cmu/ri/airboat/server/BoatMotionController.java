@@ -34,7 +34,7 @@ public class BoatMotionController implements VelocityProfileListener {
     public static final double SAFE_DIFFERENTIAL_THRUST = 0.4;
     public static final double SAFE_VECTORED_THRUST = 0.6;
     double headingSignal;
-    double distanceSignal;
+    double thrustSignal;
     DatumListener datumListener;
     VelocityMotorMap velocityMotorMap;
 
@@ -116,16 +116,16 @@ public class BoatMotionController implements VelocityProfileListener {
         // I
         // D
         /*
-        double distanceSignalX = simplePIDGains[0][0]*xError.getEntry(0,0) +
+        double thrustSignalX = simplePIDGains[0][0]*xError.getEntry(0,0) +
                 simplePIDGains[0][1]*simplePIDErrorAccumulator[0] +
                 simplePIDGains[0][2]*xErrorDiff.getEntry(0,0);
-        double distanceSignalY = simplePIDGains[0][0]*xError.getEntry(1,0) +
+        double thrustSignalY = simplePIDGains[0][0]*xError.getEntry(1,0) +
                 simplePIDGains[0][1]*simplePIDErrorAccumulator[1] +
                 simplePIDGains[0][2]*xErrorDiff.getEntry(1,0);
-        distanceSignal = distanceSignalX*distanceSignalX + distanceSignalY*distanceSignalY;
+        thrustSignal = thrustSignalX*thrustSignalX + thrustSignalY*thrustSignalY;
         */
         //double distance = Math.pow(xError.getEntry(0,0),2) + Math.pow(xError.getEntry(1,0),2);
-        distanceSignal = simplePIDGains[0][0]*1.0;
+        thrustSignal = simplePIDGains[0][0]*1.0;
     }
 
     void PPICascade() {
@@ -150,13 +150,16 @@ public class BoatMotionController implements VelocityProfileListener {
             vd = RMO.interpolate1D(profile,tRelative,1);
             dd = RMO.interpolate1D(profile,tRelative,2);
 
+            double vError = vd - containers.velocityTowardGoal();
+            double dError = dd - containers.distToDest.get();
+            //TODO: determine thrustSignal based on P-PI error signals
+            // use actual velocity towards goal (use velocityTowardGoal()), actual distance from goal (distToDest container) to generate errors
 
-            //TODO: determine distanceSignal based on P-PI error signals
-            // use actual velocity (remember flow constants!), actual position to generate errors
+
         }
         else {
             vd = 0;
-            distanceSignal = 0;
+            thrustSignal = 0;
         }
 
 
@@ -167,13 +170,13 @@ public class BoatMotionController implements VelocityProfileListener {
         double signal0 = 0;
         double signal1 = 0;
         if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
-            signal0 = map(clip(distanceSignal - headingSignal,-1,1)
+            signal0 = map(clip(thrustSignal - headingSignal,-1,1)
                     ,-1, 1,-SAFE_DIFFERENTIAL_THRUST, SAFE_DIFFERENTIAL_THRUST);
-            signal1 = map(clip(distanceSignal + headingSignal,-1,1)
+            signal1 = map(clip(thrustSignal + headingSignal,-1,1)
                     ,-1, 1,-SAFE_DIFFERENTIAL_THRUST, SAFE_DIFFERENTIAL_THRUST);
         }
         else if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
-            signal0 = map(clip(distanceSignal,-1,1),-1,1,-SAFE_VECTORED_THRUST,SAFE_VECTORED_THRUST);
+            signal0 = map(clip(thrustSignal,-1,1),-1,1,-SAFE_VECTORED_THRUST,SAFE_VECTORED_THRUST);
             signal1 = clip(headingSignal, -1, 1);
         }
 
