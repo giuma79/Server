@@ -92,17 +92,21 @@ public class BoatMotionController implements VelocityProfileListener {
                 simplePIDGains[1][1]*simplePIDErrorAccumulator[2] + // I
                 simplePIDGains[1][2]*xErrorDiff.getEntry(2,0); // D
 
-        /////////////////////////////////////////////////////////////////////////////////////
-        // determine which controller to use, simple PID or P-PI pos./vel. cascade
-        if (containers.executingProfile.get() == 1) {
-            PPICascade();
+        if (containers.teleopStatus.get() == TELEOPERATION_TYPES.NONE.getLongValue()) {
+            /////////////////////////////////////////////////////////////////////////////////////
+            // determine which controller to use, simple PID or P-PI pos./vel. cascade
+            if (containers.executingProfile.get() == 1) {
+                PPICascade();
+            } else {
+                simplePID();
+            }
+            motorCommands();
+            /////////////////////////////////////////////////////////////////////////////////////
         }
-        else {
-            simplePID();
+        else { // some form of teleoperation is occurring, so don't accumulate error and don't try to control anything
+            simplePIDErrorAccumulator = new double[] {0.0,0.0,0.0};
+            PPIErrorAccumulator = 0.0;
         }
-        motorCommands();
-        /////////////////////////////////////////////////////////////////////////////////////
-
 
     }
 
@@ -178,10 +182,9 @@ public class BoatMotionController implements VelocityProfileListener {
             signal1 = clip(headingSignal, -1, 1);
         }
 
-        if (containers.teleopStatus.get() == TELEOPERATION_TYPES.NONE.getLongValue()) {
-            containers.motorCommands.set(0, signal0);
-            containers.motorCommands.set(1, signal1);
-        }
+
+        containers.motorCommands.set(0, signal0);
+        containers.motorCommands.set(1, signal1);
 
         //TODO: after the velocity maps are built, use them to treat expected velocities as a sensor
         //TODO: alternatively, gather JSON's from arduino and put that through the map as the faux sensor

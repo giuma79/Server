@@ -1,11 +1,11 @@
 package edu.cmu.ri.airboat.server;
 
-import android.location.Location;
-
 import com.gams.utility.Position;
 import com.gams.variables.Self;
+
 import com.madara.KnowledgeBase;
 import com.madara.KnowledgeRecord;
+import com.madara.UpdateSettings;
 import com.madara.containers.Double;
 import com.madara.containers.DoubleVector;
 import com.madara.containers.NativeDoubleVector;
@@ -40,7 +40,7 @@ enum TELEOPERATION_TYPES {
     NONE(0), GUI_WP(1), GUI_MS(2), RC(3);
     // NONE --> control loops are always active (always try to arrive at and stay at current destination unless algorithm overrides)
     // GUI_WP --> user selects waypoint(s) in a GUI. Boat controls arrival, but the boat does nothing after it arrives
-    // GUI_MS --> user is sending motor signals to the boats via a GUI. Boat control loops completely disabled
+    // GUI_MS --> user is sending motor signals to the boats via a GUI (w/ joystick). Boat control loops completely disabled
     // RC --> user is sending motor signals to the boats via a radio controller. Boat control loops completely disabled
     private final long value;
     TELEOPERATION_TYPES(long value) { this.value = value; }
@@ -57,6 +57,11 @@ public class LutraMadaraContainers {
     // Then just pass this object around in the constructors for things like the EFK and controller
 
     KnowledgeBase knowledge;
+    String prefix;
+    UpdateSettings settings; // used to force a global variable to not broadcast as if it were local
+    // allows other agents to change this value but does not broadcast changes made locally
+    // e.g. i want to teleoperate the boat by changing the motor commands directly from the GUI agent
+
     Double distToDest;
     Double sufficientProximity;
     Double peakVelocity;
@@ -79,28 +84,38 @@ public class LutraMadaraContainers {
     final long defaultTeleopStatus = 0L;
     final double controlHz = 25.0; // frequency of control loop and sending the corresponding JSON commands
 
+
     Self self;
 
     public LutraMadaraContainers(KnowledgeBase knowledge, Self self, THRUST_TYPES thrustType) {
         this.knowledge = knowledge;
         this.self = self;
+        this.prefix = String.format("device.%d.",this.self.id.get());
+        this.settings = new UpdateSettings();
+        settings.setTreatGlobalsAsLocals(true);
+
         this.self.device.dest.resize(3);
         this.self.device.home.resize(3);
         this.self.device.location.resize(3);
         this.self.device.source.resize(3);
         distToDest = new Double();
-        distToDest.setName(knowledge,".distToDest");
+        distToDest.setName(knowledge, prefix + "distToDest");
+        distToDest.setSettings(settings);
         sufficientProximity = new Double();
-        sufficientProximity.setName(knowledge, ".sufficientProximity");
+        sufficientProximity.setName(knowledge,prefix + "sufficientProximity");
+        sufficientProximity.setSettings(settings);
         sufficientProximity.set(defaultSufficientProximity);
         peakVelocity = new Double();
-        peakVelocity.setName(knowledge, ".peakVelocity");
+        peakVelocity.setName(knowledge, prefix + "peakVelocity");
+        peakVelocity.setSettings(settings);
         peakVelocity.set(defaultPeakVelocity);
         accel = new Double();
-        accel.setName(knowledge, ".accelTime");
+        accel.setName(knowledge, prefix + "accelTime");
+        accel.setSettings(settings);
         accel.set(defaultAccelTime);
         decel = new Double();
-        decel.setName(knowledge, ".decelTime");
+        decel.setName(knowledge, prefix + "decelTime");
+        decel.setSettings(settings);
         decel.set(defaultDecelTime);
         x = new DoubleVector();
         x.setName(knowledge, ".x");
@@ -111,9 +126,11 @@ public class LutraMadaraContainers {
         this.thrustType.setName(knowledge, ".thrustType");
         this.thrustType.set(thrustType.getLongValue());
         motorCommands = new DoubleVector();
-        motorCommands.setName(knowledge,".motorCommands");
+        motorCommands.setName(knowledge,prefix + "motorCommands");
+        motorCommands.setSettings(settings);
         teleopStatus = new Integer();
-        teleopStatus.setName(knowledge,".teleopStatus");
+        teleopStatus.setName(knowledge, prefix + "teleopStatus");
+        teleopStatus.setSettings(settings);
         teleopStatus.set(defaultTeleopStatus);
         gpsInitialized = new Integer();
         gpsInitialized.setName(knowledge,".gpsInitialized");
@@ -124,6 +141,8 @@ public class LutraMadaraContainers {
         localized = new Integer();
         localized.setName(knowledge,".localized");
         localized.set(0);
+
+        settings.free(); // don't need this object past the initialization
     }
 
     public void freeAll() {

@@ -104,7 +104,7 @@ public class AirboatService extends Service {
     /////////////////////////////////////////
     DatumListener datumListener;
     List<Datum> gpsHistory; // maintain a list of GPS data within some time window
-    final double gpsHistoryTimeWindow = 3.0; // if a gps point is older than X seconds, abandon it
+    final double gpsHistoryTimeWindow = 1.0; // if a gps point is older than X seconds, abandon it
     Long t; // current time in this thread
     double eBoardGPSTimestamp = 0.0;
     synchronized void gpsVelocity(Datum datum) {
@@ -121,7 +121,7 @@ public class AirboatService extends Service {
         //String gpsHistoryString = String.format("There are %d GPS measurements in the history",gpsHistory.size());
         //Log.w("jjb",gpsHistoryString);
 
-        if (gpsHistory.size() < 3) {return;}
+        if (gpsHistory.size() < 3) {return;} // need at least three data points
 
         // Least squares linear regression with respect to time
         //RealMatrix relevantGPS = MatrixUtils.createRealMatrix(gpsHistory.size(),3);
@@ -716,10 +716,10 @@ public class AirboatService extends Service {
 		//_airboatImpl = new AirboatImpl(this, usbWriter);
 
         // Create the GAMS loop object ///////////////////////////////////////////////////////////////////////////////
-        //readMadaraConfig();
-        _id = 5;
+        readMadaraConfig();
+        //_id = 5;
         _ipAddress = "heyheyhey";
-        _teamSize = 1;
+        //_teamSize = 1;
         THRUST_TYPES thrustType = THRUST_TYPES.DIFFERENTIAL;
         lutra = new LutraGAMS(_id,_teamSize,_ipAddress,thrustType);
         lutra.start(lutra);
@@ -980,9 +980,8 @@ public class AirboatService extends Service {
      * http://stackoverflow.com/questions/12421814/how-can-i-read-a-text-file-in-android
      */
     private void readMadaraConfig() {
-        //TODO: make this also specify if it is vectored or differential thrust
+        //TODO: make this also specify if it is vectored or differential thrust?
 
-		/*
         //Find the directory for the SD Card using the API
         File sdcard = Environment.getExternalStorageDirectory();
 
@@ -1010,7 +1009,7 @@ public class AirboatService extends Service {
         }
         catch (IOException e) {
             logger.error(e.getMessage());
-        }*/
+        }
     }
 
     /**

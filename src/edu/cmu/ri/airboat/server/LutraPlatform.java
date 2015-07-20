@@ -48,6 +48,7 @@ public class LutraPlatform extends BasePlatform {
 //public class LutraPlatform extends DebuggerPlatform {
 
     KnowledgeBase knowledge;
+
     BoatEKF boatEKF;
     BoatMotionController boatMotionController;
     Threader threader;
@@ -130,12 +131,12 @@ public class LutraPlatform extends BasePlatform {
 
 
         t = System.currentTimeMillis();
-        ///////////////////////////////////////////
+        /*///////////////////////////////////////////
         if ((containers.localized.get() == 1) && (containers.executingProfile.get() != 1)) {
             double[] goal = new double[]{10, 10};
             moveLocalXY(goal, 1.5);
         }
-        ///////////////////////////////////////////
+        *////////////////////////////////////////////
         if ((containers.distToDest.get() > containers.sufficientProximity.get()) &&
                                            (containers.executingProfile.get() != 1)) {
 
@@ -306,6 +307,11 @@ public class LutraPlatform extends BasePlatform {
         }
         double[] result = new double[]{a,t};
         return result;
+    }
+
+    @Override
+    public double getAccuracy() {
+        return 0;
     }
 
     /**

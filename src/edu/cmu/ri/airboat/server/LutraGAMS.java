@@ -36,7 +36,7 @@ public class LutraGAMS extends AbstractVehicleServer {
 
         settings = new QoSTransportSettings();
         settings.setHosts(new String[]{"239.255.0.1:4150"});
-        settings.setType(TransportType.MULTICAST_TRANSPORT);
+        settings.setType(TransportType.MULTICAST_TRANSPORT); //TODO: change to broadcast?
         knowledge = new KnowledgeBase(ipAddress,settings);
         controller = new BaseController(knowledge);
     }
