@@ -5,8 +5,6 @@ import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
 
 import com.gams.algorithms.BaseAlgorithm;
-//import com.gams.algorithms.DebuggerAlgorithm;
-//import com.gams.platforms.DebuggerPlatform;
 import com.gams.controllers.BaseController;
 import com.madara.KnowledgeBase;
 import com.madara.transport.QoSTransportSettings;
@@ -53,39 +51,8 @@ public class LutraGAMS extends AbstractVehicleServer {
             @Override
             public void run() {
                 controller.run(1.0/5.0,3600.0); // run --> time interval, duration |  runHz --> run Hz, run duration, send Hz
-                //knowledge.print();
             }
         }).start();
-
-        /*
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                // Controllers require a knowledge base. This one will have no networking.
-                System.out.println("Creating knowledge base...");
-                KnowledgeBase knowledge = new KnowledgeBase();
-
-                System.out.println("Passing knowledge base to base controller...");
-                BaseController controller = new BaseController(knowledge);
-
-                // give our agent id 0 of 4 processes
-                controller.initVars(0, 4);
-
-                // initialize the debugger platform and algorithm
-                controller.initPlatform(new DebuggerPlatform());
-                controller.initAlgorithm(new DebuggerAlgorithm());
-
-                System.out.println("Running controller every 1s for 10s...");
-                controller.run(1.0, 20.0);
-
-                knowledge.print();
-
-                controller.free();
-                knowledge.free();
-            }
-        }).start();
-        */
-
     }
 
     void shutdown() {

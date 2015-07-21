@@ -54,6 +54,11 @@ public class BoatMotionController implements VelocityProfileListener {
         velocityMotorMap = new VelocityMotorMap(containers);
     }
 
+    public void zeroErrors() {
+        simplePIDErrorAccumulator = new double[] {0.0,0.0,0.0};
+        PPIErrorAccumulator = 0.0;
+    }
+
     public void control() {
         updateFromKnowledgeBase();
         xErrorOld = xError.copy();
@@ -104,8 +109,7 @@ public class BoatMotionController implements VelocityProfileListener {
             /////////////////////////////////////////////////////////////////////////////////////
         }
         else { // some form of teleoperation is occurring, so don't accumulate error and don't try to control anything
-            simplePIDErrorAccumulator = new double[] {0.0,0.0,0.0};
-            PPIErrorAccumulator = 0.0;
+            zeroErrors();
         }
 
     }

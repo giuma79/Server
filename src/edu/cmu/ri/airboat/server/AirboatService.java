@@ -15,7 +15,6 @@ import android.hardware.SensorManager;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbManager;
 import android.location.Criteria;
-import android.location.GpsStatus;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -59,19 +58,15 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.EventListener;
 import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.StringTokenizer;
 
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 
-import edu.cmu.ri.crw.CrwNetworkUtils;
 import edu.cmu.ri.crw.CrwSecurityManager;
 import edu.cmu.ri.crw.VehicleServer;
 import edu.cmu.ri.crw.data.SensorData;
@@ -82,14 +77,8 @@ import robotutils.Pose3D;
 import robotutils.Quaternion;
 
 
-///////////////////////////////////////////////////////
-import com.madara.KnowledgeBase;
 import com.madara.threads.Threader;
 import com.madara.threads.BaseThread;
-import com.gams.controllers.BaseController;
-import com.gams.platforms.DebuggerPlatform;
-import com.gams.algorithms.DebuggerAlgorithm;
-///////////////////////////////////////////////////////
 
 
 /**
@@ -284,7 +273,6 @@ public class AirboatService extends Service {
         }
 
         public void onLocationChanged(Location location) {
-
             // Convert from lat/long to UTM coordinates
             UTM utmLoc = UTM.latLongToUtm(
                     LatLong.valueOf(location.getLatitude(),
@@ -304,6 +292,11 @@ public class AirboatService extends Service {
                     utmLoc.latitudeZone() > 'O');
             UtmPose utm = new UtmPose(pose, origin);
 
+            if (lutra != null) {
+                lutra.platform.containers.longitudeZone.set((long)utmLoc.longitudeZone());
+                lutra.platform.containers.latitudeZone.set(java.lang.String.format("%c",utmLoc.latitudeZone()));
+            }
+
             Log.w("jjb", "the GPS phone listener has activated");
 
             RealMatrix z = MatrixUtils.createRealMatrix(2,1);
@@ -317,8 +310,6 @@ public class AirboatService extends Service {
             datumListener.newDatum(datum);
 
             gpsVelocity(datum);
-
-
 
 			/*
 			logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
@@ -725,69 +716,6 @@ public class AirboatService extends Service {
         lutra.start(lutra);
         datumListener = lutra.platform.boatEKF;
 
-		/*
-		class helloThread extends BaseThread {
-			KnowledgeBase data;
-
-			@Override
-			public void init(KnowledgeBase data) {
-				this.data = data;
-			}
-
-			@Override
-			public void run() {
-				while (terminated.get() == 0) {
-					Log.w("jjb", "Hello, Madara/GAMS world!");
-				}
-			}
-		}
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                // Controllers require a knowledge base. This one will have no networking.
-				Log.w("jjb","Creating knowledge base...");
-                KnowledgeBase knowledge = new KnowledgeBase();
-
-				Log.w("jjb", "Passing knowledge base to base controller...");
-                BaseController controller = new BaseController(knowledge);
-
-                // give our agent id 0 of 4 processes
-                controller.initVars(0, 4);
-
-                // initialize the debugger platform and algorithm
-                controller.initPlatform(new DebuggerPlatform());
-                controller.initAlgorithm(new DebuggerAlgorithm());
-
-				Threader threader = new Threader(knowledge);
-
-
-				threader.run(2.0, "My hello thread", new helloThread());
-				try {
-					java.lang.Thread.sleep(2000);
-				}
-				catch (java.lang.InterruptedException ex) {
-				}
-				threader.terminate("My hello thread");
-				try {
-					threader.wait();
-				}
-				catch (InterruptedException ex) {
-				}
-
-
-                Log.w("jjb","Running controller every 1s for 10s...");
-                controller.run(1.0, 20.0);
-
-                knowledge.print();
-
-				threader.free();
-                controller.free();
-                knowledge.free();
-            }
-        }).start();
-		*/
-
-
         ////////////////////////////////////////////////////////////////////////
 		new Thread(new Runnable() {
 			@Override
@@ -835,22 +763,6 @@ public class AirboatService extends Service {
 
         threader = new Threader(lutra.knowledge);
         threader.run(lutra.platform.containers.controlHz,"MotorJSONCommands",new motorCmdThread());
-
-        /*
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-
-            }
-        }).start();
-        */
-        /*
-        class MyNewThreaderThread extends BaseThread {
-            @Override
-            public void run() {
-            }
-        }
-         */
 		////////////////////////////////////////////////////////////////////////
 
 		/*
@@ -915,18 +827,6 @@ public class AirboatService extends Service {
 			}
 		}).start();
 		*/
-
-
-
-		/*
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                logger.info("Running controller every 1s for 1000s...");
-                _controller.run(1.0, 1000.0);
-            }
-        }).start();
-        */
 
         // This is now a foreground service
         {
@@ -1260,6 +1160,11 @@ public class AirboatService extends Service {
                                              Quaternion.fromEulerAngles(0.0, 0.0, 0.0)); // bearing
                     Utm origin = new Utm(utmLoc.longitudeZone(),utmLoc.latitudeZone() > '0');
                     UtmPose utm = new UtmPose(pose,origin);
+
+                    if (lutra != null) {
+                        lutra.platform.containers.longitudeZone.set((long)utmLoc.longitudeZone());
+                        lutra.platform.containers.latitudeZone.set(java.lang.String.format("%c",utmLoc.latitudeZone()));
+                    }
 
                     RealMatrix z = MatrixUtils.createRealMatrix(2,1);
                     z.setEntry(0,0,utm.pose.getX());

@@ -7,9 +7,10 @@ import com.madara.KnowledgeBase;
 import com.madara.KnowledgeRecord;
 import com.madara.UpdateSettings;
 import com.madara.containers.Double;
+import com.madara.containers.Integer;
 import com.madara.containers.DoubleVector;
 import com.madara.containers.NativeDoubleVector;
-import com.madara.containers.Integer;
+import com.madara.containers.String;
 
 import org.apache.commons.math.linear.MatrixUtils;
 import org.apache.commons.math.linear.RealMatrix;
@@ -57,7 +58,7 @@ public class LutraMadaraContainers {
     // Then just pass this object around in the constructors for things like the EFK and controller
 
     KnowledgeBase knowledge;
-    String prefix;
+    java.lang.String prefix;
     UpdateSettings settings; // used to force a global variable to not broadcast as if it were local
     // allows other agents to change this value but does not broadcast changes made locally
     // e.g. i want to teleoperate the boat by changing the motor commands directly from the GUI agent
@@ -68,6 +69,9 @@ public class LutraMadaraContainers {
     Double accel;
     Double decel;
     DoubleVector x;
+    DoubleVector latLong;
+    Integer longitudeZone;
+    String latitudeZone; // a single character (see UTM) http://jscience.org/api/org/jscience/geography/coordinates/UTM.html
     Integer executingProfile; // == 1 if controller is currently executing a velocity profile, == 0 otherwise
     Integer thrustType; // see THRUST_TYPES enum
     Integer teleopStatus; // see TELEOPERATION_TYPES enum
@@ -90,7 +94,7 @@ public class LutraMadaraContainers {
     public LutraMadaraContainers(KnowledgeBase knowledge, Self self, THRUST_TYPES thrustType) {
         this.knowledge = knowledge;
         this.self = self;
-        this.prefix = String.format("device.%d.",this.self.id.get());
+        this.prefix = java.lang.String.format("device.%d.",this.self.id.get());
         this.settings = new UpdateSettings();
         settings.setTreatGlobalsAsLocals(true);
 
@@ -128,6 +132,7 @@ public class LutraMadaraContainers {
         motorCommands = new DoubleVector();
         motorCommands.setName(knowledge,prefix + "motorCommands");
         motorCommands.setSettings(settings);
+        motorCommands.resize(2);
         teleopStatus = new Integer();
         teleopStatus.setName(knowledge, prefix + "teleopStatus");
         teleopStatus.setSettings(settings);
@@ -141,6 +146,15 @@ public class LutraMadaraContainers {
         localized = new Integer();
         localized.setName(knowledge,".localized");
         localized.set(0);
+        latLong = new DoubleVector();
+        latLong.setName(knowledge,prefix + "latLong");
+        latLong.resize(2);
+        longitudeZone = new Integer();
+        longitudeZone.setName(knowledge, prefix + "longitudeZone");
+        longitudeZone.setSettings(settings);
+        latitudeZone = new String();
+        latitudeZone.setName(knowledge, prefix + "latitudeZone");
+        latitudeZone.setSettings(settings);
 
         settings.free(); // don't need this object past the initialization
     }
@@ -158,6 +172,9 @@ public class LutraMadaraContainers {
         compassInitialized.free();
         localized.free();
         motorCommands.free();
+        latLong.free();
+        longitudeZone.free();
+        latitudeZone.free();
     }
 
     public void restoreDefaults() {
@@ -191,7 +208,7 @@ public class LutraMadaraContainers {
         initialV.setEntry(0,0,this.x.get(3)*Math.cos(this.x.get(2)) - this.x.get(5));
         initialV.setEntry(1,0,this.x.get(3)*Math.sin(this.x.get(2)) - this.x.get(6));
         RealMatrix xd = NDV_to_RM(self.device.dest).subtract(NDV_to_RM(self.device.home));
-        RealMatrix x = MatrixUtils.createRealMatrix(2,1);
+        RealMatrix x = MatrixUtils.createRealMatrix(2, 1);
         x.setEntry(0, 0, this.x.get(0));
         x.setEntry(1,0,this.x.get(1));
         RealMatrix xError = xd.getSubMatrix(0,1,0,0).subtract(x);
@@ -226,5 +243,22 @@ public class LutraMadaraContainers {
         result = UTMPoseToLocalXY(utm);
         return result;
     }
+
+    public LatLong LocalXYToLatLong() {
+        UTM utm = LocalXYToUTM();
+        LatLong latLong = UTM.utmToLatLong(utm, ReferenceEllipsoid.WGS84);
+        return latLong;
+    }
+
+    public UTM LocalXYToUTM() {
+        double easting = x.get(0) + self.device.home.get(0);
+        double northing = x.get(1) + self.device.home.get(1);
+        int longitudeZone = (int)this.longitudeZone.get();
+        char latitudeZone = this.latitudeZone.get().charAt(0);
+        UTM utm = UTM.valueOf(longitudeZone, latitudeZone, easting, northing, SI.METER);
+        return utm;
+    }
+
+
 
 }

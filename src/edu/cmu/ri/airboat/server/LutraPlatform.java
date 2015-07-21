@@ -1,42 +1,23 @@
 package edu.cmu.ri.airboat.server;
 
-import android.graphics.Matrix;
-import android.location.Location;
-import android.util.Log;
-
 import com.gams.controllers.BaseController;
 import com.gams.platforms.BasePlatform;
-import com.gams.platforms.DebuggerPlatform;
 import com.gams.platforms.PlatformStatusEnum;
 import com.gams.utility.Position;
 import com.gams.utility.Axes;
 import com.madara.EvalSettings;
 import com.madara.KnowledgeBase;
-import com.madara.containers.Double;
 import com.madara.threads.BaseThread;
 import com.madara.threads.Threader;
 
 import org.apache.commons.math.linear.MatrixUtils;
 import org.apache.commons.math.linear.RealMatrix;
 import org.jscience.geography.coordinates.LatLong;
-import org.jscience.geography.coordinates.UTM;
-import org.jscience.geography.coordinates.crs.CoordinatesConverter;
-import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
-import javax.measure.quantity.Angle;
 import javax.measure.unit.NonSI;
-import javax.measure.unit.SI;
 
-import edu.cmu.ri.crw.data.Utm;
 import edu.cmu.ri.crw.data.UtmPose;
-import robotutils.Pose3D;
-import robotutils.Quaternion;
+
 
 /**
  * GAMS BasePlatform implementation
@@ -122,13 +103,7 @@ public class LutraPlatform extends BasePlatform {
         *
         * Platform doesn't get to change its destination. Algorithm or a user does that. Each iteration
         *   in the MAPE loop, the platform just looks where it is and where its destination is.
-        *
-        *
-        *
         */
-
-
-
 
         t = System.currentTimeMillis();
         /*///////////////////////////////////////////
@@ -186,6 +161,9 @@ public class LutraPlatform extends BasePlatform {
     }
 
     void moveLocalXY(double[] localTarget, double proximity) {
+        // need to reset motion controller PID error accumulators, start from zero for a new goal
+        boatMotionController.zeroErrors();
+
         // moving in local X,Y requires recreation of Utm global X,Y using current home container Utm
 
         double[] home = containers.NDV_to_DA(self.device.home);
@@ -289,7 +267,6 @@ public class LutraPlatform extends BasePlatform {
             velocityProfile.setEntry(i, 2, dT);
         }
 
-
         velocityProfileListener.newProfile(velocityProfile,proximity);
         ///////////////////////////////////
     }
@@ -372,6 +349,11 @@ public class LutraPlatform extends BasePlatform {
         self.device.location.set(0,containers.x.get(0) + home[0]);
         self.device.location.set(1,containers.x.get(1) + home[1]);
         self.device.location.set(2,containers.x.get(2));
+
+        LatLong latLong = containers.LocalXYToLatLong();
+        containers.latLong.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
+        containers.latLong.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
+
 
         return PlatformStatusEnum.OK.value();
     }

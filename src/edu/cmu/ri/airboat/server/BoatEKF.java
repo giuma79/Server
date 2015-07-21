@@ -4,9 +4,11 @@ import android.util.Log;
 
 import org.apache.commons.math.linear.MatrixUtils;
 import org.apache.commons.math.linear.RealMatrix;
+import org.jscience.geography.coordinates.LatLong;
 
 import com.madara.KnowledgeBase;
-import com.madara.KnowledgeRecord;
+
+import javax.measure.unit.NonSI;
 
 
 /**
@@ -34,9 +36,6 @@ public class BoatEKF implements DatumListener {
     Long t; // current time
     final double ROLLBACK_LIMIT = 1.0; // seconds allowed for a rollback before measurements are just abandoned
 
-    //public boolean isGPSInitialized = false;
-    //public boolean isCompassInitialized = false;
-
     KnowledgeBase knowledge;
     LutraMadaraContainers containers;
 
@@ -51,9 +50,6 @@ public class BoatEKF implements DatumListener {
         P = P.scalarMultiply(0.1);
         P.setEntry(0,0,1.0); // default GPS covariance is much larger than other parts of state
         P.setEntry(1, 1, 1.0); // default GPS covariance is much larger than other parts of state
-
-        Log.w("jjb", "BoatEKF has been constructed");
-
     }
 
     public BoatEKF(KnowledgeBase knowledge, LutraMadaraContainers containers, RealMatrix x, RealMatrix P, RealMatrix QBase) {
@@ -70,10 +66,6 @@ public class BoatEKF implements DatumListener {
         for (int i = 0; i < stateSize; i++) {
             containers.x.set(i, x.getEntry(i, 0));
         }
-        //knowledge.set("device." + knowledge.get(".id") + ".location",x.getSubMatrix(0,2,0,0).getColumn(0));
-        // can't update device.{.id}.location here b/c it will broadcast too often
-        // Need some other way of dealing with this
-        // Move this into Platform.Sense()!
     }
 
     @Override
@@ -97,9 +89,6 @@ public class BoatEKF implements DatumListener {
         // update z and R
         if (datum.isType(SENSOR_TYPES.GPS)) { // subtract home so localization is centered around (0,0)
             RealMatrix _z = datum.getZ();
-            //KnowledgeRecord home_KR = containers.self.device.home.toRecord();
-            //double[] home_array = home_KR.toDoubleArray();
-            //RealMatrix home_RM = MatrixUtils.createColumnRealMatrix(home_array);
             RealMatrix home_RM = containers.NDV_to_RM(containers.self.device.home);
             z = _z.subtract(home_RM.getSubMatrix(0,1,0,0));
         }
@@ -113,20 +102,17 @@ public class BoatEKF implements DatumListener {
         if ((datum.getTimestamp().doubleValue() - t.doubleValue())/1000.0 > ROLLBACK_LIMIT) {
             String warning = String.format(
                     "WARNING: %s sensor is more than %f seconds AHEAD of filter",datum.typeString(),ROLLBACK_LIMIT);
-            //System.out.println(warning);
             Log.w("jjb",warning);
         }
         else if ((datum.getTimestamp().doubleValue() - t.doubleValue())/1000.0 < -ROLLBACK_LIMIT) {
             String warning = String.format(
                     "WARNING: %s sensor is more than %f seconds BEHIND of filter",datum.typeString(),ROLLBACK_LIMIT);
-            //System.out.println(warning);
             Log.w("jjb",warning);
         }
 
 
         // first GPS and compass (i.e. positions) datum are put into state directly
         // velocity parts of state are initialized at zero
-        //if (!isGPSInitialized) {
         if (containers.gpsInitialized.get() == 0) {
             if (datum.isType(SENSOR_TYPES.GPS)) {
                 double[] _z = new double[] {z.getEntry(0,0),z.getEntry(1,0),x.getEntry(2,0)};
@@ -142,8 +128,12 @@ public class BoatEKF implements DatumListener {
                 x.setEntry(1,0,0);
                 containers.x.set(0,0);
                 containers.x.set(1,0);
-                //isGPSInitialized = true;
                 containers.gpsInitialized.set(1);
+
+                LatLong latLong = containers.LocalXYToLatLong();
+                containers.latLong.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
+                containers.latLong.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
+
                 if (containers.compassInitialized.get() == 1) {
                     containers.localized.set(1);
                 }
@@ -153,11 +143,8 @@ public class BoatEKF implements DatumListener {
             }
         }
 
-        //if (!isCompassInitialized) {
         if (containers.compassInitialized.get() == 0) {
             if (datum.isType(SENSOR_TYPES.COMPASS)) {
-                //KnowledgeRecord x_KR = containers.self.device.location.toRecord();
-                //double[] x_array = x_KR.toDoubleArray();
                 double[] x_array = containers.NDV_to_DA(containers.self.device.location);
                 double[] _z = new double[] {x_array[0],x_array[1],z.getEntry(0,0)};
 
@@ -170,7 +157,6 @@ public class BoatEKF implements DatumListener {
 
                 x.setEntry(2,0,z.getEntry(0,0));
                 containers.x.set(2,z.getEntry(0,0));
-                //isCompassInitialized = true;
                 containers.compassInitialized.set(1);
                 if (containers.gpsInitialized.get() == 1) {
                     containers.localized.set(1);
@@ -181,7 +167,6 @@ public class BoatEKF implements DatumListener {
             }
         }
 
-        //if (!(isGPSInitialized && isCompassInitialized)) {
         if (containers.localized.get() == 0) {
             timeStep();
             return;
