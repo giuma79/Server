@@ -273,13 +273,14 @@ public class AirboatService extends Service {
         }
 
         public void onLocationChanged(Location location) {
-            // Convert from lat/long to UTM coordinates
+            // Convert from lat/long to UTM NATO coordinates
             UTM utmLoc = UTM.latLongToUtm(
                     LatLong.valueOf(location.getLatitude(),
                             location.getLongitude(), NonSI.DEGREE_ANGLE),
                     ReferenceEllipsoid.WGS84);
 
-            // Convert to UTM data structure
+            /*
+            // Convert to standard Utm data structure
             Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
                     utmLoc.northingValue(SI.METER), (location.hasAltitude()
                     ? location.getAltitude()
@@ -291,6 +292,7 @@ public class AirboatService extends Service {
             Utm origin = new Utm(utmLoc.longitudeZone(),
                     utmLoc.latitudeZone() > 'O');
             UtmPose utm = new UtmPose(pose, origin);
+            */
 
             if (lutra != null) {
                 lutra.platform.containers.longitudeZone.set((long)utmLoc.longitudeZone());
@@ -300,8 +302,8 @@ public class AirboatService extends Service {
             Log.w("jjb", "the GPS phone listener has activated");
 
             RealMatrix z = MatrixUtils.createRealMatrix(2,1);
-            z.setEntry(0,0,utm.pose.getX());
-            z.setEntry(1,0,utm.pose.getY());
+            z.setEntry(0, 0, utmLoc.eastingValue(SI.METER)); // NOTE: using NATO UTM, not standard UTM!!!!!!
+            z.setEntry(1,0,utmLoc.northingValue(SI.METER));
             RealMatrix R = MatrixUtils.createRealMatrix(2,2);
             R.setEntry(0, 0, 10.0);
             R.setEntry(1,1,10.0);
@@ -1149,17 +1151,16 @@ public class AirboatService extends Service {
                             "eBoard GPS received at time %.1f:\n    LAT: %.5f\n    LONG: %.5f\n",
                             eBoardGPSTimestamp,latitude,longitude);
                     Log.w("jjb",a);
-                    // Convert from lat/long to UTM coordinates
-                    // Convert to UTM data structure
-                    // Construct z, R, datum, and activate datumListener
 
                     UTM utmLoc = UTM.latLongToUtm(LatLong.valueOf(latitude,longitude,NonSI.DEGREE_ANGLE),ReferenceEllipsoid.WGS84);
+                    /*
                     Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
                                              utmLoc.northingValue(SI.METER),
                                              0.0, // altitude
                                              Quaternion.fromEulerAngles(0.0, 0.0, 0.0)); // bearing
                     Utm origin = new Utm(utmLoc.longitudeZone(),utmLoc.latitudeZone() > '0');
                     UtmPose utm = new UtmPose(pose,origin);
+                    */
 
                     if (lutra != null) {
                         lutra.platform.containers.longitudeZone.set((long)utmLoc.longitudeZone());
@@ -1167,8 +1168,8 @@ public class AirboatService extends Service {
                     }
 
                     RealMatrix z = MatrixUtils.createRealMatrix(2,1);
-                    z.setEntry(0,0,utm.pose.getX());
-                    z.setEntry(1,0,utm.pose.getY());
+                    z.setEntry(0,0,utmLoc.eastingValue(SI.METER)); // NOTE: using NATO UTM, not standard UTM!!!!!!
+                    z.setEntry(1,0,utmLoc.northingValue(SI.METER));
                     RealMatrix R = MatrixUtils.createRealMatrix(2,2);
                     R.setEntry(0, 0, 10.0);
                     R.setEntry(1, 1, 10.0);

@@ -217,30 +217,32 @@ public class LutraMadaraContainers {
         return v;
     }
 
-    public double[] UTMPoseToLocalXY(UtmPose utm) {
+    public double[] UTMToLocalXY(UTM utm) {
         double[] result = new double[] {0.0,0.0};
         double[] home = NDV_to_DA(self.device.home);
-        result[0] = utm.pose.getX() - home[0];
-        result[1] = utm.pose.getY() - home[1];
+        result[0] = utm.eastingValue(SI.METER) - home[0];
+        result[1] = utm.northingValue(SI.METER) - home[1];
         return result;
     }
 
     public double[] PositionToLocalXY(Position position) {
         double [] result = new double[] {0.0,0.0};
         double[] home = NDV_to_DA(self.device.home);
-        // Convert from lat/long to UTM coordinates
+        // Convert from lat/long to NATO UTM coordinates
         UTM utmLoc = UTM.latLongToUtm(
                 LatLong.valueOf(position.getX(), position.getY(), NonSI.DEGREE_ANGLE),
                 ReferenceEllipsoid.WGS84);
 
-        // Convert to UTM data structure
+        // Convert to standard UTM data structure
+        /*
         Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
                 utmLoc.northingValue(SI.METER), position.getZ(),
                 Quaternion.fromEulerAngles(0, 0, 0));
         Utm origin = new Utm(utmLoc.longitudeZone(),
                 utmLoc.latitudeZone() > 'O');
         UtmPose utm = new UtmPose(pose, origin);
-        result = UTMPoseToLocalXY(utm);
+        */
+        result = UTMToLocalXY(utmLoc);
         return result;
     }
 
@@ -258,6 +260,8 @@ public class LutraMadaraContainers {
         UTM utm = UTM.valueOf(longitudeZone, latitudeZone, easting, northing, SI.METER);
         return utm;
     }
+
+
 
 
 

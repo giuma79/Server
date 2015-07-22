@@ -13,6 +13,7 @@ import com.madara.threads.Threader;
 import org.apache.commons.math.linear.MatrixUtils;
 import org.apache.commons.math.linear.RealMatrix;
 import org.jscience.geography.coordinates.LatLong;
+import org.jscience.geography.coordinates.UTM;
 
 import javax.measure.unit.NonSI;
 
@@ -179,8 +180,8 @@ public class LutraPlatform extends BasePlatform {
         return PlatformStatusEnum.OK.value();
     }
 
-    public int move(UtmPose utm, double proximity) {
-        moveLocalXY(containers.UTMPoseToLocalXY(utm), proximity);
+    public int move(UTM utm, double proximity) {
+        moveLocalXY(containers.UTMToLocalXY(utm), proximity);
         return PlatformStatusEnum.OK.value();
     }
 
