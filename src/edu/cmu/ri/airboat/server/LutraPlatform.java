@@ -42,7 +42,6 @@ public class LutraPlatform extends BasePlatform {
 
 
     class FilterAndControllerThread extends BaseThread {
-
         @Override
         public void run() {
             //if (boatEKF.isGPSInitialized && boatEKF.isCompassInitialized) {
@@ -354,6 +353,8 @@ public class LutraPlatform extends BasePlatform {
         LatLong latLong = containers.LocalXYToLatLong();
         containers.latLong.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
         containers.latLong.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
+
+        knowledge.print();
 
 
         return PlatformStatusEnum.OK.value();

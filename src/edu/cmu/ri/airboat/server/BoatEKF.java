@@ -143,7 +143,7 @@ public class BoatEKF implements DatumListener {
             }
         }
 
-        if (containers.compassInitialized.get() == 0) {
+        if (containers.compassInitialized.get() == 0) { // TODO: is there a way to have the compass update even if you don't have a GPS lock?
             if (datum.isType(SENSOR_TYPES.COMPASS)) {
                 double[] x_array = containers.NDV_to_DA(containers.self.device.location);
                 double[] _z = new double[] {x_array[0],x_array[1],z.getEntry(0,0)};

@@ -14,6 +14,7 @@ import com.madara.containers.String;
 
 import org.apache.commons.math.linear.MatrixUtils;
 import org.apache.commons.math.linear.RealMatrix;
+
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
@@ -87,7 +88,6 @@ public class LutraMadaraContainers {
     final double minAccel = 0.1; // no less than X m/s^2, or motor doesn't respond
     final long defaultTeleopStatus = 0L;
     final double controlHz = 25.0; // frequency of control loop and sending the corresponding JSON commands
-
 
     Self self;
 

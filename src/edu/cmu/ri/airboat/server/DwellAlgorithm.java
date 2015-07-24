@@ -40,10 +40,6 @@ public class DwellAlgorithm extends DebuggerAlgorithm {
 
     @Override
     public int analyze() {
-
-
-
-
         return 0;
     }
 

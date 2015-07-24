@@ -183,23 +183,6 @@ public class AirboatService extends Service {
         }
     }
     */
-
-    // until i get an actual USB polling listener running, need to fake motor commands
-    /*
-    void MotorCommands() {
-        double v = 0;
-        double w = 0;
-        RealMatrix z = MatrixUtils.createRealMatrix(2,1);
-        z.setEntry(0,0,v);
-        z.setEntry(1,0,w);
-        RealMatrix R = MatrixUtils.createRealMatrix(2,2);
-        R.setEntry(0, 0, 0.0);
-        R.setEntry(0,0,0.0);
-        t = System.currentTimeMillis();
-        Datum datum = new Datum(SENSOR_TYPES.MOTOR,t,z,R);
-        datumListener.newDatum(datum);
-    }
-    */
     /////////////////////////////////////////
 
     private static final int SERVICE_ID = 11312;
