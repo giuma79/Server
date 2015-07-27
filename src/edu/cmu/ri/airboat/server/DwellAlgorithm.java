@@ -19,8 +19,8 @@ import robotutils.Pose3D;
  * @author jjb
  *
  */
-//public class DwellAlgorithm extends BaseAlgorithm {
-public class DwellAlgorithm extends DebuggerAlgorithm {
+public class DwellAlgorithm extends BaseAlgorithm {
+//public class DwellAlgorithm extends DebuggerAlgorithm {
 
     // Local reference to vehicle server.
     protected AbstractVehicleServer _server;

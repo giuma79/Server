@@ -26,7 +26,8 @@ public class BoatEKF implements DatumListener {
 
     double[] initial_x = new double[stateSize];
     RealMatrix x = MatrixUtils.createColumnRealMatrix(initial_x); // state
-    RealMatrix P = MatrixUtils.createRealIdentityMatrix(stateSize); // stateCov
+    RealMatrix initialP = MatrixUtils.createRealIdentityMatrix(stateSize);
+    RealMatrix P; // stateCov
     RealMatrix K; // Kalman gain
     RealMatrix QBase = MatrixUtils.createRealIdentityMatrix(stateSize); // growth of uncertainty with time
     RealMatrix G = MatrixUtils.createRealIdentityMatrix(stateSize); // coordinate transformation of uncertainty
@@ -43,13 +44,14 @@ public class BoatEKF implements DatumListener {
         t = java.lang.System.currentTimeMillis();
         this.knowledge = knowledge;
         this.containers = containers;
-        containers.x.resize(stateSize);
+        containers.localState.resize(stateSize);
 
         // default Q and P (use other constructor to override these)
         QBase = QBase.scalarMultiply(0.01);
-        P = P.scalarMultiply(0.1);
-        P.setEntry(0,0,1.0); // default GPS covariance is much larger than other parts of state
-        P.setEntry(1, 1, 1.0); // default GPS covariance is much larger than other parts of state
+        initialP = initialP.scalarMultiply(0.1);
+        initialP.setEntry(0,0,1.0); // default GPS covariance is much larger than other parts of state
+        initialP.setEntry(1, 1, 1.0); // default GPS covariance is much larger than other parts of state
+        P = initialP.copy();
     }
 
     public BoatEKF(KnowledgeBase knowledge, LutraMadaraContainers containers, RealMatrix x, RealMatrix P, RealMatrix QBase) {
@@ -64,8 +66,15 @@ public class BoatEKF implements DatumListener {
 
     public synchronized void updateKnowledgeBase() {
         for (int i = 0; i < stateSize; i++) {
-            containers.x.set(i, x.getEntry(i, 0));
+            containers.localState.set(i, x.getEntry(i, 0));
         }
+    }
+
+    public synchronized void resetLocalState() { // if home is reset, we may want to reset local state as well
+        for (int i = 0; i < stateSize; i++) {
+            containers.localState.set(i, 0.0);
+        }
+        P = initialP.copy();
     }
 
     @Override
@@ -118,7 +127,8 @@ public class BoatEKF implements DatumListener {
                 double[] _z = new double[] {z.getEntry(0,0),z.getEntry(1,0),x.getEntry(2,0)};
 
                 for (int i = 0; i < 3; i++) {
-                    containers.self.device.location.set(i,_z[i]);
+                    //containers.self.device.location.set(i,_z[i]);
+                    containers.eastingNorthingBearing.set(i,_z[i]);
                     containers.self.device.home.set(i,_z[i]);
                     containers.self.device.dest.set(i,_z[i]);
                     containers.self.device.source.set(i,_z[i]);
@@ -126,13 +136,16 @@ public class BoatEKF implements DatumListener {
 
                 x.setEntry(0,0,0);
                 x.setEntry(1,0,0);
-                containers.x.set(0,0);
-                containers.x.set(1,0);
+                containers.localState.set(0,0);
+                containers.localState.set(1,0);
                 containers.gpsInitialized.set(1);
 
                 LatLong latLong = containers.LocalXYToLatLong();
-                containers.latLong.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
-                containers.latLong.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
+                //containers.latLong.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
+                //containers.latLong.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
+                containers.self.device.location.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
+                containers.self.device.location.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
+                containers.self.device.location.set(2,0.0);
 
                 if (containers.compassInitialized.get() == 1) {
                     containers.localized.set(1);
@@ -145,18 +158,20 @@ public class BoatEKF implements DatumListener {
 
         if (containers.compassInitialized.get() == 0) { // TODO: is there a way to have the compass update even if you don't have a GPS lock?
             if (datum.isType(SENSOR_TYPES.COMPASS)) {
-                double[] x_array = containers.NDV_to_DA(containers.self.device.location);
+                //double[] x_array = containers.NDV_to_DA(containers.self.device.location);
+                double[] x_array = containers.NDV_to_DA(containers.eastingNorthingBearing);
                 double[] _z = new double[] {x_array[0],x_array[1],z.getEntry(0,0)};
 
                 for (int i = 0; i < 3; i++) {
-                    containers.self.device.location.set(i,_z[i]);
+                    //containers.self.device.location.set(i,_z[i]);
+                    containers.eastingNorthingBearing.set(i,_z[i]);
                     containers.self.device.home.set(i,_z[i]);
                     containers.self.device.dest.set(i,_z[i]);
                     containers.self.device.source.set(i,_z[i]);
                 }
 
                 x.setEntry(2,0,z.getEntry(0,0));
-                containers.x.set(2,z.getEntry(0,0));
+                containers.localState.set(2,z.getEntry(0,0));
                 containers.compassInitialized.set(1);
                 if (containers.gpsInitialized.get() == 1) {
                     containers.localized.set(1);

@@ -39,14 +39,16 @@ enum THRUST_TYPES {
 }
 
 enum TELEOPERATION_TYPES {
-    NONE(0), GUI_WP(1), GUI_MS(2), RC(3);
+    NONE(0), GUI_WP(1), GUI_MS(2), RC(3), BEACON(4);
     // NONE --> control loops are always active (always try to arrive at and stay at current destination unless algorithm overrides)
     // GUI_WP --> user selects waypoint(s) in a GUI. Boat controls arrival, but the boat does nothing after it arrives
     // GUI_MS --> user is sending motor signals to the boats via a GUI (w/ joystick). Boat control loops completely disabled
     // RC --> user is sending motor signals to the boats via a radio controller. Boat control loops completely disabled
+    // BEACON --> user controls location of a virtual beacon that boats gather around while holding formation
     private final long value;
     TELEOPERATION_TYPES(long value) { this.value = value; }
     public final long getLongValue() { return value; }
+    //TODO: implement the various teleoperation capabilities
 }
 
 /**
@@ -69,8 +71,9 @@ public class LutraMadaraContainers {
     Double peakVelocity;
     Double accel;
     Double decel;
-    DoubleVector x;
-    DoubleVector latLong;
+    DoubleVector localState;
+    //DoubleVector latLong;
+    NativeDoubleVector eastingNorthingBearing; // UTM x,y,th
     Integer longitudeZone;
     String latitudeZone; // a single character (see UTM) http://jscience.org/api/org/jscience/geography/coordinates/UTM.html
     Integer executingProfile; // == 1 if controller is currently executing a velocity profile, == 0 otherwise
@@ -80,14 +83,20 @@ public class LutraMadaraContainers {
     Integer compassInitialized; // == 1 if the first compass measurement has come in
     Integer localized; // == 1 if both GPS and compass are initialized
     DoubleVector motorCommands;
+    NativeDoubleVector bearingPIDGains;
+    NativeDoubleVector thrustPIDGains;
+    NativeDoubleVector thrustPPIGains;
     final double defaultSufficientProximity = 3.0;
     final double defaultPeakVelocity = 2.0;
     final double defaultAccelTime = 5.0;
     final double defaultDecelTime = 5.0;
     final double maxAccel = 1.0; // no more than X m/s^2 capable at full power
     final double minAccel = 0.1; // no less than X m/s^2, or motor doesn't respond
-    final long defaultTeleopStatus = 0L;
+    final long defaultTeleopStatus = 2L; // start in teleop mode!
     final double controlHz = 25.0; // frequency of control loop and sending the corresponding JSON commands
+    final double[] bearingPIDGainsDefaults = new double[]{0.5,0.5,0.5}; // cols: P,I,D
+    final double[] thrustPIDGainsDefaults = new double[]{0.2,0,0.3}; // cols: P,I,D
+    final double[] thrustPPIGainsDefaults = new double[]{1.0,1.0,1.0}; // cols: Pos-P, Vel-P, Vel-I
 
     Self self;
 
@@ -106,23 +115,19 @@ public class LutraMadaraContainers {
         distToDest.setName(knowledge, prefix + "distToDest");
         distToDest.setSettings(settings);
         sufficientProximity = new Double();
-        sufficientProximity.setName(knowledge,prefix + "sufficientProximity");
+        sufficientProximity.setName(knowledge, prefix + "sufficientProximity");
         sufficientProximity.setSettings(settings);
-        sufficientProximity.set(defaultSufficientProximity);
         peakVelocity = new Double();
         peakVelocity.setName(knowledge, prefix + "peakVelocity");
         peakVelocity.setSettings(settings);
-        peakVelocity.set(defaultPeakVelocity);
         accel = new Double();
         accel.setName(knowledge, prefix + "accelTime");
         accel.setSettings(settings);
-        accel.set(defaultAccelTime);
         decel = new Double();
         decel.setName(knowledge, prefix + "decelTime");
         decel.setSettings(settings);
-        decel.set(defaultDecelTime);
-        x = new DoubleVector();
-        x.setName(knowledge, ".x");
+        localState = new DoubleVector();
+        localState.setName(knowledge, ".localState");
         executingProfile = new Integer();
         executingProfile.setName(knowledge, ".executingProfile");
         executingProfile.set(0);
@@ -130,31 +135,48 @@ public class LutraMadaraContainers {
         this.thrustType.setName(knowledge, ".thrustType");
         this.thrustType.set(thrustType.getLongValue());
         motorCommands = new DoubleVector();
-        motorCommands.setName(knowledge,prefix + "motorCommands");
+        motorCommands.setName(knowledge, prefix + "motorCommands");
         motorCommands.setSettings(settings);
         motorCommands.resize(2);
         teleopStatus = new Integer();
         teleopStatus.setName(knowledge, prefix + "teleopStatus");
         teleopStatus.setSettings(settings);
-        teleopStatus.set(defaultTeleopStatus);
         gpsInitialized = new Integer();
-        gpsInitialized.setName(knowledge,".gpsInitialized");
+        gpsInitialized.setName(knowledge, ".gpsInitialized");
         gpsInitialized.set(0);
         compassInitialized = new Integer();
-        compassInitialized.setName(knowledge,".compassInitialized");
+        compassInitialized.setName(knowledge, ".compassInitialized");
         compassInitialized.set(0);
         localized = new Integer();
-        localized.setName(knowledge,".localized");
+        localized.setName(knowledge, ".localized");
         localized.set(0);
-        latLong = new DoubleVector();
-        latLong.setName(knowledge,prefix + "latLong");
-        latLong.resize(2);
         longitudeZone = new Integer();
         longitudeZone.setName(knowledge, prefix + "longitudeZone");
         longitudeZone.setSettings(settings);
         latitudeZone = new String();
         latitudeZone.setName(knowledge, prefix + "latitudeZone");
         latitudeZone.setSettings(settings);
+        eastingNorthingBearing = new NativeDoubleVector();
+        eastingNorthingBearing.setName(knowledge, prefix + "eastingNorthingBearing");
+        eastingNorthingBearing.resize(3);
+        eastingNorthingBearing.setSettings(settings);
+
+        bearingPIDGains= new NativeDoubleVector();
+        bearingPIDGains.setName(knowledge, prefix + "bearingPIDGains");
+        bearingPIDGains.resize(3);
+        bearingPIDGains.setSettings(settings);
+
+        thrustPIDGains= new NativeDoubleVector();
+        thrustPIDGains.setName(knowledge, prefix + "thrustPIDGains");
+        thrustPIDGains.resize(3);
+        thrustPIDGains.setSettings(settings);
+
+        thrustPPIGains= new NativeDoubleVector();
+        thrustPPIGains.setName(knowledge, prefix + "thrustPPIGains");
+        thrustPPIGains.resize(3);
+        thrustPPIGains.setSettings(settings);
+
+        restoreDefaults();
 
         settings.free(); // don't need this object past the initialization
     }
@@ -165,16 +187,18 @@ public class LutraMadaraContainers {
         peakVelocity.free();
         accel.free();
         decel.free();
-        x.free();
+        localState.free();
         executingProfile.free();
         teleopStatus.free();
         gpsInitialized.free();
         compassInitialized.free();
         localized.free();
         motorCommands.free();
-        latLong.free();
         longitudeZone.free();
         latitudeZone.free();
+        bearingPIDGains.free();
+        thrustPIDGains.free();
+        thrustPPIGains.free();
     }
 
     public void restoreDefaults() {
@@ -183,6 +207,11 @@ public class LutraMadaraContainers {
         accel.set(defaultAccelTime);
         decel.set(defaultDecelTime);
         teleopStatus.set(defaultTeleopStatus);
+        for (int i = 0; i < 3; i++) {
+            bearingPIDGains.set(i,bearingPIDGainsDefaults[i]);
+            thrustPIDGains.set(i,thrustPIDGainsDefaults[i]);
+            thrustPPIGains.set(i,thrustPPIGainsDefaults[i]);
+        }
     }
 
     public RealMatrix NDV_to_RM(NativeDoubleVector NDV) {
@@ -205,12 +234,12 @@ public class LutraMadaraContainers {
     public double velocityTowardGoal() {
         // calculate the boat's current velocity along the line between its current location and the goal
         RealMatrix initialV = MatrixUtils.createRealMatrix(2,1);
-        initialV.setEntry(0,0,this.x.get(3)*Math.cos(this.x.get(2)) - this.x.get(5));
-        initialV.setEntry(1,0,this.x.get(3)*Math.sin(this.x.get(2)) - this.x.get(6));
+        initialV.setEntry(0,0,this.localState.get(3)*Math.cos(this.localState.get(2)) - this.localState.get(5));
+        initialV.setEntry(1,0,this.localState.get(3)*Math.sin(this.localState.get(2)) - this.localState.get(6));
         RealMatrix xd = NDV_to_RM(self.device.dest).subtract(NDV_to_RM(self.device.home));
         RealMatrix x = MatrixUtils.createRealMatrix(2, 1);
-        x.setEntry(0, 0, this.x.get(0));
-        x.setEntry(1,0,this.x.get(1));
+        x.setEntry(0, 0, this.localState.get(0));
+        x.setEntry(1,0,this.localState.get(1));
         RealMatrix xError = xd.getSubMatrix(0,1,0,0).subtract(x);
         RealMatrix xErrorNormalized = xError.scalarMultiply(1 / RMO.norm2(xError));
         double v = RMO.dot(initialV, xErrorNormalized); // initial speed in the direction of the goal
@@ -253,8 +282,8 @@ public class LutraMadaraContainers {
     }
 
     public UTM LocalXYToUTM() {
-        double easting = x.get(0) + self.device.home.get(0);
-        double northing = x.get(1) + self.device.home.get(1);
+        double easting = localState.get(0) + self.device.home.get(0);
+        double northing = localState.get(1) + self.device.home.get(1);
         int longitudeZone = (int)this.longitudeZone.get();
         char latitudeZone = this.latitudeZone.get().charAt(0);
         UTM utm = UTM.valueOf(longitudeZone, latitudeZone, easting, northing, SI.METER);

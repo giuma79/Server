@@ -256,7 +256,7 @@ public class AirboatService extends Service {
         }
 
         public void onLocationChanged(Location location) {
-            // Convert from lat/long to UTM NATO coordinates
+            // Convert from lat/long to UTM coordinates
             UTM utmLoc = UTM.latLongToUtm(
                     LatLong.valueOf(location.getLatitude(),
                             location.getLongitude(), NonSI.DEGREE_ANGLE),
@@ -285,7 +285,7 @@ public class AirboatService extends Service {
             Log.w("jjb", "the GPS phone listener has activated");
 
             RealMatrix z = MatrixUtils.createRealMatrix(2,1);
-            z.setEntry(0, 0, utmLoc.eastingValue(SI.METER)); // NOTE: using NATO UTM, not standard UTM!!!!!!
+            z.setEntry(0, 0, utmLoc.eastingValue(SI.METER));
             z.setEntry(1,0,utmLoc.northingValue(SI.METER));
             RealMatrix R = MatrixUtils.createRealMatrix(2,2);
             R.setEntry(0, 0, 10.0);
@@ -1151,7 +1151,7 @@ public class AirboatService extends Service {
                     }
 
                     RealMatrix z = MatrixUtils.createRealMatrix(2,1);
-                    z.setEntry(0,0,utmLoc.eastingValue(SI.METER)); // NOTE: using NATO UTM, not standard UTM!!!!!!
+                    z.setEntry(0,0,utmLoc.eastingValue(SI.METER));
                     z.setEntry(1,0,utmLoc.northingValue(SI.METER));
                     RealMatrix R = MatrixUtils.createRealMatrix(2,2);
                     R.setEntry(0, 0, 10.0);

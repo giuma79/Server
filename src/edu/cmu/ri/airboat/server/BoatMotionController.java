@@ -27,8 +27,8 @@ public class BoatMotionController implements VelocityProfileListener {
     boolean t0set;
     LutraMadaraContainers containers;
     final double headingErrorThreshold = 20.0*Math.PI/180.0;
-    final double[][] simplePIDGains = new double[][]{{0.2,0,0.3},{0.5,0.5,0.5}}; // rows: position, heading; cols: P,I,D
-    final double[] PPIGains = new double[]{1.0,1.0,1.0}; // cols: Pos-P, Vel-P, Vel-I
+    double simplePIDGains[][];
+    double PPIGains[];
     double PPIErrorAccumulator; // [Pos-P*(pos error) + vel error] accumulation
     double[] simplePIDErrorAccumulator; // cols: x,y,th
     public static final double SAFE_DIFFERENTIAL_THRUST = 0.4;
@@ -52,6 +52,8 @@ public class BoatMotionController implements VelocityProfileListener {
         t = System.currentTimeMillis();
         datumListener = boatEKF;
         velocityMotorMap = new VelocityMotorMap(containers);
+        PPIGains = new double[3];
+        simplePIDGains = new double[2][3];
     }
 
     public void zeroErrors() {
@@ -68,10 +70,12 @@ public class BoatMotionController implements VelocityProfileListener {
 
         // current position error
         xError.setSubMatrix(xd.getSubMatrix(0, 1, 0, 0).subtract(x.getSubMatrix(0, 1, 0, 0)).getData(), 0, 0);
+
         // current heading error
         double angleToGoal = Math.atan2(xError.getEntry(1,0),xError.getEntry(0,0));
         double angleError = x.getEntry(2,0) - angleToGoal;
-        // Error magnitude must be <= 180 degrees. Wrap the error into [0,180]
+
+        // Error magnitude must be <= 180 degrees. Wrap the error into [-180,180]
         while (Math.abs(angleError) > Math.PI) {
             angleError = angleError - Math.signum(angleError)*2*Math.PI;
         }
@@ -123,6 +127,11 @@ public class BoatMotionController implements VelocityProfileListener {
         // P
         // I
         // D
+
+        double srssP = SRSS(xError.getEntry(0,0),xError.getEntry(1,0));
+        double srssI = SRSS(simplePIDErrorAccumulator[0],simplePIDErrorAccumulator[1]);
+        double srssD = SRSS(xErrorDiff.getEntry(0,0),xErrorDiff.getEntry(1,0));
+
         /*
         double thrustSignalX = simplePIDGains[0][0]*xError.getEntry(0,0) +
                 simplePIDGains[0][1]*simplePIDErrorAccumulator[0] +
@@ -130,10 +139,13 @@ public class BoatMotionController implements VelocityProfileListener {
         double thrustSignalY = simplePIDGains[0][0]*xError.getEntry(1,0) +
                 simplePIDGains[0][1]*simplePIDErrorAccumulator[1] +
                 simplePIDGains[0][2]*xErrorDiff.getEntry(1,0);
-        thrustSignal = thrustSignalX*thrustSignalX + thrustSignalY*thrustSignalY;
         */
-        //double distance = Math.pow(xError.getEntry(0,0),2) + Math.pow(xError.getEntry(1,0),2);
-        thrustSignal = simplePIDGains[0][0]*1.0;
+        thrustSignal = simplePIDGains[0][0]*srssP + simplePIDGains[0][1]*srssI + simplePIDGains[0][2]*srssD;
+        //thrustSignal = simplePIDGains[0][0]*1.0;
+    }
+
+    double SRSS(double a, double b) {
+        return Math.pow(Math.pow(a,2.0)+Math.pow(b,2.0),0.5);
     }
 
     void PPICascade() {
@@ -186,7 +198,6 @@ public class BoatMotionController implements VelocityProfileListener {
             signal1 = clip(headingSignal, -1, 1);
         }
 
-
         containers.motorCommands.set(0, signal0);
         containers.motorCommands.set(1, signal1);
 
@@ -206,15 +217,22 @@ public class BoatMotionController implements VelocityProfileListener {
     }
 
     void updateFromKnowledgeBase() {
+        // update gains
+        for (int i = 0; i < 3; i++) {
+            simplePIDGains[0][i] = containers.thrustPIDGains.get(i);
+            simplePIDGains[1][i] = containers.bearingPIDGains.get(i);
+            PPIGains[i] = containers.thrustPPIGains.get(i);
+        }
+
         // remember to subtract device.{.id}.home from the destination so xd is centered about (0,0) like x
         xd = containers.NDV_to_RM(containers.self.device.dest).subtract(containers.NDV_to_RM(containers.self.device.home));
 
         // update current state
         for (int i = 0; i < stateSize; i++) {
-            x.setEntry(i,0,containers.x.get(i));
+            x.setEntry(i,0,containers.localState.get(i));
         }
 
-        Log.w("jjb","xd = " + RMO.realMatrixToString(xd));
+        //Log.w("jjb","xd = " + RMO.realMatrixToString(xd));
         //Log.w("jjb","x = " + RMO.realMatrixToString(x));
     }
 

@@ -27,7 +27,6 @@ import edu.cmu.ri.crw.data.UtmPose;
  *
  */
 public class LutraPlatform extends BasePlatform {
-//public class LutraPlatform extends DebuggerPlatform {
 
     KnowledgeBase knowledge;
 
@@ -39,6 +38,7 @@ public class LutraPlatform extends BasePlatform {
     LutraMadaraContainers containers;
     THRUST_TYPES thrustType;
     Long t;
+    final double METERS_PER_LATLONG_DEGREE = 111*1000;
 
 
     class FilterAndControllerThread extends BaseThread {
@@ -129,18 +129,13 @@ public class LutraPlatform extends BasePlatform {
         return PlatformStatusEnum.OK.value();
     }
 
-
-    /**
-     * Returns the position accuracy in meters
-     *
-     * @return position accuracy
-     *
-     */
-    public double getPositionAccuracy() {
-        return 5.0;
+    public double getAccuracy() {
+        return getPositionAccuracy()/METERS_PER_LATLONG_DEGREE; // this is accuracy in latitude and longitude. 0.00001 is about 1 meter.
     }
 
-    public double getGpsAccuracy() {
+    public double getPositionAccuracy() { // not relevant to C++ waypoints algorithm as of 2015-7-26. It uses getAccuracy() instead.
+        // TODO: propagate uncertainty in covariance of x,y coordinate to find overall estimate of distance variance in meters
+        // TODO: This function returns the MAXIMUM of the sufficient proximity container and that result
         return 5.0;
     }
 
@@ -149,7 +144,7 @@ public class LutraPlatform extends BasePlatform {
      *
      */
     public Position getPosition() {
-        Position position = new Position(self.device.location.get(0), self.device.location.get(1), self.device.location.get(2));
+        Position position = new Position(self.device.location.get(0), self.device.location.get(1), 0.0);
         return position;
     }
 
@@ -169,12 +164,19 @@ public class LutraPlatform extends BasePlatform {
         double[] home = containers.NDV_to_DA(self.device.home);
         self.device.dest.set(0,localTarget[0]+home[0]);
         self.device.dest.set(1,localTarget[1]+home[1]);
-        self.device.source.set(0, self.device.location.get(0) + home[0]);
-        self.device.source.set(1, self.device.location.get(1) + home[1]);
+        //self.device.source.set(0, self.device.location.get(0) + home[0]);
+        //self.device.source.set(1, self.device.location.get(1) + home[1]);
+        self.device.source.set(0, containers.eastingNorthingBearing.get(0) + home[0]);
+        self.device.source.set(1, containers.eastingNorthingBearing.get(1) + home[1]);
+        self.device.source.set(1, containers.eastingNorthingBearing.get(2));
+
         containers.sufficientProximity.set(proximity);
     }
 
     public int move(Position target, double proximity) {
+
+        // TODO: add some kind of last destination vs. current destination if statement protection so this isn't called over and over
+
         moveLocalXY(containers.PositionToLocalXY(target), proximity);
         return PlatformStatusEnum.OK.value();
     }
@@ -286,11 +288,6 @@ public class LutraPlatform extends BasePlatform {
         return result;
     }
 
-    @Override
-    public double getAccuracy() {
-        return 0;
-    }
-
     /**
      * Get sensor radius
      *
@@ -346,13 +343,19 @@ public class LutraPlatform extends BasePlatform {
         // move local .x localization state into device.id.location
         // remember to add in device.id.home because .x is about (0,0)
         double[] home = containers.NDV_to_DA(self.device.home);
-        self.device.location.set(0,containers.x.get(0) + home[0]);
-        self.device.location.set(1,containers.x.get(1) + home[1]);
-        self.device.location.set(2,containers.x.get(2));
+        //self.device.location.set(0,containers.localState.get(0) + home[0]);
+        //self.device.location.set(1,containers.localState.get(1) + home[1]);
+        //self.device.location.set(2,containers.localState.get(2));
+        containers.eastingNorthingBearing.set(0,containers.localState.get(0) + home[0]);
+        containers.eastingNorthingBearing.set(1,containers.localState.get(1) + home[1]);
+        containers.eastingNorthingBearing.set(2,containers.localState.get(2));
 
         LatLong latLong = containers.LocalXYToLatLong();
-        containers.latLong.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
-        containers.latLong.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
+        //containers.latLong.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
+        //containers.latLong.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
+        self.device.location.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
+        self.device.location.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
+        self.device.location.set(2,0.0);
 
         knowledge.print();
 
