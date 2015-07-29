@@ -72,7 +72,6 @@ public class LutraMadaraContainers {
     Double accel;
     Double decel;
     DoubleVector localState;
-    //DoubleVector latLong;
     NativeDoubleVector eastingNorthingBearing; // UTM x,y,th
     Integer longitudeZone;
     String latitudeZone; // a single character (see UTM) http://jscience.org/api/org/jscience/geography/coordinates/UTM.html

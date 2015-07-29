@@ -44,7 +44,6 @@ public class LutraPlatform extends BasePlatform {
     class FilterAndControllerThread extends BaseThread {
         @Override
         public void run() {
-            //if (boatEKF.isGPSInitialized && boatEKF.isCompassInitialized) {
             if (containers.localized.get() == 1) {
                 if (!homeSet) {
                     homeSet = true;
@@ -56,7 +55,6 @@ public class LutraPlatform extends BasePlatform {
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////
     String ipAddress;
 
     // Delay for sending modified fields
@@ -91,9 +89,6 @@ public class LutraPlatform extends BasePlatform {
      *
      */
     public int analyze() {
-
-        //TODO: Should make an algorithm to follow a chain of waypoints by changing the platform destination when you get near the current destination
-        //TODO: Algorithm that simply listens to the GUI for changes to its Madara variables
         /*
         * Look at distance from current location to desired location.
         * If this distance is above some threshold, call move() to generate velocity profile.
@@ -164,8 +159,6 @@ public class LutraPlatform extends BasePlatform {
         double[] home = containers.NDV_to_DA(self.device.home);
         self.device.dest.set(0,localTarget[0]+home[0]);
         self.device.dest.set(1,localTarget[1]+home[1]);
-        //self.device.source.set(0, self.device.location.get(0) + home[0]);
-        //self.device.source.set(1, self.device.location.get(1) + home[1]);
         self.device.source.set(0, containers.eastingNorthingBearing.get(0) + home[0]);
         self.device.source.set(1, containers.eastingNorthingBearing.get(1) + home[1]);
         self.device.source.set(1, containers.eastingNorthingBearing.get(2));
@@ -197,18 +190,6 @@ public class LutraPlatform extends BasePlatform {
         */
         final int timeSteps = 100;
         RealMatrix velocityProfile = MatrixUtils.createRealMatrix(timeSteps, 3); // t, vel., pos.
-        /*
-        RealMatrix initialV = MatrixUtils.createRealMatrix(2,1);
-        initialV.setEntry(0,0,containers.x.get(3)*Math.cos(containers.x.get(2)) - containers.x.get(5));
-        initialV.setEntry(1,0,containers.x.get(3)*Math.sin(containers.x.get(2)) - containers.x.get(6));
-        RealMatrix xd = containers.NDV_to_RM(containers.self.device.dest).subtract(containers.NDV_to_RM(containers.self.device.home));
-        RealMatrix x = MatrixUtils.createRealMatrix(2,1);
-        x.setEntry(0, 0, containers.x.get(0));
-        x.setEntry(1,0,containers.x.get(1));
-        RealMatrix xError = xd.getSubMatrix(0,1,0,0).subtract(x);
-        RealMatrix xErrorNormalized = xError.scalarMultiply(1 / RMO.norm2(xError));
-        double v0 = RMO.dot(initialV, xErrorNormalized); // initial speed in the direction of the goal
-        */
         double v0 = containers.velocityTowardGoal();
         double vs = sustainedSpeed;
         double vf = finalSpeed;
@@ -237,8 +218,6 @@ public class LutraPlatform extends BasePlatform {
         velocityProfile.setEntry(3,0,tf);
         velocityProfile.setEntry(3,1,vf);
         */
-
-        //TODO: create desired location column for the profile
 
         RealMatrix timeMatrix = RMO.linspace(t0,tf,velocityProfile.getRowDimension());
         velocityProfile.setColumn(0, timeMatrix.getColumn(0));
@@ -270,7 +249,6 @@ public class LutraPlatform extends BasePlatform {
         }
 
         velocityProfileListener.newProfile(velocityProfile,proximity);
-        ///////////////////////////////////
     }
 
     double[] clipAccel(double a, double t) {
@@ -343,16 +321,11 @@ public class LutraPlatform extends BasePlatform {
         // move local .x localization state into device.id.location
         // remember to add in device.id.home because .x is about (0,0)
         double[] home = containers.NDV_to_DA(self.device.home);
-        //self.device.location.set(0,containers.localState.get(0) + home[0]);
-        //self.device.location.set(1,containers.localState.get(1) + home[1]);
-        //self.device.location.set(2,containers.localState.get(2));
         containers.eastingNorthingBearing.set(0,containers.localState.get(0) + home[0]);
         containers.eastingNorthingBearing.set(1,containers.localState.get(1) + home[1]);
         containers.eastingNorthingBearing.set(2,containers.localState.get(2));
 
         LatLong latLong = containers.LocalXYToLatLong();
-        //containers.latLong.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
-        //containers.latLong.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
         self.device.location.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
         self.device.location.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
         self.device.location.set(2,0.0);
