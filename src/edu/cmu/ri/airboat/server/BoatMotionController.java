@@ -62,46 +62,47 @@ public class BoatMotionController implements VelocityProfileListener {
     }
 
     public void control() {
-        updateFromKnowledgeBase();
-        xErrorOld = xError.copy();
-        tOld = t;
-        t = System.currentTimeMillis();
-        dt = (t.doubleValue()-tOld.doubleValue())/1000.0;
-
-        // current position error
-        xError.setSubMatrix(xd.getSubMatrix(0, 1, 0, 0).subtract(x.getSubMatrix(0, 1, 0, 0)).getData(), 0, 0);
-
-        // current heading error
-        double angleToGoal = Math.atan2(xError.getEntry(1,0),xError.getEntry(0,0));
-        double angleError = x.getEntry(2,0) - angleToGoal;
-
-        // Error magnitude must be <= 180 degrees. Wrap the error into [-180,180]
-        while (Math.abs(angleError) > Math.PI) {
-            angleError = angleError - Math.signum(angleError)*2*Math.PI;
-        }
-        xError.setEntry(2, 0, angleError);
-
-        // if you are within a sufficient distance from the goal, stop following velocity profiles
-        containers.distToDest.set(RMO.distance(x.getSubMatrix(0, 1, 0, 0), xd.getSubMatrix(0, 1, 0, 0)));
-        if (containers.distToDest.get() < containers.sufficientProximity.get()) {
-            containers.executingProfile.set(0);
-            // reset PPICascade accumulated error variables
-            PPIErrorAccumulator = 0;
-        }
-
-        String distanceString = String.format("Distance from x to xd = %5.3e",containers.distToDest.get());
-        Log.w("jjb",distanceString);
-
-        // Heading PID control is always operating!
-        for (int i = 0; i < 3; i++) {
-            simplePIDErrorAccumulator[i] += xError.getEntry(i,0)*dt;
-        }
-        xErrorDiff = xError.subtract(xErrorOld).scalarMultiply(1.0/dt);
-        headingSignal = simplePIDGains[1][0]*xError.getEntry(2,0) + // P
-                simplePIDGains[1][1]*simplePIDErrorAccumulator[2] + // I
-                simplePIDGains[1][2]*xErrorDiff.getEntry(2,0); // D
-
         if (containers.teleopStatus.get() == TELEOPERATION_TYPES.NONE.getLongValue()) {
+            updateFromKnowledgeBase();
+            xErrorOld = xError.copy();
+            tOld = t;
+            t = System.currentTimeMillis();
+            dt = (t.doubleValue()-tOld.doubleValue())/1000.0;
+
+            // current position error
+            xError.setSubMatrix(xd.getSubMatrix(0, 1, 0, 0).subtract(x.getSubMatrix(0, 1, 0, 0)).getData(), 0, 0);
+
+            // current heading error
+            double angleToGoal = Math.atan2(xError.getEntry(1,0),xError.getEntry(0,0));
+            double angleError = x.getEntry(2,0) - angleToGoal;
+
+            // Error magnitude must be <= 180 degrees. Wrap the error into [-180,180]
+            while (Math.abs(angleError) > Math.PI) {
+                angleError = angleError - Math.signum(angleError)*2*Math.PI;
+            }
+            xError.setEntry(2, 0, angleError);
+
+            // if you are within a sufficient distance from the goal, stop following velocity profiles
+            containers.distToDest.set(RMO.distance(x.getSubMatrix(0, 1, 0, 0), xd.getSubMatrix(0, 1, 0, 0)));
+            if (containers.distToDest.get() < containers.sufficientProximity.get()) {
+                containers.executingProfile.set(0);
+                // reset PPICascade accumulated error variables
+                PPIErrorAccumulator = 0;
+            }
+
+            String distanceString = String.format("Distance from x to xd = %5.3e",containers.distToDest.get());
+            Log.w("jjb",distanceString);
+
+            // Heading PID control is always operating!
+            for (int i = 0; i < 3; i++) {
+                simplePIDErrorAccumulator[i] += xError.getEntry(i,0)*dt;
+            }
+            xErrorDiff = xError.subtract(xErrorOld).scalarMultiply(1.0/dt);
+            headingSignal = simplePIDGains[1][0]*xError.getEntry(2,0) + // P
+                                        simplePIDGains[1][1]*simplePIDErrorAccumulator[2] + // I
+                                            simplePIDGains[1][2]*xErrorDiff.getEntry(2,0); // D
+
+
             /////////////////////////////////////////////////////////////////////////////////////
             // determine which controller to use, simple PID or P-PI pos./vel. cascade
             if (containers.executingProfile.get() == 1) {
@@ -109,13 +110,14 @@ public class BoatMotionController implements VelocityProfileListener {
             } else {
                 simplePID();
             }
-            motorCommands();
+            motorCommandsFromErrorSignal();
+            setThrustAndBearingFractions();
             /////////////////////////////////////////////////////////////////////////////////////
         }
         else { // some form of teleoperation is occurring, so don't accumulate error and don't try to control anything
             zeroErrors();
+            motorCommandsFromThrustAndBearingFractions();
         }
-
     }
 
     void simplePID() {
@@ -140,8 +142,9 @@ public class BoatMotionController implements VelocityProfileListener {
                 simplePIDGains[0][1]*simplePIDErrorAccumulator[1] +
                 simplePIDGains[0][2]*xErrorDiff.getEntry(1,0);
         */
-        thrustSignal = simplePIDGains[0][0]*srssP + simplePIDGains[0][1]*srssI + simplePIDGains[0][2]*srssD;
         //thrustSignal = simplePIDGains[0][0]*1.0;
+        thrustSignal = simplePIDGains[0][0]*srssP + simplePIDGains[0][1]*srssI + simplePIDGains[0][2]*srssD;
+
     }
 
     double SRSS(double a, double b) {
@@ -174,32 +177,64 @@ public class BoatMotionController implements VelocityProfileListener {
             double vError = vd - containers.velocityTowardGoal();
             double dError = dd - containers.distToDest.get();
             //TODO: determine thrustSignal based on P-PI error signals
-            PPIErrorAccumulator += PPIGains[0]*dd + vd;
-            thrustSignal = PPIGains[1]*(PPIGains[0]*dd + vd) + PPIGains[2]*PPIErrorAccumulator;
+            PPIErrorAccumulator += PPIGains[0]*dError + vError;
+            thrustSignal = PPIGains[1]*(PPIGains[0]*dError + vError) + PPIGains[2]*PPIErrorAccumulator;
+            //containers.teleopThrustFraction.set(PPIGains[1]*(PPIGains[0]*dError + vError) + PPIGains[2]*PPIErrorAccumulator);
         }
         else {
             //TODO: perhaps make this exponentially decay each iteration instead?
             thrustSignal *= 0.5;
+            //containers.teleopThrustFraction.set(0.5*containers.teleopThrustFraction.get());
         }
     }
 
-    void motorCommands() {
-        // send motor signals
-        double signal0 = 0;
-        double signal1 = 0;
+    void setThrustAndBearingFractions() {
+        // construct fractions from the motor signals
+        double m0 = containers.motorCommands.get(0);
+        double m1 = containers.motorCommands.get(1);
+
         if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
-            signal0 = map(clip(thrustSignal - headingSignal,-1,1)
+            containers.thrustFraction.set((m0 + m1)/2.0);
+            containers.bearingFraction.set((m0 - m1)/2.0);
+        }
+        else if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
+            containers.thrustFraction.set(m0*Math.cos(Math.PI/2.0*m1));
+            containers.bearingFraction.set(m0*Math.sin(Math.PI/2.0*m1));
+        }
+    }
+
+    void motorCommandsFromThrustAndBearingFractions() {
+        double m0 = 0.0;
+        double m1 = 0.0;
+        double T = containers.thrustFraction.get();
+        double B = containers.bearingFraction.get();
+        if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
+            m0 = (T + B)/2.0;
+            m1 = (T - B)/2.0;
+        }
+        if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
+            m0 = Math.sqrt(Math.pow(T,2.0)+Math.pow(B,2.0));
+            m1 = 2/Math.PI*Math.asin(B/Math.sqrt(Math.pow(T,2.0)+Math.pow(B,2.0)));
+        }
+        containers.motorCommands.set(0,m0);
+        containers.motorCommands.set(1,m1);
+    }
+
+    void motorCommandsFromErrorSignal() {
+        double m0 = 0.0;
+        double m1 = 0.0;
+        if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
+            m0 = map(clip(thrustSignal - headingSignal,-1,1)
                     ,-1, 1,-SAFE_DIFFERENTIAL_THRUST, SAFE_DIFFERENTIAL_THRUST);
-            signal1 = map(clip(thrustSignal + headingSignal,-1,1)
+            m1 = map(clip(thrustSignal + headingSignal,-1,1)
                     ,-1, 1,-SAFE_DIFFERENTIAL_THRUST, SAFE_DIFFERENTIAL_THRUST);
         }
         else if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
-            signal0 = map(clip(thrustSignal,-1,1),-1,1,-SAFE_VECTORED_THRUST,SAFE_VECTORED_THRUST);
-            signal1 = clip(headingSignal, -1, 1);
+            m0 = map(clip(thrustSignal,0,1),0,1,0,SAFE_VECTORED_THRUST);
+            m1 = clip(headingSignal, -1, 1);
         }
-
-        containers.motorCommands.set(0, signal0);
-        containers.motorCommands.set(1, signal1);
+        containers.motorCommands.set(0, m0);
+        containers.motorCommands.set(1, m1);
 
         //TODO: after the velocity maps are built, use them to treat expected velocities as a sensor
         //TODO: alternatively, gather JSON's from arduino and put that through the map as the faux sensor
@@ -236,7 +271,7 @@ public class BoatMotionController implements VelocityProfileListener {
         //Log.w("jjb","x = " + RMO.realMatrixToString(x));
     }
 
-    public void newProfile(RealMatrix profile, double sufficientProximity) {
+    public void newProfile(RealMatrix profile) {
         this.profile = profile;
         containers.executingProfile.set(1);
         simplePIDErrorAccumulator = new double[]{0,0,0}; // set basic PID error accumulators to zero

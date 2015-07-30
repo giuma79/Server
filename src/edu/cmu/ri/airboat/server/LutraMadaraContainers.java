@@ -22,11 +22,6 @@ import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 
-import edu.cmu.ri.crw.data.Utm;
-import edu.cmu.ri.crw.data.UtmPose;
-import robotutils.Pose3D;
-import robotutils.Quaternion;
-
 enum THRUST_TYPES {
     VECTORED(0), DIFFERENTIAL(1);
     private final long value;
@@ -81,7 +76,9 @@ public class LutraMadaraContainers {
     Integer gpsInitialized; // == 1 if the first GPS lock has come in
     Integer compassInitialized; // == 1 if the first compass measurement has come in
     Integer localized; // == 1 if both GPS and compass are initialized
-    DoubleVector motorCommands;
+    NativeDoubleVector motorCommands;
+    Double thrustFraction;
+    Double bearingFraction;
     NativeDoubleVector bearingPIDGains;
     NativeDoubleVector thrustPIDGains;
     NativeDoubleVector thrustPPIGains;
@@ -133,7 +130,7 @@ public class LutraMadaraContainers {
         this.thrustType = new Integer();
         this.thrustType.setName(knowledge, ".thrustType");
         this.thrustType.set(thrustType.getLongValue());
-        motorCommands = new DoubleVector();
+        motorCommands = new NativeDoubleVector();
         motorCommands.setName(knowledge, prefix + "motorCommands");
         motorCommands.setSettings(settings);
         motorCommands.resize(2);
@@ -175,6 +172,13 @@ public class LutraMadaraContainers {
         thrustPPIGains.resize(3);
         thrustPPIGains.setSettings(settings);
 
+        thrustFraction = new Double();
+        bearingFraction = new Double();
+        thrustFraction.setName(knowledge, prefix + "thrustFraction");
+        bearingFraction.setName(knowledge, prefix + "bearingFraction");
+        thrustFraction.setSettings(settings);
+        bearingFraction.setSettings(settings);
+
         restoreDefaults();
 
         settings.free(); // don't need this object past the initialization
@@ -198,6 +202,8 @@ public class LutraMadaraContainers {
         bearingPIDGains.free();
         thrustPIDGains.free();
         thrustPPIGains.free();
+        thrustFraction.free();
+        bearingFraction.free();
     }
 
     public void restoreDefaults() {

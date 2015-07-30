@@ -8,5 +8,5 @@ import java.util.EventListener;
  * @author jjb
  */
 public interface VelocityProfileListener extends EventListener{
-    void newProfile(RealMatrix profile, double sufficientProximity);
+    void newProfile(RealMatrix profile);
 }

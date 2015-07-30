@@ -110,7 +110,8 @@ public class LutraPlatform extends BasePlatform {
         if ((containers.distToDest.get() > containers.sufficientProximity.get()) &&
                                            (containers.executingProfile.get() != 1)) {
 
-            createProfile(containers.sufficientProximity.get(), containers.peakVelocity.get(),0);
+            double finalSpeed = 0.0;
+            createProfile(containers.peakVelocity.get(), finalSpeed);
         }
 
         return PlatformStatusEnum.OK.value();
@@ -179,7 +180,7 @@ public class LutraPlatform extends BasePlatform {
         return PlatformStatusEnum.OK.value();
     }
 
-    public void createProfile(double proximity, double sustainedSpeed, double finalSpeed) {
+    public void createProfile(double sustainedSpeed, double finalSpeed) {
         /*////////////////////////////////
         * There are two primary controllers. The first is simple PID on position error, called
         *   "station keeping", or "dwelling". The second is a P-PI position-velocity cascade.
@@ -248,7 +249,7 @@ public class LutraPlatform extends BasePlatform {
             velocityProfile.setEntry(i, 2, dT);
         }
 
-        velocityProfileListener.newProfile(velocityProfile,proximity);
+        velocityProfileListener.newProfile(velocityProfile);
     }
 
     double[] clipAccel(double a, double t) {
