@@ -1,5 +1,33 @@
 package edu.cmu.ri.airboat.server;
 
+//////////////////////////////////////////////////////////////////////////////
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.net.wifi.ScanResult;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
+import android.os.Environment;
+import android.os.PowerManager;
+//import android.support.v7.app.ActionBarActivity;
+import android.os.Bundle;
+import android.util.Log;
+import android.os.Handler;
+
+import org.w3c.dom.Text;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.List;
+//////////////////////////////////////////////////////////////////////////////
+
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -90,6 +118,64 @@ import com.madara.threads.BaseThread;
  *
  */
 public class AirboatService extends Service {
+
+    //Android Logging Tag
+    private static final java.lang.String WIFITAG = "WifiLogger";
+    private WifiManager wifiManager;
+    private WifiInfo wifiInfo;
+    private java.lang.String SSID;
+    //Wifi Scanning Rate in milliseconds
+    private final int scanningRate = 200;
+    private FileOutputStream logFileWriter;
+    private Handler scanHandler;
+    private boolean isLogging = false;
+    void getWifiInfo()
+    {
+        wifiInfo = wifiManager.getConnectionInfo();
+        SSID = wifiInfo.getSSID();
+        SSID = SSID.substring(1, SSID.length() - 1);
+        Log.d(WIFITAG, "WIFI is connected. WifiInfo is initialised\n");
+    }
+    Runnable scanStatusChecker = new Runnable() {
+        @Override
+        public void run() {
+            if (lutra.knowledge != null) {
+                newScan(); //this function can change value of mInterval.
+                scanHandler.postDelayed(scanStatusChecker, scanningRate);
+            }
+        }
+    };
+    void newScan(){
+        String log;
+        // check if Location enabled
+        if((int)lutra.platform.containers.gpsInitialized.get()==1) {
+            double[] latLongBearing = lutra.platform.containers.self.device.location.toRecord().toDoubleArray();
+            log = Double.toString(latLongBearing[0]);
+            log = log + " , " + latLongBearing[1] + " : ";
+        }else{
+            //Location is unavailable
+            log = "LOCATION UNAVAILABLE: ";
+        }
+        //Get signal strength for connected network
+        wifiInfo = wifiManager.getConnectionInfo();
+        String signalStrength = Integer.toString(wifiInfo.getRssi());
+        log = log + wifiInfo.getSSID() + " " + signalStrength + " dBi\n";
+        try {
+            logger.info(log);
+            logFileWriter.write(log.getBytes());
+        }catch(IOException e) {
+        }catch (NullPointerException e){
+        }
+
+    }
+    void startScanning() {
+        scanStatusChecker.run();
+    }
+
+    void stopScanning() {
+        scanHandler.removeCallbacks(scanStatusChecker);
+    }
+
     /////////////////////////////////////////
     DatumListener datumListener;
     List<Datum> gpsHistory; // maintain a list of GPS data within some time window
@@ -524,6 +610,24 @@ public class AirboatService extends Service {
     public void onCreate() {
         super.onCreate();
 
+        ////////////////////////////////////////////////////////////////////////
+        scanHandler = new Handler();
+        wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+
+
+        ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+
+        File logfile = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
+        String filename = String.format("WIFI_LOG_%d.txt",System.currentTimeMillis());
+        String path = logfile.getPath() + "/" + filename;
+        try {
+            logFileWriter = new FileOutputStream(path);
+        } catch (FileNotFoundException e) {
+            Log.d(WIFITAG, "... " + e.toString() + ": failed to create " + filename);
+        }
+        ////////////////////////////////////////////////////////////////////////
+
         // Disable all DNS lookups (safer for private/ad-hoc networks)
         CrwSecurityManager.loadIfDNSIsSlow();
         isRunning = true;
@@ -554,6 +658,10 @@ public class AirboatService extends Service {
 
 
     }
+
+
+
+
 
     /**
      * Constructs a default filename from the current date and time.
@@ -700,6 +808,7 @@ public class AirboatService extends Service {
         lutra = new LutraGAMS(_id,_teamSize,_ipAddress,thrustType);
         lutra.start(lutra);
         datumListener = lutra.platform.boatEKF;
+        startScanning();
 
         ////////////////////////////////////////////////////////////////////////
 		new Thread(new Runnable() {
@@ -910,6 +1019,14 @@ public class AirboatService extends Service {
     public void onDestroy() {
 
         Log.w("jjb","AirboatService.onDestroy()");
+
+        try {
+            stopScanning();
+            logFileWriter.close();
+        }catch(IOException e) {
+        }catch (NullPointerException e){
+
+        }
 
         // Stop tracing to "/sdcard/trace_crw.trace"
         Debug.stopMethodTracing();
