@@ -88,7 +88,7 @@ public class LutraMadaraContainers {
     final double defaultDecelTime = 5.0;
     final double maxAccel = 1.0; // no more than X m/s^2 capable at full power
     final double minAccel = 0.1; // no less than X m/s^2, or motor doesn't respond
-    final long defaultTeleopStatus = 2L; // start in teleop mode!
+    final long defaultTeleopStatus = TELEOPERATION_TYPES.GUI_MS.getLongValue(); // start in teleop mode!
     final double controlHz = 25.0; // frequency of control loop and sending the corresponding JSON commands
     final double[] bearingPIDGainsDefaults = new double[]{0.5,0.5,0.5}; // cols: P,I,D
     final double[] thrustPIDGainsDefaults = new double[]{0.2,0,0.3}; // cols: P,I,D
