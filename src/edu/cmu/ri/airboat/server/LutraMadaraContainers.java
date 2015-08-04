@@ -61,6 +61,7 @@ public class LutraMadaraContainers {
     // allows other agents to change this value but does not broadcast changes made locally
     // e.g. i want to teleoperate the boat by changing the motor commands directly from the GUI agent
 
+    String unhandledException;
     Double distToDest;
     Double sufficientProximity;
     Double peakVelocity;
@@ -89,6 +90,7 @@ public class LutraMadaraContainers {
     final double maxAccel = 1.0; // no more than X m/s^2 capable at full power
     final double minAccel = 0.1; // no less than X m/s^2, or motor doesn't respond
     final long defaultTeleopStatus = TELEOPERATION_TYPES.GUI_MS.getLongValue(); // start in teleop mode!
+    final long defaultThrustType = THRUST_TYPES.DIFFERENTIAL.getLongValue();
     final double controlHz = 25.0; // frequency of control loop and sending the corresponding JSON commands
     final double[] bearingPIDGainsDefaults = new double[]{0.5,0.5,0.5}; // cols: P,I,D
     final double[] thrustPIDGainsDefaults = new double[]{0.2,0,0.3}; // cols: P,I,D
@@ -128,7 +130,7 @@ public class LutraMadaraContainers {
         executingProfile.setName(knowledge, ".executingProfile");
         executingProfile.set(0);
         this.thrustType = new Integer();
-        this.thrustType.setName(knowledge, ".thrustType");
+        this.thrustType.setName(knowledge, "thrustType");
         this.thrustType.set(thrustType.getLongValue());
         motorCommands = new NativeDoubleVector();
         motorCommands.setName(knowledge, prefix + "motorCommands");
@@ -138,13 +140,13 @@ public class LutraMadaraContainers {
         teleopStatus.setName(knowledge, prefix + "teleopStatus");
         teleopStatus.setSettings(settings);
         gpsInitialized = new Integer();
-        gpsInitialized.setName(knowledge, ".gpsInitialized");
+        gpsInitialized.setName(knowledge, "gpsInitialized");
         gpsInitialized.set(0);
         compassInitialized = new Integer();
-        compassInitialized.setName(knowledge, ".compassInitialized");
+        compassInitialized.setName(knowledge, "compassInitialized");
         compassInitialized.set(0);
         localized = new Integer();
-        localized.setName(knowledge, ".localized");
+        localized.setName(knowledge, "localized");
         localized.set(0);
         longitudeZone = new Integer();
         longitudeZone.setName(knowledge, prefix + "longitudeZone");
@@ -179,12 +181,16 @@ public class LutraMadaraContainers {
         thrustFraction.setSettings(settings);
         bearingFraction.setSettings(settings);
 
+        unhandledException = new String();
+        unhandledException.setName(knowledge, prefix + "unhandledException");
+
         restoreDefaults();
 
         settings.free(); // don't need this object past the initialization
     }
 
     public void freeAll() {
+        unhandledException.free();
         distToDest.free();
         sufficientProximity.free();
         peakVelocity.free();
@@ -207,11 +213,13 @@ public class LutraMadaraContainers {
     }
 
     public void restoreDefaults() {
+        unhandledException.set("none");
         sufficientProximity.set(defaultSufficientProximity);
         peakVelocity.set(defaultPeakVelocity);
         accel.set(defaultAccelTime);
         decel.set(defaultDecelTime);
         teleopStatus.set(defaultTeleopStatus);
+        thrustType.set(defaultThrustType);
         for (int i = 0; i < 3; i++) {
             bearingPIDGains.set(i,bearingPIDGainsDefaults[i]);
             thrustPIDGains.set(i,thrustPIDGainsDefaults[i]);

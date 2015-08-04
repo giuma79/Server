@@ -1,5 +1,7 @@
 package edu.cmu.ri.airboat.server;
 
+import android.util.Log;
+
 import com.gams.controllers.BaseController;
 import com.gams.platforms.BasePlatform;
 import com.gams.platforms.PlatformStatusEnum;
@@ -39,7 +41,7 @@ public class LutraPlatform extends BasePlatform {
     THRUST_TYPES thrustType;
     Long t;
     final double METERS_PER_LATLONG_DEGREE = 111*1000;
-
+    Long startTime;
 
     class FilterAndControllerThread extends BaseThread {
         @Override
@@ -78,6 +80,7 @@ public class LutraPlatform extends BasePlatform {
     }
 
     public void start() {
+        startTime = System.currentTimeMillis();
         threader.run(containers.controlHz, "FilterAndController", new FilterAndControllerThread());
     }
 
@@ -194,7 +197,7 @@ public class LutraPlatform extends BasePlatform {
         double v0 = containers.velocityTowardGoal();
         double vs = sustainedSpeed;
         double vf = finalSpeed;
-        double t0 = t.doubleValue()/1000.0;
+        double t0 = 0.0; // need the curve to start at relative zero
         double ta = containers.defaultAccelTime;
         double a = (vs-v0)/ta;
         double[] clippedAccel = clipAccel(a,ta);
@@ -208,7 +211,6 @@ public class LutraPlatform extends BasePlatform {
         double L = containers.distToDest.get();
         double ts = 1/vs*(L - 0.5*a*ta*ta - v0*ta - 0.5*d*td*td - vs*td);
         double tf = ta+td+ts;
-        t0 = 0; // need the curve to start at relative zero
         /*
         velocityProfile.setEntry(0,0,0);
         velocityProfile.setEntry(0,1,v0);
@@ -331,7 +333,7 @@ public class LutraPlatform extends BasePlatform {
         self.device.location.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
         self.device.location.set(2,0.0);
 
-        knowledge.print();
+        //knowledge.print();
 
 
         return PlatformStatusEnum.OK.value();

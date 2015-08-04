@@ -33,8 +33,24 @@
       <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/jniLibs/jscience-4.3.jar" afterPath="" />
       <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/jniLibs/madara.jar" afterPath="" />
       <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/jniLibs/microlog4android-1.0.0.jar" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraGAMS.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraGAMS.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/libs/gams.jar" afterPath="$PROJECT_DIR$/libs/gams.jar" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/jniLibs/armeabi/libACE.so" afterPath="$PROJECT_DIR$/src/main/jniLibs/armeabi/libACE.so" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/jniLibs/armeabi-v7a/libACE.so" afterPath="$PROJECT_DIR$/src/main/jniLibs/armeabi-v7a/libACE.so" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/jniLibs/armeabi/libGAMS.so" afterPath="$PROJECT_DIR$/src/main/jniLibs/armeabi/libGAMS.so" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/jniLibs/armeabi-v7a/libGAMS.so" afterPath="$PROJECT_DIR$/src/main/jniLibs/armeabi-v7a/libGAMS.so" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/jniLibs/armeabi/libMADARA.so" afterPath="$PROJECT_DIR$/src/main/jniLibs/armeabi/libMADARA.so" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/jniLibs/armeabi-v7a/libMADARA.so" afterPath="$PROJECT_DIR$/src/main/jniLibs/armeabi-v7a/libMADARA.so" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/libs/madara.jar" afterPath="$PROJECT_DIR$/libs/madara.jar" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatActivity.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatActivity.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/AndroidManifest.xml" afterPath="$PROJECT_DIR$/AndroidManifest.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatMotionController.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatMotionController.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ExceptionHandler.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ExceptionHandler.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LauncherActivity.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LauncherActivity.java" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraMadaraContainers.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraMadaraContainers.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraPlatform.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraPlatform.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/config_files/madara.config" afterPath="$PROJECT_DIR$/config_files/madara.config" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="Server.iws" />
@@ -86,8 +102,88 @@
       <file leaf-file-name="AirboatService.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java">
           <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="-12.5">
+              <caret line="827" column="0" selection-start-line="827" selection-start-column="0" selection-end-line="827" selection-end-column="0" />
+              <folding>
+                <element signature="imports" expanded="true" />
+                <element signature="e#24620#24621#0" expanded="true" />
+                <element signature="e#24650#24651#0" expanded="true" />
+                <element signature="e#33026#34254#0" expanded="true" />
+                <element signature="e#34253#34254#0" expanded="true" />
+                <element signature="e#42609#43464#0" expanded="true" />
+                <element signature="e#43463#43464#0" expanded="true" />
+                <element signature="e#44008#44038#1" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="AirboatActivity.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatActivity.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="-14.04">
+              <caret line="454" column="86" selection-start-line="454" selection-start-column="86" selection-end-line="454" selection-end-column="86" />
+              <folding>
+                <element signature="imports" expanded="true" />
+                <element signature="e#7842#8274#0" expanded="true" />
+                <element signature="e#8273#8274#0" expanded="true" />
+                <element signature="e#10675#11865#0" expanded="true" />
+                <element signature="e#11864#11865#0" expanded="true" />
+                <element signature="e#11958#12177#0" expanded="true" />
+                <element signature="e#12176#12177#0" expanded="true" />
+                <element signature="e#12344#14621#0" expanded="true" />
+                <element signature="e#14242#14603#0" expanded="true" />
+                <element signature="e#14602#14603#0" expanded="true" />
+                <element signature="e#14620#14621#0" expanded="true" />
+                <element signature="e#15737#15738#0" expanded="true" />
+                <element signature="e#15767#15768#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="LauncherActivity.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LauncherActivity.java">
+          <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="152" column="0" selection-start-line="152" selection-start-column="0" selection-end-line="152" selection-end-column="0" />
+              <caret line="62" column="0" selection-start-line="62" selection-start-column="0" selection-end-line="62" selection-end-column="0" />
+              <folding>
+                <element signature="e#4074#5755#0" expanded="true" />
+                <element signature="e#5754#5755#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="ExceptionHandler.java" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ExceptionHandler.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.4984472">
+              <caret line="51" column="22" selection-start-line="51" selection-start-column="22" selection-end-line="51" selection-end-column="22" />
+              <folding>
+                <element signature="imports" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="AndroidManifest.xml" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/AndroidManifest.xml">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="42" column="42" selection-start-line="42" selection-start-column="42" selection-end-line="42" selection-end-column="42" />
+              <folding>
+                <element signature="e#1157#1175#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="BoatEKF.java" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java">
+          <provider selected="true" editor-type-id="text-editor">
+            <state vertical-scroll-proportion="0.0">
+              <caret line="210" column="9" selection-start-line="210" selection-start-column="9" selection-end-line="210" selection-end-column="9" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -99,7 +195,7 @@
         <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraGAMS.java">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="38" column="8" selection-start-line="38" selection-start-column="8" selection-end-line="38" selection-end-column="8" />
+              <caret line="58" column="19" selection-start-line="58" selection-start-column="19" selection-end-line="58" selection-end-column="19" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -111,41 +207,21 @@
         <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraPlatform.java">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="113" column="69" selection-start-line="113" selection-start-column="69" selection-end-line="113" selection-end-column="69" />
+              <caret line="53" column="34" selection-start-line="53" selection-start-column="34" selection-end-line="53" selection-end-column="34" />
               <folding>
                 <element signature="imports" expanded="true" />
+                <element signature="e#4992#4993#0" expanded="true" />
+                <element signature="e#5044#5045#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="LutraMadaraContainers.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="LutraMadaraContainers.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraMadaraContainers.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.21011059">
-              <caret line="44" column="6" selection-start-line="44" selection-start-column="6" selection-end-line="44" selection-end-column="6" />
-              <folding>
-                <element signature="imports" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="BoatMotionController.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatMotionController.java">
-          <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="245" column="38" selection-start-line="245" selection-start-column="38" selection-end-line="245" selection-end-column="38" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="BoatEKF.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="166" column="31" selection-start-line="166" selection-start-column="31" selection-end-line="166" selection-end-column="31" />
+              <caret line="192" column="34" selection-start-line="192" selection-start-column="34" selection-end-line="192" selection-end-column="34" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -1972,19 +2048,20 @@
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ThrustTypes.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatImpl.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/VelocityMotorMap.java" />
-        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatActivity.java" />
-        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LauncherActivity.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/RMO.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraAlgorithms.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/DwellAlgorithm.java" />
-        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/VelocityProfileListener.java" />
-        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraPlatform.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatMotionController.java" />
         <option value="$PROJECT_DIR$/AndroidManifest.xml" />
-        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java" />
-        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraGAMS.java" />
+        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraPlatform.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraMadaraContainers.java" />
+        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LauncherActivity.java" />
+        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraGAMS.java" />
+        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java" />
+        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java" />
+        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatActivity.java" />
+        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ExceptionHandler.java" />
       </list>
     </option>
   </component>
@@ -2030,6 +2107,33 @@
       <sortByType />
     </navigator>
     <panes>
+      <pane id="AndroidView">
+        <subPane />
+      </pane>
+      <pane id="PackagesPane">
+        <subPane>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Server" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Server" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
+      <pane id="Scope">
+        <subPane subId="Project Files">
+          <PATH>
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -2082,34 +2186,7 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope">
-        <subPane subId="Project Files">
-          <PATH>
-            <PATH_ELEMENT USER_OBJECT="Root">
-              <option name="myItemId" value="" />
-              <option name="myItemType" value="" />
-            </PATH_ELEMENT>
-          </PATH>
-        </subPane>
-      </pane>
       <pane id="Scratches" />
-      <pane id="PackagesPane">
-        <subPane>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="Server" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="Server" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
-            </PATH_ELEMENT>
-          </PATH>
-        </subPane>
-      </pane>
-      <pane id="AndroidView">
-        <subPane />
-      </pane>
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -2119,7 +2196,7 @@
     <property name="ANDROID_EXTENDED_DEVICE_CHOOSER_SERIALS" value="LGD8505dd58e8d" />
     <property name="ANDROID_EXTENDED_DEVICE_CHOOSER_AVD" value="Nexus_5_API_22" />
     <property name="FullScreen" value="false" />
-    <property name="AndroidTargetDevices" value="LGD8505dd58e8d" />
+    <property name="AndroidTargetDevices" value="192.168.43.245:5555" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/../../Platypus-Android" />
     <property name="ExportApk.ApkPath" value="$PROJECT_DIR$" />
     <property name="ExportApk.Flavors" value="arm" />
@@ -2340,32 +2417,32 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="65" y="24" width="1855" height="1056" extended-state="6" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
       <window_info id="Palette&#9;" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Designer" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3290461" sideWeight="0.49806523" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.08700441" sideWeight="0.48258707" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Captures" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.28403002" sideWeight="0.6539525" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.357985" sideWeight="0.39856273" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.28311965" sideWeight="0.6486486" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.2628205" sideWeight="0.5085494" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Gradle Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.28938907" sideWeight="0.53731346" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Build Variants" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.20042872" sideWeight="0.73300165" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Android" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.28938907" sideWeight="0.46268657" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24679486" sideWeight="0.6343078" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Android" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.2809829" sideWeight="0.44953117" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3290461" sideWeight="0.49585405" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Gradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32946378" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32946378" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.14040907" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.2636656" sideWeight="0.5002764" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.10590182" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.26175213" sideWeight="0.49145064" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Gradle Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.2889126" sideWeight="0.5460563" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Gradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32946378" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.29367632" sideWeight="0.48258707" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3290461" sideWeight="0.49806523" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
     </layout>
@@ -2383,41 +2460,27 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="149" />
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java</url>
+          <line>827</line>
+          <properties />
+          <option name="timeStamp" value="160" />
+        </line-breakpoint>
+      </breakpoints>
+      <option name="time" value="161" />
     </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="610" column="0" selection-start-line="610" selection-start-column="0" selection-end-line="610" selection-end-column="0" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraGAMS.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="65" column="34" selection-start-line="65" selection-start-column="34" selection-end-line="65" selection-end-column="34" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/DwellAlgorithm.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="18" column="14" selection-start-line="18" selection-start-column="14" selection-end-line="18" selection-end-column="14" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraPlatform.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="imports" expanded="true" />
+            <element signature="e#4992#4993#0" expanded="true" />
+            <element signature="e#5044#5045#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -2435,6 +2498,13 @@
           <caret line="610" column="0" selection-start-line="610" selection-start-column="0" selection-end-line="610" selection-end-column="0" />
           <folding>
             <element signature="imports" expanded="true" />
+            <element signature="e#24620#24621#0" expanded="true" />
+            <element signature="e#24650#24651#0" expanded="true" />
+            <element signature="e#33026#34254#0" expanded="true" />
+            <element signature="e#34253#34254#0" expanded="true" />
+            <element signature="e#42609#43464#0" expanded="true" />
+            <element signature="e#43463#43464#0" expanded="true" />
+            <element signature="e#44008#44038#1" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -2459,6 +2529,8 @@
           <caret line="67" column="33" selection-start-line="67" selection-start-column="33" selection-end-line="67" selection-end-column="33" />
           <folding>
             <element signature="imports" expanded="true" />
+            <element signature="e#4992#4993#0" expanded="true" />
+            <element signature="e#5044#5045#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -2476,6 +2548,13 @@
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
             <element signature="imports" expanded="true" />
+            <element signature="e#24620#24621#0" expanded="true" />
+            <element signature="e#24650#24651#0" expanded="true" />
+            <element signature="e#33026#34254#0" expanded="true" />
+            <element signature="e#34253#34254#0" expanded="true" />
+            <element signature="e#42609#43464#0" expanded="true" />
+            <element signature="e#43463#43464#0" expanded="true" />
+            <element signature="e#44008#44038#1" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -2493,6 +2572,13 @@
           <caret line="191" column="14" selection-start-line="191" selection-start-column="14" selection-end-line="191" selection-end-column="14" />
           <folding>
             <element signature="imports" expanded="true" />
+            <element signature="e#24620#24621#0" expanded="true" />
+            <element signature="e#24650#24651#0" expanded="true" />
+            <element signature="e#33026#34254#0" expanded="true" />
+            <element signature="e#34253#34254#0" expanded="true" />
+            <element signature="e#42609#43464#0" expanded="true" />
+            <element signature="e#43463#43464#0" expanded="true" />
+            <element signature="e#44008#44038#1" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -2623,20 +2709,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LauncherActivity.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="101" column="48" selection-start-line="101" selection-start-column="48" selection-end-line="101" selection-end-column="48" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatActivity.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="71" column="0" selection-start-line="71" selection-start-column="0" selection-end-line="71" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraAlgorithms.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -2686,13 +2758,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/DatumListener.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="8" column="25" selection-start-line="8" selection-start-column="25" selection-end-line="8" selection-end-column="25" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/RMO.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="2.6449554">
@@ -2707,16 +2772,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="166" column="31" selection-start-line="166" selection-start-column="31" selection-end-line="166" selection-end-column="31" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/VelocityProfileListener.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
@@ -2724,26 +2779,86 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/AndroidManifest.xml">
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/DatumListener.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="18" column="0" selection-start-line="18" selection-start-column="0" selection-end-line="18" selection-end-column="0" />
+          <caret line="8" column="23" selection-start-line="8" selection-start-column="23" selection-end-line="8" selection-end-column="23" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatMotionController.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="245" column="38" selection-start-line="245" selection-start-column="38" selection-end-line="245" selection-end-column="38" />
+        <state vertical-scroll-proportion="0.51974726">
+          <caret line="110" column="12" selection-start-line="110" selection-start-column="12" selection-end-line="110" selection-end-column="12" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Android/Sdk/sources/android-20/android/app/Instrumentation.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="3.2850468">
+          <caret line="156" column="0" selection-start-line="156" selection-start-column="0" selection-end-line="156" selection-end-column="0" />
+          <folding>
+            <element signature="e#6298#6299#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraPlatform.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="113" column="69" selection-start-line="113" selection-start-column="69" selection-end-line="113" selection-end-column="69" />
+          <caret line="53" column="34" selection-start-line="53" selection-start-column="34" selection-end-line="53" selection-end-column="34" />
+          <folding>
+            <element signature="imports" expanded="true" />
+            <element signature="e#4992#4993#0" expanded="true" />
+            <element signature="e#5044#5045#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraMadaraContainers.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="192" column="34" selection-start-line="192" selection-start-column="34" selection-end-line="192" selection-end-column="34" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/AndroidManifest.xml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="42" column="42" selection-start-line="42" selection-start-column="42" selection-end-line="42" selection-end-column="42" />
+          <folding>
+            <element signature="e#1157#1175#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Android/Sdk/sources/android-20/android/app/Activity.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.33333334">
+          <caret line="5135" column="0" selection-start-line="5135" selection-start-column="0" selection-end-line="5135" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraGAMS.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="58" column="19" selection-start-line="58" selection-start-column="19" selection-end-line="58" selection-end-column="19" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="210" column="9" selection-start-line="210" selection-start-column="9" selection-end-line="210" selection-end-column="9" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
@@ -2752,28 +2867,58 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="152" column="0" selection-start-line="152" selection-start-column="0" selection-end-line="152" selection-end-column="0" />
+        <state vertical-scroll-proportion="-12.5">
+          <caret line="827" column="0" selection-start-line="827" selection-start-column="0" selection-end-line="827" selection-end-column="0" />
           <folding>
             <element signature="imports" expanded="true" />
+            <element signature="e#24620#24621#0" expanded="true" />
+            <element signature="e#24650#24651#0" expanded="true" />
+            <element signature="e#33026#34254#0" expanded="true" />
+            <element signature="e#34253#34254#0" expanded="true" />
+            <element signature="e#42609#43464#0" expanded="true" />
+            <element signature="e#43463#43464#0" expanded="true" />
+            <element signature="e#44008#44038#1" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraGAMS.java">
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatActivity.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="38" column="8" selection-start-line="38" selection-start-column="8" selection-end-line="38" selection-end-column="8" />
+        <state vertical-scroll-proportion="-14.04">
+          <caret line="454" column="86" selection-start-line="454" selection-start-column="86" selection-end-line="454" selection-end-column="86" />
           <folding>
             <element signature="imports" expanded="true" />
+            <element signature="e#7842#8274#0" expanded="true" />
+            <element signature="e#8273#8274#0" expanded="true" />
+            <element signature="e#10675#11865#0" expanded="true" />
+            <element signature="e#11864#11865#0" expanded="true" />
+            <element signature="e#11958#12177#0" expanded="true" />
+            <element signature="e#12176#12177#0" expanded="true" />
+            <element signature="e#12344#14621#0" expanded="true" />
+            <element signature="e#14242#14603#0" expanded="true" />
+            <element signature="e#14602#14603#0" expanded="true" />
+            <element signature="e#14620#14621#0" expanded="true" />
+            <element signature="e#15737#15738#0" expanded="true" />
+            <element signature="e#15767#15768#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraMadaraContainers.java">
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LauncherActivity.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.21011059">
-          <caret line="44" column="6" selection-start-line="44" selection-start-column="6" selection-end-line="44" selection-end-column="6" />
+        <state vertical-scroll-proportion="0.0">
+          <caret line="62" column="0" selection-start-line="62" selection-start-column="0" selection-end-line="62" selection-end-column="0" />
+          <folding>
+            <element signature="e#4074#5755#0" expanded="true" />
+            <element signature="e#5754#5755#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ExceptionHandler.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.4984472">
+          <caret line="51" column="22" selection-start-line="51" selection-start-column="22" selection-end-line="51" selection-end-column="22" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>

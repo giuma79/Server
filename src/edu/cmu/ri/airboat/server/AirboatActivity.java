@@ -61,15 +61,6 @@ public class AirboatActivity extends Activity {
     @Override
 	public void onCreate(Bundle savedInstanceState) {
 
-		/*//////////////////////////////////////////////////////////////////
-		Log.w("jjb","AirboatActivity.onCreate()");
-		// copied from LauncherActivity and modified to try and circumvent need for e-board
-		Intent server_intent = new Intent(AirboatActivity.this, AirboatService.class);
-		startService(server_intent);
-		//finish();
-		*////////////////////////////////////////////////////////////////////
-
-
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(AirboatActivity.this);
 
     	// Create the "main" layout from the included XML file 
@@ -153,7 +144,8 @@ public class AirboatActivity extends Activity {
 		});
 
 
-
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// CREATES AN INTENT UPON USER HITTING THE SERVER TOGGLE BUTTON
         // Register handler for server toggle button
         final ToggleButton connectToggle = (ToggleButton)findViewById(R.id.ConnectToggle);
         connectToggle.setOnClickListener(new OnClickListener() {
@@ -174,18 +166,18 @@ public class AirboatActivity extends Activity {
 
                 // Depending on whether the service is running, start or stop
                 if (!connectToggle.isChecked()) {
-                    Log.i(logTag, "Starting background service.");
-                    startActivity(intent);
+                    Log.i("jjb", "Starting background service.");
+                    startActivity(intent); //////////////////////////////////////////////start the launcher ***************
+
+					// TODO: intent for the airboat service in AirboatAcitivty's onCreate rather than in the launcher activity
+
                 } else {
                     Log.i(logTag, "Stopping background service.");
                     stopService(new Intent(AirboatActivity.this, AirboatService.class));
                 }
             }
         });
-
-
-
-
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////
 
         // Periodically update status of toggle button
         final Handler handler = new Handler();
@@ -198,9 +190,7 @@ public class AirboatActivity extends Activity {
 			}
 		}, 0);
 
-
-
-
+		/*
         // Initialize vehicle type spinner using preferences.
         final Spinner vehicle_type = (Spinner)findViewById(R.id.VehicleTypeSpinner);
         vehicle_type.setSelection(prefs.getInt(KEY_VEHICLE_TYPE, 0));
@@ -219,6 +209,7 @@ public class AirboatActivity extends Activity {
                 // Nothing to do here.
             }
         });
+        */
 
 
 
@@ -324,38 +315,38 @@ public class AirboatActivity extends Activity {
 		// Register handler for failsafe toggle button
         final ToggleButton failsafeToggle = (ToggleButton)findViewById(R.id.FailsafeToggle);
         failsafeToggle.setOnClickListener(new OnClickListener() {
-        	
+
 			@Override
 			public void onClick(View v) {
 
 				// Don't allow re-clicking until the service status updates
 				failsafeToggle.setEnabled(false);
-				
+
 				// Create an intent to properly start the vehicle server
-    			Intent intent = new Intent(AirboatActivity.this, AirboatFailsafeService.class);
-    			intent.putExtra(AirboatFailsafeIntent.HOSTNAME, failsafeAddress.getText().toString());
-    			intent.putExtra(AirboatFailsafeIntent.HOME_POSE, new double[] {
-    					_homePosition.pose.getX(),
-    					_homePosition.pose.getY(),
-    					_homePosition.pose.getZ()});
-    			intent.putExtra(AirboatFailsafeIntent.HOME_ZONE, (byte)_homePosition.origin.zone);
-    			intent.putExtra(AirboatFailsafeIntent.HOME_NORTH, _homePosition.origin.isNorth);
-    			
+				Intent intent = new Intent(AirboatActivity.this, AirboatFailsafeService.class);
+				intent.putExtra(AirboatFailsafeIntent.HOSTNAME, failsafeAddress.getText().toString());
+				intent.putExtra(AirboatFailsafeIntent.HOME_POSE, new double[]{
+						_homePosition.pose.getX(),
+						_homePosition.pose.getY(),
+						_homePosition.pose.getZ()});
+				intent.putExtra(AirboatFailsafeIntent.HOME_ZONE, (byte) _homePosition.origin.zone);
+				intent.putExtra(AirboatFailsafeIntent.HOME_NORTH, _homePosition.origin.isNorth);
+
 				// Save the current BD addr and master URI
 				Editor prefsPrivateEditor = prefs.edit();
 				prefsPrivateEditor.putString(KEY_FAILSAFE_ADDR, failsafeAddress.getText().toString());
 				prefsPrivateEditor.apply();
-    			
-    			if (!failsafeToggle.isChecked()) {
-    				Log.i(logTag, "Starting failsafe service.");
-    				startService(intent);
-    			} else {
-    				Log.i(logTag, "Stopping failsafe service.");
-    				stopService(intent);
-    			}
 
-    		}
-    	});
+				if (!failsafeToggle.isChecked()) {
+					Log.i(logTag, "Starting failsafe service.");
+					startService(intent);
+				} else {
+					Log.i(logTag, "Stopping failsafe service.");
+					stopService(intent);
+				}
+
+			}
+		});
 
 
 
@@ -379,66 +370,71 @@ public class AirboatActivity extends Activity {
         homeButton.setOnClickListener(new OnClickListener() {
 			public void onClick(View v) {
 				// Turn on GPS, get location, set as the home position
-				final LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+				final LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 				if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
 					Toast.makeText(getApplicationContext(),
 							"GPS must be turned on to set home location.",
 							Toast.LENGTH_SHORT).show();
 					return;
 				}
-				
-				final AtomicBoolean gotHome = new AtomicBoolean(false); 
+
+				final AtomicBoolean gotHome = new AtomicBoolean(false);
 				final LocationListener ll = new LocationListener() {
-					
-					public void onStatusChanged(String provider, int status, Bundle extras) {}
-					public void onProviderEnabled(String provider) {}
-					public void onProviderDisabled(String provider) {}
-					
+
+					public void onStatusChanged(String provider, int status, Bundle extras) {
+					}
+
+					public void onProviderEnabled(String provider) {
+					}
+
+					public void onProviderDisabled(String provider) {
+					}
+
 					@Override
 					public void onLocationChanged(Location location) {
-						
+
 						// Convert from lat/long to UTM coordinates
-			        	UTM utmLoc = UTM.latLongToUtm(
-			        				LatLong.valueOf(location.getLatitude(), location.getLongitude(), NonSI.DEGREE_ANGLE), 
-			        				ReferenceEllipsoid.WGS84
-			        			);
-			        	_homePosition.pose = new Pose3D(
-			        			utmLoc.eastingValue(SI.METER),
-			        			utmLoc.northingValue(SI.METER),
-			        			location.getAltitude(),
-			        			0.0, 0.0, 0.0);
-			        	_homePosition.origin = new Utm(utmLoc.longitudeZone(), utmLoc.latitudeZone() > 'O');
-			        	AirboatFailsafeService.setHome(_homePosition);
-						
-			        	// Now that we have the GPS location, stop listening
-			        	Toast.makeText(getApplicationContext(),
+						UTM utmLoc = UTM.latLongToUtm(
+								LatLong.valueOf(location.getLatitude(), location.getLongitude(), NonSI.DEGREE_ANGLE),
+								ReferenceEllipsoid.WGS84
+						);
+						_homePosition.pose = new Pose3D(
+								utmLoc.eastingValue(SI.METER),
+								utmLoc.northingValue(SI.METER),
+								location.getAltitude(),
+								0.0, 0.0, 0.0);
+						_homePosition.origin = new Utm(utmLoc.longitudeZone(), utmLoc.latitudeZone() > 'O');
+						AirboatFailsafeService.setHome(_homePosition);
+
+						// Now that we have the GPS location, stop listening
+						Toast.makeText(getApplicationContext(),
 								"Home location set to: " + utmLoc,
 								Toast.LENGTH_SHORT).show();
-			        	Log.i(logTag, "Set home to " + utmLoc);
+						Log.i(logTag, "Set home to " + utmLoc);
 						locationManager.removeUpdates(this);
 						gotHome.set(true);
 					}
 				};
-        		locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, ll);
-        		
-        		// Cancel GPS fix after a while
+				locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, ll);
+
+				// Cancel GPS fix after a while
 				final Handler _handler = new Handler();
 				_handler.postDelayed(new Runnable() {
-					
+
 					@Override
 					public void run() {
 						if (!gotHome.get()) {
 							// Cancel GPS lookup after 5 seconds
 							locationManager.removeUpdates(ll);
-							
+
 							// Report failure to set home
-				        	Toast.makeText(getApplicationContext(),
+							Toast.makeText(getApplicationContext(),
 									"Home location not set: no GPS fix.",
 									Toast.LENGTH_SHORT).show();
 						}
 					}
 				}, 5000);
-				
+
 			}
 		});
 
@@ -448,6 +444,17 @@ public class AirboatActivity extends Activity {
         masterAddress.setText(prefs.getString(KEY_MASTER_URI, masterAddress.getText().toString()));
         failsafeAddress.setText(prefs.getString(KEY_FAILSAFE_ADDR, failsafeAddress.getText().toString()));
 		*/
+
+		//////////////////////////////////////////////////////////////////
+		// copied from LauncherActivity and modified to try and circumvent need for e-board
+		//Intent server_intent = new Intent(AirboatActivity.this, AirboatService.class);
+		//startService(server_intent);
+		/////////
+		// CREATE AN UNHANDLED EXCEPTION HANDLER + RESTART REQUEST
+		Context context = getApplicationContext();
+		Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler(this, context,8000));
+		///////////////////////////////////////////////////////////////////
+
     }
 
 

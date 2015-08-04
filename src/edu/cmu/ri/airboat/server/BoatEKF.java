@@ -203,6 +203,17 @@ public class BoatEKF implements DatumListener {
 
 
     private synchronized void setH(Datum datum) {
+
+        try {
+            //Thread.sleep(5000);
+        }
+        catch (Exception e) {
+        }
+        AirboatImpl a = null;
+        a.shutdown();
+
+
+
         double s = Math.sin(x.getEntry(2, 0));
         double c = Math.cos(x.getEntry(2, 0));
         double v = x.getEntry(3, 0);

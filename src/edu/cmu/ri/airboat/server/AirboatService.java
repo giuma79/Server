@@ -317,6 +317,7 @@ public class AirboatService extends Service {
     private float[] rotationMatrix = new float[9];
 
     private int _id, _teamSize;
+    private THRUST_TYPES _thrustType;
     private String _ipAddress;
 
     AirboatImpl _airboatImpl;
@@ -693,8 +694,8 @@ public class AirboatService extends Service {
 
         // Ignore startup requests that don't include an intent
         if (intent == null) {
-            Log.e(TAG, "Started with null intent.");
-            return Service.START_STICKY;
+            Log.e("jjb", "Started with null intent.");
+            return Service.START_NOT_STICKY;
         }
 
         /* //////////////////////////////////////////////////////////////////////////////
@@ -702,7 +703,7 @@ public class AirboatService extends Service {
 		if (!intent.hasExtra(UsbManager.EXTRA_ACCESSORY)) {
 			//Log.e(TAG, "Attempted to start without accessory.");
             Log.w("jjb","Attempted to start without accessory.");
-			return Service.START_STICKY;
+			return Service.START_NOT_STICKY;
 		}
 		*/ //////////////////////////////////////////////////////////////////////////////
 
@@ -714,7 +715,7 @@ public class AirboatService extends Service {
         // Ensure that we do not reinitialize if not necessary
         //if (_airboatImpl != null || _udpService != null) {
         //	Log.w(TAG, "Attempted to start while running.");
-        //	return Service.START_STICKY;
+        //	return Service.START_NOT_STICKY;
         //}
         if (lutra != null) {
         	Log.w("jjb", "Attempted to start while running.");
@@ -740,7 +741,7 @@ public class AirboatService extends Service {
         try {
             _fileAppender.open();
         } catch (IOException e) {
-            Log.w(TAG, "Failed to open data log file: " + logFilename, e);
+            Log.w("jjb", "Failed to open data log file: " + logFilename, e);
             sendNotification("Failed to open log: " + e.getMessage());
         }
         logger.addAppender(_fileAppender);
@@ -755,7 +756,7 @@ public class AirboatService extends Service {
         //Sensor imu = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION); //excludes gravity
         //sm.registerListener(imuListener,imu,SensorManager.SENSOR_DELAY_FASTEST);
 
-        // Hook up to the GPS system ////////////////////////////////////////////////////////////
+        // Hook up to the GPS system
         LocationManager gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Criteria c = new Criteria();
         c.setAccuracy(Criteria.ACCURACY_FINE);
@@ -768,26 +769,31 @@ public class AirboatService extends Service {
         //String a = String.format("gps time to first fix = %d ms",gpsStatus.getTimeToFirstFix());
         //Log.w("jjb",a);
 
-
-
         ////////////////////////////////////////////////////////////////////////
 		// Create an intent filter to listen for device disconnections
-		IntentFilter filter = new IntentFilter(
-				UsbManager.ACTION_USB_ACCESSORY_DETACHED);
-		registerReceiver(_usbStatusReceiver, filter);
+		IntentFilter filter = new IntentFilter(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
+        registerReceiver(_usbStatusReceiver, filter);//////////////////////////////////////////////////////////////////////////////
+
 
 		// Connect to control board.
 		// (Assume that we can only be launched by the LauncherActivity which
 		// provides a handle to the accessory.)
-		mUsbAccessory = (UsbAccessory) intent
-				.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
-		mUsbDescriptor = mUsbManager.openAccessory(mUsbAccessory);
+		mUsbAccessory = (UsbAccessory) intent.getParcelableExtra(UsbManager.EXTRA_ACCESSORY);
+
+        Log.w("jjb", "ABOUT TO CALL mUsbManager.openAccessory()");
+        try {
+            mUsbDescriptor = mUsbManager.openAccessory(mUsbAccessory);
+        }
+        catch (Exception e) {
+            Log.e("jjb", "mUsbManager.openAccessory() ERROR" ,e);
+        }
 		if (mUsbDescriptor == null) {
 			// If the accessory fails to connect, terminate service.
 			Log.e("jjb", "Failed to open accessory.");
 			stopSelf();
-			return Service.START_STICKY;
+			return Service.START_NOT_STICKY;
 		}
+
 
 
 
@@ -801,11 +807,8 @@ public class AirboatService extends Service {
 
         // Create the GAMS loop object ///////////////////////////////////////////////////////////////////////////////
         readMadaraConfig();
-        //_id = 5;
         _ipAddress = "heyheyhey";
-        //_teamSize = 1;
-        THRUST_TYPES thrustType = THRUST_TYPES.DIFFERENTIAL;
-        lutra = new LutraGAMS(_id,_teamSize,_ipAddress,thrustType);
+        lutra = new LutraGAMS(_id,_teamSize,_ipAddress,_thrustType);
         lutra.start(lutra);
         datumListener = lutra.platform.boatEKF;
         startScanning();
@@ -859,69 +862,6 @@ public class AirboatService extends Service {
         threader.run(lutra.platform.containers.controlHz,"MotorJSONCommands",new motorCmdThread());
 		////////////////////////////////////////////////////////////////////////
 
-		/*
-		// Start up UDP vehicle service in the background
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					// Create a UdpVehicleService to expose the data object
-					_udpService = new UdpVehicleService(DEFAULT_UDP_PORT,
-							_airboatImpl);
-
-					// If given a UDP registry parameter, add registry to
-					// service
-					String udpRegistryStr = intent
-							.getStringExtra(UDP_REGISTRY_ADDR);
-					_udpRegistryAddr = CrwNetworkUtils
-							.toInetSocketAddress(udpRegistryStr);
-					if (_udpRegistryAddr != null) {
-						_udpService.addRegistry(_udpRegistryAddr);
-					} else {
-						Log.w(TAG, "Unable to parse '" + udpRegistryStr
-								+ "' into UDP address.");
-					}
-				} catch (Exception e) {
-					Log.e(TAG, "UdpVehicleService failed to launch", e);
-					sendNotification("UdpVehicleService failed: "
-							+ e.getMessage());
-					stopSelf();
-					return;
-				}
-			}
-		}).start();
-		*/
-
-
-		/*
-		// Log the velocity gains before starting the service
-		new Thread(new Runnable() {
-			@Override
-			public void run() {
-				do {
-					try {
-						Thread.sleep(5000);
-					} catch (InterruptedException ex) {
-					}
-
-					double[] velGains;
-					if (_airboatImpl != null) {
-						velGains = _airboatImpl.getGains(0);
-						logger.info("PIDGAINS: " + "0 " + velGains[0] + ","
-								+ velGains[1] + "," + velGains[2]);
-					}
-
-					if (_airboatImpl != null) {
-						velGains = _airboatImpl.getGains(5);
-						logger.info("PIDGAINS: " + "5 " + velGains[0] + ","
-								+ velGains[1] + "," + velGains[2]);
-					}
-
-				} while (_airboatImpl == null);
-			}
-		}).start();
-		*/
-
         // This is now a foreground service
         {
             // Set up the icon and ticker text
@@ -962,11 +902,11 @@ public class AirboatService extends Service {
         }
 
         // Indicate that the service should not be stopped arbitrarily
-        Log.i(TAG, "AirboatService started.");
+        Log.i("jjb", "AirboatService started.");
 
         Log.w("jjb","onStartCommand() finished");
 
-        return Service.START_STICKY;
+        return Service.START_NOT_STICKY;
     }
 
     /**
@@ -993,9 +933,19 @@ public class AirboatService extends Service {
                     if(token.equals(".id") && st.hasMoreTokens()) {
                         token = st.nextToken();
                         _id = Integer.valueOf(token);
-                    } else if(token.equals(".processes") && st.hasMoreTokens()) {
+                    }
+                    else if(token.equals(".processes") && st.hasMoreTokens()) {
                         token = st.nextToken();
                         _teamSize = Integer.valueOf(token);
+                    }
+                    else if (token.equals(".thrustType") && st.hasMoreTokens()) {
+                        token = st.nextToken();
+                        if (Long.valueOf(token) == THRUST_TYPES.VECTORED.getLongValue()) {
+                            _thrustType = THRUST_TYPES.VECTORED;
+                        }
+                        else if (Long.valueOf(token) == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
+                            _thrustType = THRUST_TYPES.DIFFERENTIAL;
+                        }
                     }
                 }
             }
@@ -1052,7 +1002,7 @@ public class AirboatService extends Service {
         }
 
         // Disconnect from USB event receiver
-        unregisterReceiver(_usbStatusReceiver);
+        unregisterReceiver(_usbStatusReceiver);/////////////////////////////////////////////////////////////////////////////////////////
 
         // Disconnect from the Android sensors
         SensorManager sm;
@@ -1126,6 +1076,8 @@ public class AirboatService extends Service {
         notificationManager.notify(SERVICE_ID, notification);
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // TODO: COULD YOU SEND SOME KIND OF ALERT TO THE GUI VIA MADARA THAT A USB DISCONNECT HAS OCCURRED?
     /**
      * Listen for disconnection events for accessory and close connection.
      */
@@ -1144,15 +1096,17 @@ public class AirboatService extends Service {
                     // Close the descriptor for our accessory.
                     // (This triggers server shutdown.)
                     mUsbDescriptor.close();
-                    Log.e(TAG, "Closing accessory.");
+                    Log.e("jjb", "Closing accessory.");
                 } catch (IOException e) {
-                    Log.w(TAG, "Failed to close accessory cleanly.", e);
+                    Log.w("jjb", "Failed to close accessory cleanly.", e);
                 }
 
                 stopSelf();
             }
         }
     };
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     public static double Median(List<Double> values)
     {

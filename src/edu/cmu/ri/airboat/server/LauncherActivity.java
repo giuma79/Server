@@ -58,6 +58,10 @@ public class LauncherActivity extends Activity {
         UsbAccessory[] usbAccessoryList = usbManager.getAccessoryList();
 
 
+        //Context context = getApplicationContext();
+        //Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler(this, context,4000));
+
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         if (usbAccessoryList != null && usbAccessoryList.length > 0) {
             // TODO: only detect Platypus Hardware!
             // At the moment, just use the first accessory (only one is
@@ -65,10 +69,11 @@ public class LauncherActivity extends Activity {
             PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), 0);
             usbManager.requestPermission(usbAccessoryList[0], permissionIntent);
         } else {
-            Log.d(TAG, "Exiting vehicle service launcher: No devices found.");
+            Log.d("jjb", "Exiting vehicle service launcher: No devices found.");
             Toast.makeText(this, "No devices found.", Toast.LENGTH_SHORT).show();
             finish();
         }
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     }
     
@@ -81,6 +86,7 @@ public class LauncherActivity extends Activity {
         super.onDestroy();
     }
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     /**
      * Waits for the return from a USB permission request. If the request is
      * granted, it starts the Platypus Server, if not, it simply ends the
@@ -104,16 +110,16 @@ public class LauncherActivity extends Activity {
                             server_intent.fillIn(intent, 0);
                             server_intent.fillIn(getIntent(), 0);
                             startService(server_intent);
-                            Log.d(TAG, "Exiting vehicle service launcher.");
+                            Log.d("jjb", "Exiting vehicle service launcher.");
                         } else {
                             // This is weird, we got permission, but to which
                             // device?
-                            Log.w(TAG, "Exiting vehicle service launcher: No device returned.");
+                            Log.w("jjb", "Exiting vehicle service launcher: No device returned.");
                         }
                     }
                     // Permission was not granted, don't open anything.
                     else {
-                        Log.d(TAG, "Exiting vehicle service launcher: Permission denied.");
+                        Log.d("jjb", "Exiting vehicle service launcher: Permission denied.");
                     }
 
                     finish();
@@ -121,4 +127,5 @@ public class LauncherActivity extends Activity {
             }
         }
     };
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 }
