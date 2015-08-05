@@ -23,7 +23,7 @@ import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
 
 enum THRUST_TYPES {
-    VECTORED(0), DIFFERENTIAL(1);
+    VECTORED(0), DIFFERENTIAL(1), TWO_FAN_CATAMARAN(2);
     private final long value;
     THRUST_TYPES(long value) { // constructor allows for special types in the enum
         this.value = value;
@@ -77,6 +77,7 @@ public class LutraMadaraContainers {
     Integer gpsInitialized; // == 1 if the first GPS lock has come in
     Integer compassInitialized; // == 1 if the first compass measurement has come in
     Integer localized; // == 1 if both GPS and compass are initialized
+    Integer resetLocalization; // operator will temporarily set this to 1 to force the boat to totally reset its local state
     NativeDoubleVector motorCommands;
     Double thrustFraction;
     Double bearingFraction;
@@ -184,6 +185,11 @@ public class LutraMadaraContainers {
         unhandledException = new String();
         unhandledException.setName(knowledge, prefix + "unhandledException");
 
+        resetLocalization = new Integer();
+        resetLocalization.setName(knowledge, prefix + "resetLocalization");
+        resetLocalization.setSettings(settings);
+        resetLocalization.set(0);
+
         restoreDefaults();
 
         settings.free(); // don't need this object past the initialization
@@ -210,6 +216,7 @@ public class LutraMadaraContainers {
         thrustPPIGains.free();
         thrustFraction.free();
         bearingFraction.free();
+        resetLocalization.free();
     }
 
     public void restoreDefaults() {

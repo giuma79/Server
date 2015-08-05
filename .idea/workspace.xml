@@ -19,27 +19,24 @@
   </component>
   <component name="AndroidLogFilters">
     <option name="TOOL_WINDOW_CUSTOM_FILTER" value="aswdf" />
-    <option name="TOOL_WINDOW_CONFIGURED_FILTER" value="Show only selected application" />
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e0e2246a-2dac-4db5-b21b-68fb01c055de" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/dictionaries/jazen.xml" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/gams/build.gradle" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/gams/gams.jar" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/madara/build.gradle" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/madara/madara.jar" afterPath="" />
-      <change type="DELETED" beforePath="$PROJECT_DIR$/software.iml" afterPath="" />
       <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/jniLibs/crwlib_core.jar" afterPath="" />
       <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/jniLibs/gams.jar" afterPath="" />
       <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/jniLibs/jscience-4.3.jar" afterPath="" />
       <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/jniLibs/madara.jar" afterPath="" />
       <change type="DELETED" beforePath="$PROJECT_DIR$/src/main/jniLibs/microlog4android-1.0.0.jar" afterPath="" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatActivity.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatActivity.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/libs/gams.jar" afterPath="$PROJECT_DIR$/libs/gams.jar" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/jniLibs/armeabi/libGAMS.so" afterPath="$PROJECT_DIR$/src/main/jniLibs/armeabi/libGAMS.so" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/jniLibs/armeabi-v7a/libGAMS.so" afterPath="$PROJECT_DIR$/src/main/jniLibs/armeabi-v7a/libGAMS.so" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/jniLibs/armeabi/libMADARA.so" afterPath="$PROJECT_DIR$/src/main/jniLibs/armeabi/libMADARA.so" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main/jniLibs/armeabi-v7a/libMADARA.so" afterPath="$PROJECT_DIR$/src/main/jniLibs/armeabi-v7a/libMADARA.so" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/libs/madara.jar" afterPath="$PROJECT_DIR$/libs/madara.jar" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatMotionController.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatMotionController.java" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ExceptionHandler.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ExceptionHandler.java" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraMadaraContainers.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraMadaraContainers.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraPlatform.java" afterPath="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraPlatform.java" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
     </list>
     <ignored path="Server.iws" />
@@ -107,18 +104,16 @@
               <caret line="58" column="19" selection-start-line="58" selection-start-column="19" selection-end-line="58" selection-end-column="19" />
               <folding>
                 <element signature="imports" expanded="true" />
-                <element signature="e#1756#1976#0" expanded="true" />
-                <element signature="e#1975#1976#0" expanded="true" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="LutraPlatform.java" pinned="false" current-in-tab="false">
+      <file leaf-file-name="LutraPlatform.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraPlatform.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="53" column="34" selection-start-line="53" selection-start-column="34" selection-end-line="53" selection-end-column="34" />
+            <state vertical-scroll-proportion="0.029595016">
+              <caret line="159" column="0" selection-start-line="159" selection-start-column="0" selection-end-line="159" selection-end-column="0" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -126,11 +121,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="BoatMotionController.java" pinned="false" current-in-tab="true">
+      <file leaf-file-name="BoatMotionController.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatMotionController.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.44117647">
-              <caret line="113" column="12" selection-start-line="113" selection-start-column="12" selection-end-line="113" selection-end-column="12" />
+            <state vertical-scroll-proportion="0.0">
+              <caret line="140" column="0" selection-start-line="140" selection-start-column="0" selection-end-line="140" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -148,23 +143,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ExceptionHandler.java" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ExceptionHandler.java">
-          <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0">
-              <caret line="58" column="14" selection-start-line="58" selection-start-column="14" selection-end-line="58" selection-end-column="14" />
-              <folding>
-                <element signature="imports" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="LutraMadaraContainers.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraMadaraContainers.java">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="183" column="42" selection-start-line="183" selection-start-column="42" selection-end-line="183" selection-end-column="42" />
+              <caret line="293" column="38" selection-start-line="293" selection-start-column="38" selection-end-line="293" selection-end-column="38" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -176,7 +159,7 @@
         <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.0">
-              <caret line="375" column="36" selection-start-line="375" selection-start-column="36" selection-end-line="375" selection-end-column="36" />
+              <caret line="65" column="0" selection-start-line="65" selection-start-column="0" selection-end-line="65" selection-end-column="0" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -1520,7 +1503,7 @@
     </option>
     <option name="modificationStamps">
       <map>
-        <entry key="$PROJECT_DIR$" value="2871373515333" />
+        <entry key="$PROJECT_DIR$" value="2877481055314" />
       </map>
     </option>
     <option name="projectBuildClasspath">
@@ -2008,15 +1991,15 @@
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/DwellAlgorithm.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/VelocityProfileListener.java" />
         <option value="$PROJECT_DIR$/AndroidManifest.xml" />
-        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraPlatform.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LauncherActivity.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraGAMS.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatActivity.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/ExceptionHandler.java" />
-        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/AirboatService.java" />
-        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraMadaraContainers.java" />
         <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatMotionController.java" />
+        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java" />
+        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraPlatform.java" />
+        <option value="$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraMadaraContainers.java" />
       </list>
     </option>
   </component>
@@ -2035,9 +2018,9 @@
   </component>
   <component name="ProjectFrameBounds">
     <option name="x" value="65" />
-    <option name="y" value="24" />
+    <option name="y" value="-4" />
     <option name="width" value="1855" />
-    <option name="height" value="1056" />
+    <option name="height" value="1084" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="false">
     <OptionsSetting value="true" id="Add" />
@@ -2062,6 +2045,30 @@
       <sortByType />
     </navigator>
     <panes>
+      <pane id="Scope">
+        <subPane subId="Project Files">
+          <PATH>
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
+      <pane id="PackagesPane">
+        <subPane>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Server" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Server" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -2114,34 +2121,10 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="PackagesPane">
-        <subPane>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="Server" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="Server" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
-            </PATH_ELEMENT>
-          </PATH>
-        </subPane>
-      </pane>
-      <pane id="Scratches" />
-      <pane id="Scope">
-        <subPane subId="Project Files">
-          <PATH>
-            <PATH_ELEMENT USER_OBJECT="Root">
-              <option name="myItemId" value="" />
-              <option name="myItemType" value="" />
-            </PATH_ELEMENT>
-          </PATH>
-        </subPane>
-      </pane>
       <pane id="AndroidView">
         <subPane />
       </pane>
+      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -2371,7 +2354,7 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="65" y="24" width="1855" height="1056" extended-state="6" />
+    <frame x="65" y="-4" width="1855" height="1084" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info id="Palette&#9;" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
@@ -2382,16 +2365,16 @@
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.2628205" sideWeight="0.5085494" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Gradle Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.2803838" sideWeight="0.55046886" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Gradle Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.27974278" sideWeight="0.5522388" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Build Variants" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.24679486" sideWeight="0.6343078" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Android" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.2803838" sideWeight="0.44953117" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Android" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.27974278" sideWeight="0.4477612" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3290461" sideWeight="0.49585405" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Gradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32946378" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.32946378" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Application Servers" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.20187534" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.20176893" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.26175213" sideWeight="0.49145064" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
@@ -2727,7 +2710,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.33333334">
           <caret line="5135" column="0" selection-start-line="5135" selection-start-column="0" selection-end-line="5135" selection-end-column="0" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -2736,7 +2718,7 @@
         <state vertical-scroll-proportion="0.0">
           <caret line="44" column="0" selection-start-line="44" selection-start-column="0" selection-end-line="46" selection-end-column="92" />
           <folding>
-            <element signature="e#1157#1175#0" expanded="true" />
+            <element signature="e#1157#1175#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -2745,16 +2727,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="375" column="36" selection-start-line="375" selection-start-column="36" selection-end-line="375" selection-end-column="36" />
-          <folding>
-            <element signature="imports" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -2772,18 +2744,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
           <caret line="58" column="19" selection-start-line="58" selection-start-column="19" selection-end-line="58" selection-end-column="19" />
-          <folding>
-            <element signature="imports" expanded="true" />
-            <element signature="e#1756#1976#0" expanded="true" />
-            <element signature="e#1975#1976#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraPlatform.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0">
-          <caret line="53" column="34" selection-start-line="53" selection-start-column="34" selection-end-line="53" selection-end-column="34" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
@@ -2810,21 +2770,41 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraMadaraContainers.java">
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatMotionController.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.0">
-          <caret line="183" column="42" selection-start-line="183" selection-start-column="42" selection-end-line="183" selection-end-column="42" />
+          <caret line="140" column="0" selection-start-line="140" selection-start-column="0" selection-end-line="140" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatEKF.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.0">
+          <caret line="65" column="0" selection-start-line="65" selection-start-column="0" selection-end-line="65" selection-end-column="0" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/BoatMotionController.java">
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraMadaraContainers.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.44117647">
-          <caret line="113" column="12" selection-start-line="113" selection-start-column="12" selection-end-line="113" selection-end-column="12" />
-          <folding />
+        <state vertical-scroll-proportion="0.0">
+          <caret line="293" column="38" selection-start-line="293" selection-start-column="38" selection-end-line="293" selection-end-column="38" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/edu/cmu/ri/airboat/server/LutraPlatform.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state vertical-scroll-proportion="0.029595016">
+          <caret line="159" column="0" selection-start-line="159" selection-start-column="0" selection-end-line="159" selection-end-column="0" />
+          <folding>
+            <element signature="imports" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

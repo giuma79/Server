@@ -70,7 +70,10 @@ public class BoatEKF implements DatumListener {
         }
     }
 
-    public synchronized void resetLocalState() { // if home is reset, we may want to reset local state as well
+    public synchronized void resetLocalization() { // if home is reset, we may want to reset local state as well
+        containers.compassInitialized.set(0);
+        containers.gpsInitialized.set(0);
+        containers.localized.set(0);
         for (int i = 0; i < stateSize; i++) {
             containers.localState.set(i, 0.0);
         }

@@ -26,7 +26,7 @@ public class BoatMotionController implements VelocityProfileListener {
     double t0; // time at the start of the velocity profile
     boolean t0set;
     LutraMadaraContainers containers;
-    final double headingErrorThreshold = 20.0*Math.PI/180.0;
+    final double headingErrorThreshold = 15.0*Math.PI/180.0; // +/- 15 deg
     double simplePIDGains[][];
     double PPIGains[];
     double PPIErrorAccumulator; // [Pos-P*(pos error) + vel error] accumulation
@@ -104,13 +104,15 @@ public class BoatMotionController implements VelocityProfileListener {
 
 
             /////////////////////////////////////////////////////////////////////////////////////
-            // determine which controller to use, simple PID or P-PI pos./vel. cascade
-
-            if (containers.executingProfile.get() == 1) {
-                PPICascade();
-            }
-            else {
-                simplePID();
+            // First determine if you are pointing in the correct direction
+            // Then, if you are, determine which controller to use, simple PID or P-PI pos./vel. cascade
+            if (Math.abs(angleError) < headingErrorThreshold) {
+                // set thrustSignal with either control method
+                if (containers.executingProfile.get() == 1) {
+                    PPICascade();
+                } else {
+                    simplePID();
+                }
             }
             motorCommandsFromErrorSignal();
             setThrustAndBearingFractions();

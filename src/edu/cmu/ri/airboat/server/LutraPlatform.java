@@ -46,6 +46,10 @@ public class LutraPlatform extends BasePlatform {
     class FilterAndControllerThread extends BaseThread {
         @Override
         public void run() {
+            if (containers.resetLocalization.get() == 1) {
+                boatEKF.resetLocalization();
+                containers.resetLocalization.set(0);
+            }
             if (containers.localized.get() == 1) {
                 if (!homeSet) {
                     homeSet = true;
@@ -175,6 +179,7 @@ public class LutraPlatform extends BasePlatform {
         // TODO: add some kind of last destination vs. current destination if statement protection so this isn't called over and over
 
         moveLocalXY(containers.PositionToLocalXY(target), proximity);
+        target.free(); // have to free() any GAMS variables, even this input one!
         return PlatformStatusEnum.OK.value();
     }
 
