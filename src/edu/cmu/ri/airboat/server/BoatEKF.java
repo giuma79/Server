@@ -204,6 +204,7 @@ public class BoatEKF implements DatumListener {
 
     private synchronized void setH(Datum datum) {
 
+        /*
         try {
             //Thread.sleep(5000);
         }
@@ -211,8 +212,7 @@ public class BoatEKF implements DatumListener {
         }
         AirboatImpl a = null;
         a.shutdown();
-
-
+        */
 
         double s = Math.sin(x.getEntry(2, 0));
         double c = Math.cos(x.getEntry(2, 0));
@@ -366,6 +366,22 @@ public class BoatEKF implements DatumListener {
         }
         else {
             return false;
+        }
+    }
+    */
+
+    /*
+    synchronized double angleDifference(double a, double b) {
+        // subtract sign(a-b)*2*PI until the abs(a-b) starts increasing
+        double angleBetween = a - b;
+        while (true) {
+            double newAngleBetween = angleBetween - Math.signum(angleBetween)*2*Math.PI;
+            if (Math.abs(newAngleBetween) < Math.abs(angleBetween)) {
+                angleBetween = newAngleBetween;
+            }
+            else {
+                return angleBetween;
+            }
         }
     }
     */

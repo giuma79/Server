@@ -157,7 +157,7 @@ public class LutraMadaraContainers {
         eastingNorthingBearing = new NativeDoubleVector();
         eastingNorthingBearing.setName(knowledge, prefix + "eastingNorthingBearing");
         eastingNorthingBearing.resize(3);
-        eastingNorthingBearing.setSettings(settings);
+        //eastingNorthingBearing.setSettings(settings);
 
         bearingPIDGains= new NativeDoubleVector();
         bearingPIDGains.setName(knowledge, prefix + "bearingPIDGains");
@@ -178,8 +178,8 @@ public class LutraMadaraContainers {
         bearingFraction = new Double();
         thrustFraction.setName(knowledge, prefix + "thrustFraction");
         bearingFraction.setName(knowledge, prefix + "bearingFraction");
-        thrustFraction.setSettings(settings);
-        bearingFraction.setSettings(settings);
+        //thrustFraction.setSettings(settings);
+        //bearingFraction.setSettings(settings);
 
         unhandledException = new String();
         unhandledException.setName(knowledge, prefix + "unhandledException");

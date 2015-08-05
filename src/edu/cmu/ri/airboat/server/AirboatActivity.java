@@ -61,6 +61,10 @@ public class AirboatActivity extends Activity {
     @Override
 	public void onCreate(Bundle savedInstanceState) {
 
+		//if (getIntent().getBooleanExtra("EXIT", false)) { //////////////////////////////////////////////////////////////////
+		//	finish();
+		//}
+
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(AirboatActivity.this);
 
     	// Create the "main" layout from the included XML file 
@@ -167,7 +171,8 @@ public class AirboatActivity extends Activity {
                 // Depending on whether the service is running, start or stop
                 if (!connectToggle.isChecked()) {
                     Log.i("jjb", "Starting background service.");
-                    startActivity(intent); //////////////////////////////////////////////start the launcher ***************
+                    //startActivity(intent); //////////////////////////////////////////////start the launcher ***************
+					startActivityForResult(intent, 0);
 
 					// TODO: intent for the airboat service in AirboatAcitivty's onCreate rather than in the launcher activity
 
@@ -452,7 +457,7 @@ public class AirboatActivity extends Activity {
 		/////////
 		// CREATE AN UNHANDLED EXCEPTION HANDLER + RESTART REQUEST
 		Context context = getApplicationContext();
-		Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler(this, context,8000));
+		Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler(this, context,4000));
 		///////////////////////////////////////////////////////////////////
 
     }

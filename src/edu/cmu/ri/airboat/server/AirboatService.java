@@ -375,8 +375,8 @@ public class AirboatService extends Service {
             z.setEntry(0, 0, utmLoc.eastingValue(SI.METER));
             z.setEntry(1,0,utmLoc.northingValue(SI.METER));
             RealMatrix R = MatrixUtils.createRealMatrix(2,2);
-            R.setEntry(0, 0, 10.0);
-            R.setEntry(1,1,10.0);
+            R.setEntry(0, 0, 20.0);
+            R.setEntry(1,1,20.0);
             t = System.currentTimeMillis();
             Datum datum = new Datum(SENSOR_TYPES.GPS,t,z,R);
             datumListener.newDatum(datum);
@@ -399,6 +399,27 @@ public class AirboatService extends Service {
                 SensorManager.getRotationMatrixFromVector(rotationMatrix,
                         event.values);
                 double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
+
+
+                // alter the measurement by 2*PI until its difference with current yaw is minimized
+                if (lutra.platform.containers != null) {
+                    double currentYaw = lutra.platform.containers.eastingNorthingBearing.get(2);
+                    double angleBetween = currentYaw - yaw;
+                    double originalSign = Math.signum(angleBetween);
+                    double newYawMeasurement = yaw;
+                    while (true) {
+                        newYawMeasurement = yaw + originalSign * 2 * Math.PI;
+                        double newAngleBetween = currentYaw - newYawMeasurement;
+                        if (Math.abs(newAngleBetween) < Math.abs(angleBetween)) {
+                            angleBetween = newAngleBetween;
+                            yaw = newYawMeasurement;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+
+
                 //while (Math.abs(yaw) > Math.PI) {
                 //	yaw = yaw - 2*Math.PI*Math.signum(yaw);
                 //}
@@ -1225,8 +1246,8 @@ public class AirboatService extends Service {
                     z.setEntry(0,0,utmLoc.eastingValue(SI.METER));
                     z.setEntry(1,0,utmLoc.northingValue(SI.METER));
                     RealMatrix R = MatrixUtils.createRealMatrix(2,2);
-                    R.setEntry(0, 0, 10.0);
-                    R.setEntry(1, 1, 10.0);
+                    R.setEntry(0, 0, 5.0);
+                    R.setEntry(1, 1, 5.0);
                     t = System.currentTimeMillis();
                     Datum datum = new Datum(SENSOR_TYPES.GPS,t,z,R);
                     datumListener.newDatum(datum);

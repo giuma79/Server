@@ -31,10 +31,10 @@ public class BoatMotionController implements VelocityProfileListener {
     double PPIGains[];
     double PPIErrorAccumulator; // [Pos-P*(pos error) + vel error] accumulation
     double[] simplePIDErrorAccumulator; // cols: x,y,th
-    public static final double SAFE_DIFFERENTIAL_THRUST = 0.4;
+    public static final double SAFE_DIFFERENTIAL_THRUST = 0.6;
     public static final double SAFE_VECTORED_THRUST = 0.6;
-    double headingSignal;
-    double thrustSignal;
+    double headingSignal = 0.0;
+    double thrustSignal = 0.0;
     DatumListener datumListener;
     VelocityMotorMap velocityMotorMap;
 
@@ -105,6 +105,7 @@ public class BoatMotionController implements VelocityProfileListener {
 
             /////////////////////////////////////////////////////////////////////////////////////
             // determine which controller to use, simple PID or P-PI pos./vel. cascade
+
             if (containers.executingProfile.get() == 1) {
                 PPICascade();
             }
@@ -114,6 +115,7 @@ public class BoatMotionController implements VelocityProfileListener {
             motorCommandsFromErrorSignal();
             setThrustAndBearingFractions();
             /////////////////////////////////////////////////////////////////////////////////////
+
         }
         else { // some form of teleoperation is occurring, so don't accumulate error and don't try to control anything
             zeroErrors();
