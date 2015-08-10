@@ -69,6 +69,8 @@ public class LutraMadaraContainers {
     Double decel;
     DoubleVector localState;
     NativeDoubleVector eastingNorthingBearing; // UTM x,y,th
+    NativeDoubleVector errorEllipse; // width, height, angle
+    NativeDoubleVector localStateXYCovariance; // P(0,0), P(1,0), P(0,1), P(1,1)
     Integer longitudeZone;
     String latitudeZone; // a single character (see UTM) http://jscience.org/api/org/jscience/geography/coordinates/UTM.html
     Integer executingProfile; // == 1 if controller is currently executing a velocity profile, == 0 otherwise
@@ -93,9 +95,9 @@ public class LutraMadaraContainers {
     final long defaultTeleopStatus = TELEOPERATION_TYPES.GUI_MS.getLongValue(); // start in teleop mode!
     final long defaultThrustType = THRUST_TYPES.DIFFERENTIAL.getLongValue();
     final double controlHz = 25.0; // frequency of control loop and sending the corresponding JSON commands
-    final double[] bearingPIDGainsDefaults = new double[]{0.5,0.5,0.5}; // cols: P,I,D
+    final double[] bearingPIDGainsDefaults = new double[]{0.25,0.05,0.5}; // cols: P,I,D
     final double[] thrustPIDGainsDefaults = new double[]{0.2,0,0.3}; // cols: P,I,D
-    final double[] thrustPPIGainsDefaults = new double[]{1.0,1.0,1.0}; // cols: Pos-P, Vel-P, Vel-I
+    final double[] thrustPPIGainsDefaults = new double[]{0.2,0.2,0.2}; // cols: Pos-P, Vel-P, Vel-I
 
     Self self;
 
@@ -126,12 +128,13 @@ public class LutraMadaraContainers {
         decel.setName(knowledge, prefix + "decelTime");
         decel.setSettings(settings);
         localState = new DoubleVector();
-        localState.setName(knowledge, ".localState");
+        localState.setName(knowledge, prefix + "localState");
+        localState.setSettings(settings);
         executingProfile = new Integer();
-        executingProfile.setName(knowledge, ".executingProfile");
+        executingProfile.setName(knowledge, prefix + "executingProfile");
         executingProfile.set(0);
         this.thrustType = new Integer();
-        this.thrustType.setName(knowledge, "thrustType");
+        this.thrustType.setName(knowledge, prefix + "thrustType");
         this.thrustType.set(thrustType.getLongValue());
         motorCommands = new NativeDoubleVector();
         motorCommands.setName(knowledge, prefix + "motorCommands");
@@ -139,15 +142,15 @@ public class LutraMadaraContainers {
         motorCommands.resize(2);
         teleopStatus = new Integer();
         teleopStatus.setName(knowledge, prefix + "teleopStatus");
-        teleopStatus.setSettings(settings);
+        //teleopStatus.setSettings(settings);
         gpsInitialized = new Integer();
-        gpsInitialized.setName(knowledge, "gpsInitialized");
+        gpsInitialized.setName(knowledge, prefix + "gpsInitialized");
         gpsInitialized.set(0);
         compassInitialized = new Integer();
-        compassInitialized.setName(knowledge, "compassInitialized");
+        compassInitialized.setName(knowledge, prefix + "compassInitialized");
         compassInitialized.set(0);
         localized = new Integer();
-        localized.setName(knowledge, "localized");
+        localized.setName(knowledge, prefix + "localized");
         localized.set(0);
         longitudeZone = new Integer();
         longitudeZone.setName(knowledge, prefix + "longitudeZone");
@@ -158,22 +161,33 @@ public class LutraMadaraContainers {
         eastingNorthingBearing = new NativeDoubleVector();
         eastingNorthingBearing.setName(knowledge, prefix + "eastingNorthingBearing");
         eastingNorthingBearing.resize(3);
-        //eastingNorthingBearing.setSettings(settings);
+
+        errorEllipse = new NativeDoubleVector();
+        errorEllipse.setName(knowledge, prefix + "errorEllipse");
+        errorEllipse.resize(3);
+
+        localStateXYCovariance = new NativeDoubleVector();
+        localStateXYCovariance.setSettings(settings);
+        localStateXYCovariance.setName(knowledge, prefix + "localStateXYCovariance");
+        localStateXYCovariance.resize(4);
 
         bearingPIDGains= new NativeDoubleVector();
         bearingPIDGains.setName(knowledge, prefix + "bearingPIDGains");
-        bearingPIDGains.resize(3);
         bearingPIDGains.setSettings(settings);
+        bearingPIDGains.resize(3);
+
 
         thrustPIDGains= new NativeDoubleVector();
         thrustPIDGains.setName(knowledge, prefix + "thrustPIDGains");
-        thrustPIDGains.resize(3);
         thrustPIDGains.setSettings(settings);
+        thrustPIDGains.resize(3);
+
 
         thrustPPIGains= new NativeDoubleVector();
         thrustPPIGains.setName(knowledge, prefix + "thrustPPIGains");
-        thrustPPIGains.resize(3);
         thrustPPIGains.setSettings(settings);
+        thrustPPIGains.resize(3);
+
 
         thrustFraction = new Double();
         bearingFraction = new Double();
@@ -187,8 +201,7 @@ public class LutraMadaraContainers {
 
         resetLocalization = new Integer();
         resetLocalization.setName(knowledge, prefix + "resetLocalization");
-        resetLocalization.setSettings(settings);
-        resetLocalization.set(0);
+        //resetLocalization.setSettings(settings);
 
         restoreDefaults();
 
@@ -217,6 +230,8 @@ public class LutraMadaraContainers {
         thrustFraction.free();
         bearingFraction.free();
         resetLocalization.free();
+        errorEllipse.free();
+        localStateXYCovariance.free();
     }
 
     public void restoreDefaults() {
@@ -226,7 +241,8 @@ public class LutraMadaraContainers {
         accel.set(defaultAccelTime);
         decel.set(defaultDecelTime);
         teleopStatus.set(defaultTeleopStatus);
-        thrustType.set(defaultThrustType);
+        //thrustType.set(defaultThrustType);
+        resetLocalization.set(0);
         for (int i = 0; i < 3; i++) {
             bearingPIDGains.set(i,bearingPIDGainsDefaults[i]);
             thrustPIDGains.set(i,thrustPIDGainsDefaults[i]);
@@ -248,6 +264,7 @@ public class LutraMadaraContainers {
         // e.g. double[] home = containers.NDV_to_DA(self.device.home);
         KnowledgeRecord KR = NDV.toRecord();
         double[] result = KR.toDoubleArray();
+        KR.free();
         return result;
     }
 
@@ -267,7 +284,7 @@ public class LutraMadaraContainers {
     }
 
     public double[] UTMToLocalXY(UTM utm) {
-        double[] result = new double[] {0.0,0.0};
+        double[] result = new double[2];
         double[] home = NDV_to_DA(self.device.home);
         result[0] = utm.eastingValue(SI.METER) - home[0];
         result[1] = utm.northingValue(SI.METER) - home[1];
@@ -275,22 +292,11 @@ public class LutraMadaraContainers {
     }
 
     public double[] PositionToLocalXY(Position position) {
-        double [] result = new double[] {0.0,0.0};
-        double[] home = NDV_to_DA(self.device.home);
+        double [] result;
         // Convert from lat/long to NATO UTM coordinates
         UTM utmLoc = UTM.latLongToUtm(
                 LatLong.valueOf(position.getX(), position.getY(), NonSI.DEGREE_ANGLE),
                 ReferenceEllipsoid.WGS84);
-
-        // Convert to standard UTM data structure
-        /*
-        Pose3D pose = new Pose3D(utmLoc.eastingValue(SI.METER),
-                utmLoc.northingValue(SI.METER), position.getZ(),
-                Quaternion.fromEulerAngles(0, 0, 0));
-        Utm origin = new Utm(utmLoc.longitudeZone(),
-                utmLoc.latitudeZone() > 'O');
-        UtmPose utm = new UtmPose(pose, origin);
-        */
         result = UTMToLocalXY(utmLoc);
         return result;
     }

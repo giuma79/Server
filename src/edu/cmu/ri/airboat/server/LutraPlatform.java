@@ -9,6 +9,7 @@ import com.gams.utility.Position;
 import com.gams.utility.Axes;
 import com.madara.EvalSettings;
 import com.madara.KnowledgeBase;
+import com.madara.KnowledgeRecord;
 import com.madara.threads.BaseThread;
 import com.madara.threads.Threader;
 
@@ -47,10 +48,11 @@ public class LutraPlatform extends BasePlatform {
         @Override
         public void run() {
             if (containers.resetLocalization.get() == 1) {
+                Log.w("jjb", " !!!!! RESETTING LOCALIZATION !!!!!");
                 boatEKF.resetLocalization();
                 containers.resetLocalization.set(0);
             }
-            if (containers.localized.get() == 1) {
+            else if (containers.localized.get() == 1) {
                 if (!homeSet) {
                     homeSet = true;
                     knowledge.print();
@@ -167,9 +169,11 @@ public class LutraPlatform extends BasePlatform {
         double[] home = containers.NDV_to_DA(self.device.home);
         self.device.dest.set(0,localTarget[0]+home[0]);
         self.device.dest.set(1,localTarget[1]+home[1]);
-        self.device.source.set(0, containers.eastingNorthingBearing.get(0) + home[0]);
-        self.device.source.set(1, containers.eastingNorthingBearing.get(1) + home[1]);
-        self.device.source.set(1, containers.eastingNorthingBearing.get(2));
+        /* // TODO: need to put in the protection against a new destination so that source isn't set over and over
+        self.device.source.set(0, containers.eastingNorthingBearing.get(0));
+        self.device.source.set(1, containers.eastingNorthingBearing.get(1));
+        self.device.source.set(2, containers.eastingNorthingBearing.get(2));
+        */
 
         containers.sufficientProximity.set(proximity);
     }
@@ -177,9 +181,8 @@ public class LutraPlatform extends BasePlatform {
     public int move(Position target, double proximity) {
 
         // TODO: add some kind of last destination vs. current destination if statement protection so this isn't called over and over
-
-        moveLocalXY(containers.PositionToLocalXY(target), proximity);
-        target.free(); // have to free() any GAMS variables, even this input one!
+        double[] localTarget = containers.PositionToLocalXY(target);
+        moveLocalXY(localTarget, proximity);
         return PlatformStatusEnum.OK.value();
     }
 
@@ -329,6 +332,16 @@ public class LutraPlatform extends BasePlatform {
         // move local .x localization state into device.id.location
         // remember to add in device.id.home because .x is about (0,0)
         double[] home = containers.NDV_to_DA(self.device.home);
+
+        //RealMatrix homeRM = MatrixUtils.createColumnRealMatrix(home);
+        //String aaa = String.format("sense() home container = %s",RMO.realMatrixToString(homeRM));
+        //Log.w("jjb",aaa);
+        //KnowledgeRecord KR = knowledge.get("device.0.localState.2");
+        //double th = KR.toDouble();
+        //String aaa = String.format("Current yaw = %f deg",th*180.0/Math.PI);
+        //Log.w("jjb",aaa);
+
+
         containers.eastingNorthingBearing.set(0,containers.localState.get(0) + home[0]);
         containers.eastingNorthingBearing.set(1,containers.localState.get(1) + home[1]);
         containers.eastingNorthingBearing.set(2,containers.localState.get(2));
@@ -336,10 +349,21 @@ public class LutraPlatform extends BasePlatform {
         LatLong latLong = containers.LocalXYToLatLong();
         self.device.location.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
         self.device.location.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
-        self.device.location.set(2,0.0);
+        self.device.location.set(2, 0.0);
 
-        //knowledge.print();
+        RealMatrix covariance = MatrixUtils.createRealMatrix(2,2);
+        covariance.setEntry(0,0,containers.localStateXYCovariance.get(0));
+        covariance.setEntry(1,0,containers.localStateXYCovariance.get(1));
+        covariance.setEntry(0,1,containers.localStateXYCovariance.get(2));
+        covariance.setEntry(1, 1, containers.localStateXYCovariance.get(3));
 
+        double[] errorEllipse = RMO.covarianceEllipse(covariance);
+        containers.errorEllipse.set(0,errorEllipse[0]);
+        containers.errorEllipse.set(1,errorEllipse[1]);
+        containers.errorEllipse.set(2,errorEllipse[2]);
+
+        //Log.w("jjb","platform sense() KB:");
+        knowledge.print();
 
         return PlatformStatusEnum.OK.value();
     }

@@ -25,6 +25,14 @@ public class LauncherActivity extends Activity {
     private String TAG = LauncherActivity.class.getName();
     private static final String ACTION_USB_PERMISSION = "com.platypus.android.server.USB_PERMISSION";
 
+    /*
+    @Override
+    public void onPause() {
+        super.onPause();
+        finish();
+    }
+    */
+
     /**
      * Called when the activity is first created.
      * 

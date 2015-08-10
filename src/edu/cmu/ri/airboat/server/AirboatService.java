@@ -179,7 +179,7 @@ public class AirboatService extends Service {
     /////////////////////////////////////////
     DatumListener datumListener;
     List<Datum> gpsHistory; // maintain a list of GPS data within some time window
-    final double gpsHistoryTimeWindow = 1.0; // if a gps point is older than X seconds, abandon it
+    final double gpsHistoryTimeWindow = 3.0; // if a gps point is older than X seconds, abandon it
     Long t; // current time in this thread
     double eBoardGPSTimestamp = 0.0;
     synchronized void gpsVelocity(Datum datum) {
@@ -196,7 +196,7 @@ public class AirboatService extends Service {
         //String gpsHistoryString = String.format("There are %d GPS measurements in the history",gpsHistory.size());
         //Log.w("jjb",gpsHistoryString);
 
-        if (gpsHistory.size() < 3) {return;} // need at least three data points
+        if (gpsHistory.size() < 6) {return;} // need at least three data points
 
         // Least squares linear regression with respect to time
         //RealMatrix relevantGPS = MatrixUtils.createRealMatrix(gpsHistory.size(),3);
@@ -255,8 +255,10 @@ public class AirboatService extends Service {
     class motorCmdThread extends BaseThread {
         @Override
         public void run() {
-            if (lutra.platform.containers.localized.get() == 1) {
-                sendMotorJSON();
+            if (lutra.platform.containers != null) {
+                if (lutra.platform.containers.localized.get() == 1) {
+                    sendMotorJSON();
+                }
             }
         }
     }
@@ -437,7 +439,7 @@ public class AirboatService extends Service {
                 RealMatrix z = MatrixUtils.createRealMatrix(1,1);
                 z.setEntry(0,0,yaw);
                 RealMatrix R = MatrixUtils.createRealMatrix(1,1);
-                R.setEntry(0, 0, Math.PI/60.0); // 3 degrees
+                R.setEntry(0, 0, Math.pow((Math.PI/18.0)/2.0,2.0)); // estimate 10 degrees is 2 std. dev's
                 t = System.currentTimeMillis();
                 Datum datum = new Datum(SENSOR_TYPES.COMPASS,t,z,R);
                 datumListener.newDatum(datum);
@@ -602,7 +604,7 @@ public class AirboatService extends Service {
             RealMatrix z = MatrixUtils.createRealMatrix(1,1);
             z.setEntry(0,0,(double)gyroValues[2]);
             RealMatrix R = MatrixUtils.createRealMatrix(1,1);
-            R.setEntry(0, 0, 5.0e-4);
+            R.setEntry(0, 0, 0.0004*0.0004); // the noise floor with zero input --> TINY error, so this is supreme overconfidence
             t = System.currentTimeMillis();
             Datum datum = new Datum(SENSOR_TYPES.GYRO,t,z,R);
             datumListener.newDatum(datum);
@@ -862,13 +864,13 @@ public class AirboatService extends Service {
                         //catch (JSONException e) {
                         catch (Exception e) {
 						//	Log.w(TAG, "Failed to parse response '" + line + "'.", e);
-                            Log.w("jjb","inner receiveJSON thread failure:\n "+line+" ",e);
+                            //Log.w("jjb","inner receiveJSON thread failure:\n "+line+" ",e);
 						}
 					}
 				}
                 catch (IOException e) {
 					//Log.d(TAG, "Accessory connection closed.", e);
-                    Log.w("jjb","outer receiveJSON thread failure",e);
+                    //Log.w("jjb","outer receiveJSON thread failure",e);
 				}
 
 				try {
@@ -1147,7 +1149,7 @@ public class AirboatService extends Service {
         @SuppressWarnings("unchecked")
         Iterator<String> keyIterator = (Iterator<String>)cmd.keys();
 
-        Log.w("jjb","receiveJSON()...");
+        //Log.w("jjb","receiveJSON()...");
 
         // Iterate through JSON fields
         while (keyIterator.hasNext()) {
@@ -1225,7 +1227,7 @@ public class AirboatService extends Service {
                     String a = String.format(
                             "eBoard GPS received at time %.1f:\n    LAT: %.5f\n    LONG: %.5f\n",
                             eBoardGPSTimestamp,latitude,longitude);
-                    Log.w("jjb",a);
+                    //Log.w("jjb",a);
 
                     UTM utmLoc = UTM.latLongToUtm(LatLong.valueOf(latitude,longitude,NonSI.DEGREE_ANGLE),ReferenceEllipsoid.WGS84);
                     /*
@@ -1290,7 +1292,7 @@ public class AirboatService extends Service {
             }
             catch (JSONException e) {
                 //Log.w(logTag, "Failed to serialize command.", e); // TODO: remove this.
-                Log.w("jjb", "Failed to serialize command.",e);
+                //Log.w("jjb", "Failed to serialize command.",e);
             }
         }
         else if (lutra.platform.containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
@@ -1308,7 +1310,7 @@ public class AirboatService extends Service {
                 usbWriter.flush();
             } catch (JSONException e) {
                // Log.w(logTag, "Failed to serialize command.", e); // TODO: remove this.
-                Log.w("jjb", "Failed to serialize command.",e);
+                //Log.w("jjb", "Failed to serialize command.",e);
             }
         }
         else {

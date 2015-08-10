@@ -43,7 +43,7 @@ public class ExceptionHandler implements UncaughtExceptionHandler {
 
         try {
 
-            activity.getIntent().setAction("");
+            //activity.getIntent().setAction("");
 
             Intent intent1 = new Intent(activity, AirboatActivity.class);
             Intent intent2 = new Intent(activity, LauncherActivity.class);
@@ -65,9 +65,9 @@ public class ExceptionHandler implements UncaughtExceptionHandler {
             PendingIntent pendingIntent2 = PendingIntent.getActivity(context, 0, intent2, intent2.getFlags());
 
             //Following code will restart your application after 5 seconds
-            //AlarmManager mgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-            //mgr.set(AlarmManager.RTC, System.currentTimeMillis() + restartMilliseconds, pendingIntent1);
-            //mgr.set(AlarmManager.RTC, System.currentTimeMillis() + restartMilliseconds + 100, pendingIntent2);
+            AlarmManager mgr = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
+            mgr.set(AlarmManager.RTC, System.currentTimeMillis() + restartMilliseconds, pendingIntent1);
+            mgr.set(AlarmManager.RTC, System.currentTimeMillis() + restartMilliseconds + 100, pendingIntent2);
 
             Log.e("jjb", "Unhandled Exception: ", ex);
 

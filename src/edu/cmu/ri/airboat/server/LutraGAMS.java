@@ -41,6 +41,9 @@ public class LutraGAMS extends AbstractVehicleServer {
         settings.enableParticipantTtl(1);
         knowledge = new KnowledgeBase(ipAddress,settings);
         controller = new BaseController(knowledge);
+
+        //com.madara.logger.GlobalLogger.setLevel(6);
+        //com.gams.utility.Logging.setLevel(6);
     }
 
 

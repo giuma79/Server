@@ -200,7 +200,8 @@ public class AirboatCameraActivity extends Activity implements SurfaceHolder.Cal
 	}
 	
 	@Override
-	public void onPause() {
+	public void onPause() { //////////////////////////////////////////////////////////////////////////////////////////////////////
+		/*
 		super.onPause();
 
 		// return empty image and exit
@@ -209,6 +210,7 @@ public class AirboatCameraActivity extends Activity implements SurfaceHolder.Cal
 		intent.putExtra(IMAGE_EXTRA, new byte[0]);
 		sendBroadcast(intent);
 		setResult(RESULT_CANCELED, intent);
+		*/
 		finish();
 	}
 	

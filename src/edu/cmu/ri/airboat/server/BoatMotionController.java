@@ -32,6 +32,8 @@ public class BoatMotionController implements VelocityProfileListener {
     double PPIErrorAccumulator; // [Pos-P*(pos error) + vel error] accumulation
     double[] simplePIDErrorAccumulator; // cols: x,y,th
     public static final double SAFE_DIFFERENTIAL_THRUST = 0.6;
+    public static final double SAFE_DIFFERENTIAL_TURN = 0.2;
+    public static final double SAFE_DIFFERENTIAL_THRUST_FRACTION = 1.0;
     public static final double SAFE_VECTORED_THRUST = 0.6;
     double headingSignal = 0.0;
     double thrustSignal = 0.0;
@@ -80,6 +82,11 @@ public class BoatMotionController implements VelocityProfileListener {
             while (Math.abs(angleError) > Math.PI) {
                 angleError = angleError - Math.signum(angleError)*2*Math.PI;
             }
+
+            java.lang.String angleErrorString = java.lang.String.format("th = %f  thd = %f  ERROR = %f [deg]",
+                    x.getEntry(2,0)*180.0/Math.PI,angleToGoal*180.0/Math.PI,angleError*180.0/Math.PI);
+            //Log.w("jjb",angleErrorString);
+
             xError.setEntry(2, 0, angleError);
 
             // if you are within a sufficient distance from the goal, stop following velocity profiles
@@ -90,34 +97,42 @@ public class BoatMotionController implements VelocityProfileListener {
                 PPIErrorAccumulator = 0;
             }
 
-            String distanceString = String.format("Distance from x to xd = %5.3e",containers.distToDest.get());
-            Log.w("jjb",distanceString);
+            //String distanceString = String.format("Distance from x to xd = %5.3e",containers.distToDest.get());
+            //Log.w("jjb",distanceString);
 
             // Heading PID control is always operating!
             for (int i = 0; i < 3; i++) {
                 simplePIDErrorAccumulator[i] += xError.getEntry(i,0)*dt;
             }
+            //String simplePIDErrorAccumulatorString = String.format("simplePIDErrorAccumulator = %f",simplePIDErrorAccumulator[2]);
+            //Log.w("jjb",simplePIDErrorAccumulatorString);
+
+
             xErrorDiff = xError.subtract(xErrorOld).scalarMultiply(1.0/dt);
+
+            //String xErrorDiffString = String.format("xError = %s",RMO.realMatrixToString(xErrorDiff));
+            //Log.w("jjb",xErrorDiffString);
+
             headingSignal = simplePIDGains[1][0]*xError.getEntry(2,0) + // P
                                         simplePIDGains[1][1]*simplePIDErrorAccumulator[2] + // I
                                             simplePIDGains[1][2]*xErrorDiff.getEntry(2,0); // D
 
+            //String headingSignalString = String.format("headingSignal = %f",headingSignal);
+            //Log.w("jjb",headingSignalString);
 
-            /////////////////////////////////////////////////////////////////////////////////////
-            // First determine if you are pointing in the correct direction
-            // Then, if you are, determine which controller to use, simple PID or P-PI pos./vel. cascade
-            if (Math.abs(angleError) < headingErrorThreshold) {
-                // set thrustSignal with either control method
-                if (containers.executingProfile.get() == 1) {
-                    PPICascade();
-                } else {
-                    simplePID();
-                }
-            }
+            // Determine which controller to use, simple PID or P-PI pos./vel. cascade
+            //if (containers.executingProfile.get() == 1) {
+            //    PPICascade();
+            //}
+            //else
+            //if (Math.abs(angleError) < headingErrorThreshold) {
+            //    simplePID();
+            //}
+            //else {
+            //    thrustSignal *= 0.5;
+            //}
             motorCommandsFromErrorSignal();
             setThrustAndBearingFractions();
-            /////////////////////////////////////////////////////////////////////////////////////
-
         }
         else { // some form of teleoperation is occurring, so don't accumulate error and don't try to control anything
             zeroErrors();
@@ -223,6 +238,10 @@ public class BoatMotionController implements VelocityProfileListener {
         }
         containers.motorCommands.set(0,m0);
         containers.motorCommands.set(1,m1);
+
+        String velocityMapTestString = String.format("t = %d   X = %.2f   Y = %.2f   T = %.4f   M0+M1 = %.4f",System.currentTimeMillis(),x.getEntry(0,0),x.getEntry(1,0),T,m0+m1);
+        Log.w("jjb_VEL",velocityMapTestString);
+
     }
 
     void motorCommandsFromErrorSignal() {
@@ -238,6 +257,12 @@ public class BoatMotionController implements VelocityProfileListener {
             m0 = map(clip(thrustSignal,0,1),0,1,0,SAFE_VECTORED_THRUST);
             m1 = clip(headingSignal, -1, 1);
         }
+
+        //String signalString = String.format("thrustSignal = %f      headingSignal = %f",thrustSignal,headingSignal);
+        //String m0m1String = String.format("AFTER CLIP/MAP: Motor 0 Signal = %f       Motor 1 Signal = %f",m0,m1);
+        //Log.w("jjb",signalString);
+        //Log.w("jjb",m0m1String);
+
         containers.motorCommands.set(0, m0);
         containers.motorCommands.set(1, m1);
 

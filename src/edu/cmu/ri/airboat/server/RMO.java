@@ -1,10 +1,16 @@
 package edu.cmu.ri.airboat.server;
 
-import com.madara.KnowledgeRecord;
-
+import org.apache.commons.math.linear.EigenDecomposition;
 import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.MatrixUtils;
 import org.apache.commons.math.linear.RealMatrix;
+import org.apache.commons.math.linear.EigenDecompositionImpl;
+import org.apache.commons.math.linear.RealVector;
+import org.apache.commons.math.util.MathUtils;
+
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author jjb
@@ -100,6 +106,22 @@ public class RMO {
         RealMatrix result;
         LUDecompositionImpl decomp = new LUDecompositionImpl(a);
         result = decomp.getSolver().getInverse();
+        return result;
+    }
+
+    public static double[] covarianceEllipse(RealMatrix covariance) {
+        double[] result = new double[3]; // x-axis, y-axis, rotation
+        EigenDecomposition ed = new EigenDecompositionImpl(covariance, MathUtils.SAFE_MIN);
+        double eigenValues[] = new double[2];
+        //List<RealVector> eigenVectors = new ArrayList<>();
+        eigenValues[0] = ed.getRealEigenvalue(0);
+        eigenValues[1] = ed.getRealEigenvalue(1);
+        //eigenVectors.add(ed.getEigenvector(0));
+        //eigenVectors.add(ed.getEigenvector(1));
+        result[0] = Math.sqrt(Math.abs(eigenValues[0]));
+        result[1] = Math.sqrt(Math.abs(eigenValues[1]));
+        result[2] = 0.5*Math.atan(2.0*covariance.getEntry(0,1)/
+                (covariance.getEntry(0,0)-covariance.getEntry(1,1)));
         return result;
     }
 

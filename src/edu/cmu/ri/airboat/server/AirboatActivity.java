@@ -56,7 +56,15 @@ public class AirboatActivity extends Activity {
 	public static final String OBSTACLE_DATA = "OBSTACLE_DATA";
 
 	private UtmPose _homePosition = new UtmPose();
-	
+
+	/*
+	@Override
+	public void onPause() {
+		super.onPause();
+		finish();
+	}
+	*/
+
 	/** Called when the activity is first created. */
     @Override
 	public void onCreate(Bundle savedInstanceState) {
