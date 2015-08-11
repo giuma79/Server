@@ -47,10 +47,12 @@ public class BoatEKF implements DatumListener {
         containers.localState.resize(stateSize);
 
         // default Q and P (use other constructor to override these)
-        QBase = QBase.scalarMultiply(0.01);
+        QBase = QBase.scalarMultiply(0.1);
+        QBase.setEntry(0,0,1.0);
+        QBase.setEntry(1,1,1.0);
         initialP = initialP.scalarMultiply(0.1);
-        initialP.setEntry(0,0,1.0); // default GPS covariance is much larger than other parts of state
-        initialP.setEntry(1, 1, 1.0); // default GPS covariance is much larger than other parts of state
+        initialP.setEntry(0,0,9.0); // default GPS covariance is much larger than other parts of state
+        initialP.setEntry(1, 1,9.0); // default GPS covariance is much larger than other parts of state
         P = initialP.copy();
     }
 
@@ -336,6 +338,8 @@ public class BoatEKF implements DatumListener {
     }
 
     public synchronized void predict() {
+
+        Log.w("jjb", "EKF predit()...");
 
         //String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
         //Log.w("jjb","BoatEKF.predict()" + threadID);

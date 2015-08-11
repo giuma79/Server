@@ -64,8 +64,9 @@ public class BoatMotionController implements VelocityProfileListener {
     }
 
     public void control() {
+        Log.w("jjb","Motion control()...");
+        updateFromKnowledgeBase();
         if (containers.teleopStatus.get() == TELEOPERATION_TYPES.NONE.getLongValue()) {
-            updateFromKnowledgeBase();
             xErrorOld = xError.copy();
             tOld = t;
             t = System.currentTimeMillis();
@@ -240,7 +241,7 @@ public class BoatMotionController implements VelocityProfileListener {
         containers.motorCommands.set(1,m1);
 
         String velocityMapTestString = String.format("t = %d   X = %.2f   Y = %.2f   T = %.4f   M0+M1 = %.4f",System.currentTimeMillis(),x.getEntry(0,0),x.getEntry(1,0),T,m0+m1);
-        Log.w("jjb_VEL",velocityMapTestString);
+        //Log.i("jjb_VEL",velocityMapTestString);
 
     }
 

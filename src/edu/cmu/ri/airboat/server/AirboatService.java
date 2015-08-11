@@ -1149,7 +1149,7 @@ public class AirboatService extends Service {
         @SuppressWarnings("unchecked")
         Iterator<String> keyIterator = (Iterator<String>)cmd.keys();
 
-        //Log.w("jjb","receiveJSON()...");
+        Log.w("jjb","receiveJSON()...");
 
         // Iterate through JSON fields
         while (keyIterator.hasNext()) {
