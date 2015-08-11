@@ -64,7 +64,6 @@ public class BoatMotionController implements VelocityProfileListener {
     }
 
     public void control() {
-        Log.w("jjb","Motion control()...");
         updateFromKnowledgeBase();
         if (containers.teleopStatus.get() == TELEOPERATION_TYPES.NONE.getLongValue()) {
             xErrorOld = xError.copy();
@@ -86,7 +85,7 @@ public class BoatMotionController implements VelocityProfileListener {
 
             java.lang.String angleErrorString = java.lang.String.format("th = %f  thd = %f  ERROR = %f [deg]",
                     x.getEntry(2,0)*180.0/Math.PI,angleToGoal*180.0/Math.PI,angleError*180.0/Math.PI);
-            //Log.w("jjb",angleErrorString);
+            Log.i("jjb_ANGLEERROR",angleErrorString);
 
             xError.setEntry(2, 0, angleError);
 
@@ -241,7 +240,21 @@ public class BoatMotionController implements VelocityProfileListener {
         containers.motorCommands.set(1,m1);
 
         String velocityMapTestString = String.format("t = %d   X = %.2f   Y = %.2f   T = %.4f   M0+M1 = %.4f",System.currentTimeMillis(),x.getEntry(0,0),x.getEntry(1,0),T,m0+m1);
-        //Log.i("jjb_VEL",velocityMapTestString);
+        Log.i("jjb_VEL",velocityMapTestString);
+
+        //TODO: after the velocity maps are built, use them to treat expected velocities as a sensor
+        //TODO: alternatively, gather JSON's from arduino and put that through the map as the faux sensor
+        /*
+        double[] velocities = velocityMotorMap.Signal_to_VW(signal0,signal1);
+        // send intended steady state velocities to the localization filter
+        RealMatrix z = MatrixUtils.createRealMatrix(2,1);
+        z.setEntry(0,0,velocities[0]);
+        z.setEntry(1,0,velocities[1]);
+        RealMatrix R = MatrixUtils.createRealMatrix(2,2); // all zeros b/c this is a "perfect" sensor
+        t = System.currentTimeMillis();
+        Datum datum = new Datum(SENSOR_TYPES.MOTOR,t,z,R);
+        datumListener.newDatum(datum);
+        */
 
     }
 

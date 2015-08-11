@@ -167,8 +167,8 @@ public class LutraMadaraContainers {
         errorEllipse.resize(3);
 
         localStateXYCovariance = new NativeDoubleVector();
-        localStateXYCovariance.setSettings(settings);
         localStateXYCovariance.setName(knowledge, prefix + "localStateXYCovariance");
+        localStateXYCovariance.setSettings(settings);
         localStateXYCovariance.resize(4);
 
         bearingPIDGains= new NativeDoubleVector();

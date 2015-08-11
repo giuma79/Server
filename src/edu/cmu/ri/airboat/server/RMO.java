@@ -1,21 +1,18 @@
 package edu.cmu.ri.airboat.server;
 
-import org.apache.commons.math.linear.EigenDecomposition;
+import android.util.Log;
+
 import org.apache.commons.math.linear.LUDecompositionImpl;
 import org.apache.commons.math.linear.MatrixUtils;
 import org.apache.commons.math.linear.RealMatrix;
-import org.apache.commons.math.linear.EigenDecompositionImpl;
-import org.apache.commons.math.linear.RealVector;
-import org.apache.commons.math.util.MathUtils;
-
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
 
 /**
  * @author jjb
  */
 public class RMO {
+
+    private static Jama.Matrix A = new Jama.Matrix(2,2);
+    private static Jama.EigenvalueDecomposition EigDecomp = new Jama.EigenvalueDecomposition(A);
 
     public static double distance(RealMatrix x1, RealMatrix x2) {
         // assumes COLUMNS ONLY
@@ -110,18 +107,25 @@ public class RMO {
     }
 
     public static double[] covarianceEllipse(RealMatrix covariance) {
+        //Log.w("jjb", "Starting covarianceEllipse()...");
         double[] result = new double[3]; // x-axis, y-axis, rotation
-        EigenDecomposition ed = new EigenDecompositionImpl(covariance, MathUtils.SAFE_MIN);
-        double eigenValues[] = new double[2];
-        //List<RealVector> eigenVectors = new ArrayList<>();
-        eigenValues[0] = ed.getRealEigenvalue(0);
-        eigenValues[1] = ed.getRealEigenvalue(1);
-        //eigenVectors.add(ed.getEigenvector(0));
-        //eigenVectors.add(ed.getEigenvector(1));
+        A.set(0,0,covariance.getEntry(0,0));
+        A.set(1,0,covariance.getEntry(1,0));
+        A.set(0,1,covariance.getEntry(0,1));
+        A.set(1,1,covariance.getEntry(1,1));
+        EigDecomp = A.eig();
+        double[] eigenValues = EigDecomp.getRealEigenvalues();
         result[0] = Math.sqrt(Math.abs(eigenValues[0]));
         result[1] = Math.sqrt(Math.abs(eigenValues[1]));
         result[2] = 0.5*Math.atan(2.0*covariance.getEntry(0,1)/
                 (covariance.getEntry(0,0)-covariance.getEntry(1,1)));
+        /*
+        EigenDecomposition ed = new EigenDecompositionImpl(covariance, MathUtils.SAFE_MIN);
+        double eigenValues[] = new double[2];
+        eigenValues[0] = ed.getRealEigenvalue(0);
+        eigenValues[1] = ed.getRealEigenvalue(1);
+        */
+        //Log.w("jjb"," ...ending covarianceEllipse()");
         return result;
     }
 
@@ -150,7 +154,7 @@ public class RMO {
         }
 
         return XY.getEntry(below,yCol) + (x-XY.getEntry(below,0))/(XY.getEntry(above,0)-XY.getEntry(below,0))*
-                                         (XY.getEntry(above,yCol)-XY.getEntry(below,yCol));
+                (XY.getEntry(above,yCol)-XY.getEntry(below,yCol));
     }
 
     public static double[][] concat2D_double(double[][] a1, double[][] a2) {

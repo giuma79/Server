@@ -47,9 +47,9 @@ public class BoatEKF implements DatumListener {
         containers.localState.resize(stateSize);
 
         // default Q and P (use other constructor to override these)
-        QBase = QBase.scalarMultiply(0.1);
-        QBase.setEntry(0,0,1.0);
-        QBase.setEntry(1,1,1.0);
+        //QBase = QBase.scalarMultiply(0.1);
+        QBase.setEntry(0,0,10.0);
+        QBase.setEntry(1,1,10.0);
         initialP = initialP.scalarMultiply(0.1);
         initialP.setEntry(0,0,9.0); // default GPS covariance is much larger than other parts of state
         initialP.setEntry(1, 1,9.0); // default GPS covariance is much larger than other parts of state
