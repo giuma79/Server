@@ -119,12 +119,6 @@ public class RMO {
         result[1] = Math.sqrt(Math.abs(eigenValues[1]));
         result[2] = 0.5*Math.atan(2.0*covariance.getEntry(0,1)/
                 (covariance.getEntry(0,0)-covariance.getEntry(1,1)));
-        /*
-        EigenDecomposition ed = new EigenDecompositionImpl(covariance, MathUtils.SAFE_MIN);
-        double eigenValues[] = new double[2];
-        eigenValues[0] = ed.getRealEigenvalue(0);
-        eigenValues[1] = ed.getRealEigenvalue(1);
-        */
         //Log.w("jjb"," ...ending covarianceEllipse()");
         return result;
     }

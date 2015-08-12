@@ -75,8 +75,10 @@ public class BoatEKF implements DatumListener {
         containers.localStateXYCovariance.set(2,P.getEntry(0,1));
         containers.localStateXYCovariance.set(3,P.getEntry(1,1));
 
-        //String a = String.format("x = %s",RMO.realMatrixToString(x));
-        //Log.w("jjb",a);
+        String a = String.format("x = %s",RMO.realMatrixToString(x));
+        //Log.i("jjb_EKF",a);
+        String PString = RMO.realMatrixToString(P);
+        //Log.i("jjb_EKF","P = " + PString);
     }
 
     public synchronized void resetLocalization() { // if home is reset, we may want to reset local state as well
@@ -93,11 +95,8 @@ public class BoatEKF implements DatumListener {
     @Override
     public synchronized void newDatum(Datum datum) {
 
-        //Log.w("jjb","EKF newDatum() KB:");
-        //knowledge.print();
-
         //String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
-        //Log.w("jjb","received datum z = " + datum.getZ().toString() + threadID);
+        //Log.w("jjb_EKF","received datum z = " + datum.getZ().toString() + threadID);
 
         /*
         if (!(datum.isType(SENSOR_TYPES.GYRO) ||
@@ -105,13 +104,13 @@ public class BoatEKF implements DatumListener {
               datum.isType(SENSOR_TYPES.MOTOR)))      {
             //String datum_data = RMO.realMatrixToString(datum.getZ());
             //String datum_info = String.format("Received %s, z = %s",datum.typeString(),datum_data);
-            //Log.w("jjb",datum_info);
+            //Log.w("jjb_EKF",datum_info);
         }
         */
         /*
         if (datum.isType(SENSOR_TYPES.GYRO)) {
             String aaa = String.format("GYRO =    %f, x[4] =     %f",datum.getZ().getEntry(0,0), x.getEntry(4,0));
-            Log.w("jjb_GYRO",aaa);
+            Log.w("jjb_EKF",aaa);
         }
         */
 
@@ -124,8 +123,6 @@ public class BoatEKF implements DatumListener {
             RealMatrix _z = datum.getZ();
             if (containers.gpsInitialized.get() != 0) { // subtract home ONLY IF gps is already initialized
                 RealMatrix home_RM = containers.NDV_to_RM(containers.self.device.home);
-                //String aaa = String.format("newDatum() GPS home container = %s", RMO.realMatrixToString(home_RM));
-                //Log.w("jjb",aaa);
                 z = _z.subtract(home_RM.getSubMatrix(0,1,0,0));
             }
             else {
@@ -134,11 +131,6 @@ public class BoatEKF implements DatumListener {
         }
         else {
             z = datum.getZ();
-
-            RealMatrix home_RM = containers.NDV_to_RM(containers.self.device.home);
-            //String aaa = String.format("newDatum() Non-GPS home container = %s",RMO.realMatrixToString(home_RM));
-            //Log.w("jjb",aaa);
-
         }
 
         R = datum.getR();
@@ -229,7 +221,7 @@ public class BoatEKF implements DatumListener {
         //timeString = timeString + String.format(",  EKF.t AFTER = %d",t);
         //timeString = timeString + String.format(",  datum.t = %d",datum.getTimestamp());
         //timeString = timeString + String.format(",  EKF.dt = %d,  datum LAG = %d",t-old_t,t-datum.getTimestamp());
-        //Log.w("jjb",timeString);
+        //Log.w("jjb_EKF",timeString);
 
         // given datum.type, construct H
         setH(datum);
@@ -240,16 +232,6 @@ public class BoatEKF implements DatumListener {
 
 
     private synchronized void setH(Datum datum) {
-
-        /*
-        try {
-            //Thread.sleep(5000);
-        }
-        catch (Exception e) {
-        }
-        AirboatImpl a = null;
-        a.shutdown();
-        */
 
         double s = Math.sin(x.getEntry(2, 0));
         double c = Math.cos(x.getEntry(2, 0));
@@ -302,9 +284,9 @@ public class BoatEKF implements DatumListener {
         Ktemp = P.multiply(H.transpose()).multiply(Ktemp);
         K = Ktemp.copy();
 
-        //Log.w("jjb","P = " + P.toString());
-        //Log.w("jjb","H = " + H.toString());
-        //Log.w("jjb","K = " + K.toString());
+        //Log.w("jjb_EKF","P = " + P.toString());
+        //Log.w("jjb_EKF","H = " + H.toString());
+        //Log.w("jjb_EKF","K = " + K.toString());
 
         // compute innovation (dz), remember in EKF, dz = z - h(x), not z - Hx
         // z - Hx will work for simple measurements, where H is just ones
@@ -332,14 +314,9 @@ public class BoatEKF implements DatumListener {
         //}
 
         updateKnowledgeBase();
-
-        //String PString = RMO.realMatrixToString(P);
-        //Log.w("jjb","P = " + PString);
     }
 
     public synchronized void predict() {
-
-        Log.w("jjb", "EKF predit()...");
 
         //String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
         //Log.w("jjb","BoatEKF.predict()" + threadID);

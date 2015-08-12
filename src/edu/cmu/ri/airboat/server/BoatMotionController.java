@@ -32,8 +32,9 @@ public class BoatMotionController implements VelocityProfileListener {
     double PPIErrorAccumulator; // [Pos-P*(pos error) + vel error] accumulation
     double[] simplePIDErrorAccumulator; // cols: x,y,th
     public static final double SAFE_DIFFERENTIAL_THRUST = 0.6;
-    public static final double SAFE_DIFFERENTIAL_TURN = 0.2;
-    public static final double SAFE_DIFFERENTIAL_THRUST_FRACTION = 1.0;
+    public static final double MIN_DIFFERENTIAL_BEARING = 0.15;
+    public static final double MAX_DIFFERENTIAL_BEARING = 0.4;
+
     public static final double SAFE_VECTORED_THRUST = 0.6;
     double headingSignal = 0.0;
     double thrustSignal = 0.0;
@@ -131,13 +132,12 @@ public class BoatMotionController implements VelocityProfileListener {
             //else {
             //    thrustSignal *= 0.5;
             //}
-            motorCommandsFromErrorSignal();
-            setThrustAndBearingFractions();
+            thrustAndBearingFractionsFromErrorSignal();
         }
         else { // some form of teleoperation is occurring, so don't accumulate error and don't try to control anything
             zeroErrors();
-            motorCommandsFromThrustAndBearingFractions();
         }
+        motorCommandsFromThrustAndBearingFractions();
     }
 
     void simplePID() {
@@ -228,19 +228,27 @@ public class BoatMotionController implements VelocityProfileListener {
         double m1 = 0.0;
         double T = containers.thrustFraction.get();
         double B = containers.bearingFraction.get();
+        double trueT = 0;
+        double trueB = 0;
         if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
-            m0 = (T + B)/2.0;
-            m1 = (T - B)/2.0;
+            m0 = clip(T + B, -1, 1);
+            m1 = clip(T - B, -1, 1);
+            trueT = (m0 + m1)/2;
+            trueB = (m0 - m1)/2;
         }
         if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
             m0 = Math.sqrt(Math.pow(T,2.0)+Math.pow(B,2.0));
             m1 = 2/Math.PI*Math.asin(B/Math.sqrt(Math.pow(T,2.0)+Math.pow(B,2.0)));
+            trueT = T;
+            trueB = B;
         }
         containers.motorCommands.set(0,m0);
         containers.motorCommands.set(1,m1);
 
-        String velocityMapTestString = String.format("t = %d   X = %.2f   Y = %.2f   T = %.4f   M0+M1 = %.4f",System.currentTimeMillis(),x.getEntry(0,0),x.getEntry(1,0),T,m0+m1);
-        Log.i("jjb_VEL",velocityMapTestString);
+
+        String velocityMapTestString = String.format("t = %d   X = %.2f   Y = %.2f   trueT = %.4f   trueB = %.4f",
+                System.currentTimeMillis(),x.getEntry(0,0),x.getEntry(1,0),trueT,trueB);
+        Log.i("jjb_VEL", velocityMapTestString);
 
         //TODO: after the velocity maps are built, use them to treat expected velocities as a sensor
         //TODO: alternatively, gather JSON's from arduino and put that through the map as the faux sensor
@@ -258,41 +266,47 @@ public class BoatMotionController implements VelocityProfileListener {
 
     }
 
-    void motorCommandsFromErrorSignal() {
+    void thrustAndBearingFractionsFromErrorSignal() {
         double m0 = 0.0;
         double m1 = 0.0;
+        double angleError = xError.getEntry(2,0);
+        double c = Math.cos(angleError);
+        double s = Math.sin(angleError);
+        double T = 0;
+        double B = 0;
+        double angleErrorRatio = Math.abs(angleError)/Math.PI;
         if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
+            double Bmax = MIN_DIFFERENTIAL_BEARING + angleErrorRatio*(MAX_DIFFERENTIAL_BEARING - MIN_DIFFERENTIAL_BEARING);
+            double Tmax = (1 - angleErrorRatio)*SAFE_DIFFERENTIAL_THRUST;
+            T = clip(thrustSignal,-Tmax,Tmax);
+            B = clip(headingSignal,-Bmax,Bmax);
+
+
+            /*
             m0 = map(clip(thrustSignal - headingSignal,-1,1)
                     ,-1, 1,-SAFE_DIFFERENTIAL_THRUST, SAFE_DIFFERENTIAL_THRUST);
             m1 = map(clip(thrustSignal + headingSignal,-1,1)
                     ,-1, 1,-SAFE_DIFFERENTIAL_THRUST, SAFE_DIFFERENTIAL_THRUST);
+            */
+
         }
         else if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
-            m0 = map(clip(thrustSignal,0,1),0,1,0,SAFE_VECTORED_THRUST);
-            m1 = clip(headingSignal, -1, 1);
+            T = clip(thrustSignal,0,1);
+            B = clip(headingSignal,-1,1);
+            //m0 = map(clip(thrustSignal,0,1),0,1,0,SAFE_VECTORED_THRUST);
+            //m1 = clip(headingSignal, -1, 1);
         }
+
+        containers.thrustFraction.set(T);
+        containers.bearingFraction.set(B);
 
         //String signalString = String.format("thrustSignal = %f      headingSignal = %f",thrustSignal,headingSignal);
         //String m0m1String = String.format("AFTER CLIP/MAP: Motor 0 Signal = %f       Motor 1 Signal = %f",m0,m1);
         //Log.w("jjb",signalString);
         //Log.w("jjb",m0m1String);
 
-        containers.motorCommands.set(0, m0);
-        containers.motorCommands.set(1, m1);
-
-        //TODO: after the velocity maps are built, use them to treat expected velocities as a sensor
-        //TODO: alternatively, gather JSON's from arduino and put that through the map as the faux sensor
-        /*
-        double[] velocities = velocityMotorMap.Signal_to_VW(signal0,signal1);
-        // send intended steady state velocities to the localization filter
-        RealMatrix z = MatrixUtils.createRealMatrix(2,1);
-        z.setEntry(0,0,velocities[0]);
-        z.setEntry(1,0,velocities[1]);
-        RealMatrix R = MatrixUtils.createRealMatrix(2,2); // all zeros b/c this is a "perfect" sensor
-        t = System.currentTimeMillis();
-        Datum datum = new Datum(SENSOR_TYPES.MOTOR,t,z,R);
-        datumListener.newDatum(datum);
-        */
+        //containers.motorCommands.set(0, m0);
+        //containers.motorCommands.set(1, m1);
     }
 
     void updateFromKnowledgeBase() {
