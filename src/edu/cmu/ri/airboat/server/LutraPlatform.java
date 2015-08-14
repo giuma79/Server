@@ -43,6 +43,12 @@ public class LutraPlatform extends BasePlatform {
     Long t;
     final double METERS_PER_LATLONG_DEGREE = 111*1000;
     Long startTime;
+    Position position;
+    Position currentTarget;
+    final int timeSteps = 100;
+    RealMatrix velocityProfile = MatrixUtils.createRealMatrix(timeSteps, 3); // t, vel., pos.
+    LatLong latLong;
+    RealMatrix covariance = MatrixUtils.createRealMatrix(2,2);
 
     class FilterAndControllerThread extends BaseThread {
         @Override
@@ -74,6 +80,8 @@ public class LutraPlatform extends BasePlatform {
         evalSettings.setDelaySendingModifieds(true);
         threader = new Threader(knowledge);
         this.thrustType = thrustType;
+        position = new Position(0.0,0.0,0.0);
+        currentTarget = new Position(-999,-999,-999);
     }
 
     @Override
@@ -149,7 +157,10 @@ public class LutraPlatform extends BasePlatform {
      *
      */
     public Position getPosition() {
-        Position position = new Position(self.device.location.get(0), self.device.location.get(1), 0.0);
+        //Position position = new Position(self.device.location.get(0), self.device.location.get(1), 0.0);
+        position.setX(self.device.location.get(0));
+        position.setY(self.device.location.get(1));
+        position.setZ(0.0);
         return position;
     }
 
@@ -169,16 +180,20 @@ public class LutraPlatform extends BasePlatform {
         double[] home = containers.NDV_to_DA(self.device.home);
         self.device.dest.set(0,localTarget[0]+home[0]);
         self.device.dest.set(1,localTarget[1]+home[1]);
-        /* // TODO: need to put in the protection against a new destination so that source isn't set over and over
-        self.device.source.set(0, containers.eastingNorthingBearing.get(0));
-        self.device.source.set(1, containers.eastingNorthingBearing.get(1));
-        self.device.source.set(2, containers.eastingNorthingBearing.get(2));
-        */
 
         containers.sufficientProximity.set(proximity);
     }
 
     public int move(Position target, double proximity) {
+        if (currentTarget.equals(target)) {
+            return PlatformStatusEnum.OK.value();
+        }
+        else {
+            currentTarget = target;
+            self.device.source.set(0, containers.eastingNorthingBearing.get(0));
+            self.device.source.set(1, containers.eastingNorthingBearing.get(1));
+            self.device.source.set(2, containers.eastingNorthingBearing.get(2));
+        }
 
         // TODO: add some kind of last destination vs. current destination if statement protection so this isn't called over and over
         double[] localTarget = containers.PositionToLocalXY(target);
@@ -192,16 +207,9 @@ public class LutraPlatform extends BasePlatform {
     }
 
     public void createProfile(double sustainedSpeed, double finalSpeed) {
-        /*////////////////////////////////
-        * There are two primary controllers. The first is simple PID on position error, called
-        *   "station keeping", or "dwelling". The second is a P-PI position-velocity cascade.
-        * This second controller requires a velocity profile to follow.
-        *
-        * createProfile is called to generate a new velocity profile from current position to a new position.
-        *
+        /*
+        * createProfile() is called to generate a new velocity profile from current position to a new position.
         */
-        final int timeSteps = 100;
-        RealMatrix velocityProfile = MatrixUtils.createRealMatrix(timeSteps, 3); // t, vel., pos.
         double v0 = containers.velocityTowardGoal();
         double vs = sustainedSpeed;
         double vf = finalSpeed;
@@ -230,10 +238,10 @@ public class LutraPlatform extends BasePlatform {
         velocityProfile.setEntry(3,1,vf);
         */
 
-        RealMatrix timeMatrix = RMO.linspace(t0,tf,velocityProfile.getRowDimension());
+        RealMatrix timeMatrix = RMO.linspace(t0,tf,timeSteps);
         velocityProfile.setColumn(0, timeMatrix.getColumn(0));
         double dT = L;
-        for (int i = 0; i < velocityProfile.getRowDimension(); i++) {
+        for (int i = 0; i < timeSteps; i++) {
             double T = velocityProfile.getEntry(i,0);
             double vT = 0;
             if (T < ta) { // acceleration period
@@ -249,7 +257,7 @@ public class LutraPlatform extends BasePlatform {
             if (i == 0) {
                 dT = L;
             }
-            else if (i == velocityProfile.getRowDimension()-1) {
+            else if (i == timeSteps-1) {
                 dT = 0;
             }
             else {
@@ -277,81 +285,37 @@ public class LutraPlatform extends BasePlatform {
         return result;
     }
 
-    /**
-     * Get sensor radius
-     *
-     * @return minimum radius of all available sensors for this platform
-     */
     public double getMinSensorRange() {
         return 0.0;
     }
 
-    /**
-     * Gets the movement speed
-     *
-     * @return movement speed
-     *
-     */
     public double getMoveSpeed() {
         return 10.0;
     }
 
-    /**
-     * Gets the unique id of the platform. This should be an alphanumeric id
-     * that can be part of a MADARA variable name. Specifically, this is used in
-     * the variable expansion of .platform.{yourid}.
-     *
-     *
-     * @return the id of the platform (alphanumeric only: no spaces!)
-     *
-     */
     public java.lang.String getId() {
-        // Get IP address
-        return ipAddress;
+        return String.format("%s_%d",getName(),getId());
     }
 
-    /**
-     * Gets the name of the platform
-     *
-     * @return the name of the platform
-     *
-     */
     public java.lang.String getName() {
         return "Lutra";
     }
 
-    /**
-     * Gets results from the platform's sensors. This should be a non-blocking
-     * call.
-     *
-     * @return 1 if moving, 2 if arrived, 0 if an error occurred
-     *
-     */
     public int sense() {
 
         // move local .x localization state into device.id.location
         // remember to add in device.id.home because .x is about (0,0)
         double[] home = containers.NDV_to_DA(self.device.home);
 
-        //RealMatrix homeRM = MatrixUtils.createColumnRealMatrix(home);
-        //String aaa = String.format("sense() home container = %s",RMO.realMatrixToString(homeRM));
-        //Log.w("jjb",aaa);
-        //KnowledgeRecord KR = knowledge.get("device.0.localState.2");
-        //double th = KR.toDouble();
-        //String aaa = String.format("Current yaw = %f deg",th*180.0/Math.PI);
-        //Log.w("jjb",aaa);
-
-
         containers.eastingNorthingBearing.set(0,containers.localState.get(0) + home[0]);
         containers.eastingNorthingBearing.set(1,containers.localState.get(1) + home[1]);
         containers.eastingNorthingBearing.set(2,containers.localState.get(2));
 
-        LatLong latLong = containers.LocalXYToLatLong();
+        latLong = containers.LocalXYToLatLong();
         self.device.location.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
         self.device.location.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
         self.device.location.set(2, 0.0);
 
-        RealMatrix covariance = MatrixUtils.createRealMatrix(2,2);
         covariance.setEntry(0,0,containers.localStateXYCovariance.get(0));
         covariance.setEntry(1,0,containers.localStateXYCovariance.get(1));
         covariance.setEntry(0,1,containers.localStateXYCovariance.get(2));
@@ -368,51 +332,13 @@ public class LutraPlatform extends BasePlatform {
         return PlatformStatusEnum.OK.value();
     }
 
-    /**
-     * Sets move speed
-     *
-     * @param speed new speed in meters/second
-     *
-     */
     public void setMoveSpeed(double speed) {
     }
+
     public int takeoff() {
         return PlatformStatusEnum.OK.value();
     }
     public void stopMove() {
-    }
-
-    /**
-     * Conversion method that takes a UTMPose and a variable name in MADARA and
-     * set the variable in the provided knowledge base to the given UtmPose.
-     *
-     * @param knowledge a knowledge base that will be updated
-     * @param knowledgePath the name of the variable in the knowledge base that
-     * should be updated
-     * @param utmPose the UTM pose that the knowledge base will be updated with
-     */
-    public void setUtmPose(KnowledgeBase knowledge, String knowledgePath, UtmPose utmPose) {
-
-        /*
-        // Write pose to ip address path
-        knowledge.set(knowledgePath + ".x", utmPose.pose.getX(), evalSettings);
-        knowledge.set(knowledgePath + ".y", utmPose.pose.getY(), evalSettings);
-        knowledge.set(knowledgePath + ".z", utmPose.pose.getZ(), evalSettings);
-        knowledge.set(knowledgePath + ".roll", utmPose.pose.getRotation().toRoll(), evalSettings);
-        knowledge.set(knowledgePath + ".pitch", utmPose.pose.getRotation().toPitch(), evalSettings);
-        knowledge.set(knowledgePath + ".yaw", utmPose.pose.getRotation().toYaw(), evalSettings);
-        knowledge.set(knowledgePath + ".zone", utmPose.origin.zone, evalSettings);
-        knowledge.set(knowledgePath + ".hemisphere", utmPose.origin.isNorth ? "North" : "South", evalSettings);
-
-        // Write pose to device location path
-        UTM utm = UTM.valueOf(utmPose.origin.zone, utmPose.origin.isNorth ? 'N' : 'S', utmPose.pose.getX(), utmPose.pose.getY(), SI.METRE);
-        CoordinatesConverter<UTM, LatLong> utmToLatLong = UTM.CRS.getConverterTo(LatLong.CRS);
-        LatLong latLong = utmToLatLong.convert(utm);
-
-        self.device.location.set(0, latLong.latitudeValue(NonSI.DEGREE_ANGLE));
-        self.device.location.set(1, latLong.longitudeValue(NonSI.DEGREE_ANGLE));
-        self.device.location.set(2, utmPose.pose.getZ());
-        */
     }
 
     public void shutdown() {

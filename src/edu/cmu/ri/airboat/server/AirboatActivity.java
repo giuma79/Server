@@ -464,8 +464,8 @@ public class AirboatActivity extends Activity {
 		//startService(server_intent);
 		/////////
 		// CREATE AN UNHANDLED EXCEPTION HANDLER + RESTART REQUEST
-		Context context = getApplicationContext();
-		Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler(this, context,4000));
+		//Context context = getApplicationContext();
+		//Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler(this, context,4000));
 		///////////////////////////////////////////////////////////////////
 
     }

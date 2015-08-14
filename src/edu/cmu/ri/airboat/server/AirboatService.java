@@ -226,7 +226,7 @@ public class AirboatService extends Service {
         RealMatrix R = MatrixUtils.createRealMatrix(2,2);
         R.setEntry(0, 0, 10.0);
         R.setEntry(1, 1, 10.0);
-        Datum datum2 = new Datum(SENSOR_TYPES.DGPS,t,z,R);
+        Datum datum2 = new Datum(SENSOR_TYPES.DGPS,t,z,R,_id);
         datumListener.newDatum(datum2);
 
         //String DGPSString = String.format("DGPS has enough measurements to activate -- z = %s",RMO.realMatrixToString(z));
@@ -380,7 +380,7 @@ public class AirboatService extends Service {
             R.setEntry(0, 0, 20.0);
             R.setEntry(1,1,20.0);
             t = System.currentTimeMillis();
-            Datum datum = new Datum(SENSOR_TYPES.GPS,t,z,R);
+            Datum datum = new Datum(SENSOR_TYPES.GPS,t,z,R, _id);
             datumListener.newDatum(datum);
 
             gpsVelocity(datum);
@@ -441,7 +441,7 @@ public class AirboatService extends Service {
                 RealMatrix R = MatrixUtils.createRealMatrix(1,1);
                 R.setEntry(0, 0, Math.pow((Math.PI/18.0)/2.0,2.0)); // estimate 10 degrees is 2 std. dev's
                 t = System.currentTimeMillis();
-                Datum datum = new Datum(SENSOR_TYPES.COMPASS,t,z,R);
+                Datum datum = new Datum(SENSOR_TYPES.COMPASS,t,z,R,_id);
                 datumListener.newDatum(datum);
                 /////////////////////////////////////////////////////////////////////
 
@@ -504,7 +504,7 @@ public class AirboatService extends Service {
                     double covarianceScale = 2 + Math.log(tSeconds);
                     R.setEntry(0, 0, covarianceScale); // needs to grow logarithmically until a baseline
                     R.setEntry(1, 1, covarianceScale); // needs to grow logarithmically until a baseline
-                    Datum datum = new Datum(SENSOR_TYPES.IMU, t, z, R);
+                    Datum datum = new Datum(SENSOR_TYPES.IMU, t, z, R, _id);
                     datumListener.newDatum(datum);
                 }
                 else {
@@ -606,7 +606,7 @@ public class AirboatService extends Service {
             RealMatrix R = MatrixUtils.createRealMatrix(1,1);
             R.setEntry(0, 0, 0.0004*0.0004); // the noise floor with zero input --> TINY error, so this is supreme overconfidence
             t = System.currentTimeMillis();
-            Datum datum = new Datum(SENSOR_TYPES.GYRO,t,z,R);
+            Datum datum = new Datum(SENSOR_TYPES.GYRO,t,z,R,_id);
             datumListener.newDatum(datum);
             /////////////////////////////////////////////////////////////////////
         }
@@ -1253,7 +1253,7 @@ public class AirboatService extends Service {
                     R.setEntry(0, 0, 5.0);
                     R.setEntry(1, 1, 5.0);
                     t = System.currentTimeMillis();
-                    Datum datum = new Datum(SENSOR_TYPES.GPS,t,z,R);
+                    Datum datum = new Datum(SENSOR_TYPES.GPS,t,z,R,_id);
                     datumListener.newDatum(datum);
 
                     gpsVelocity(datum);

@@ -7,6 +7,7 @@ import com.madara.KnowledgeBase;
 import com.madara.KnowledgeRecord;
 import com.madara.UpdateSettings;
 import com.madara.containers.Double;
+import com.madara.containers.FlexMap;
 import com.madara.containers.Integer;
 import com.madara.containers.DoubleVector;
 import com.madara.containers.NativeDoubleVector;
@@ -61,6 +62,7 @@ public class LutraMadaraContainers {
     // allows other agents to change this value but does not broadcast changes made locally
     // e.g. i want to teleoperate the boat by changing the motor commands directly from the GUI agent
 
+    FlexMap environmentalData;
     String unhandledException;
     Double distToDest;
     Double sufficientProximity;
@@ -202,6 +204,9 @@ public class LutraMadaraContainers {
         resetLocalization = new Integer();
         resetLocalization.setName(knowledge, prefix + "resetLocalization");
         //resetLocalization.setSettings(settings);
+
+        environmentalData = new FlexMap();
+        environmentalData.setName(knowledge, "environmentalData");
 
         restoreDefaults();
 

@@ -98,28 +98,18 @@ public class BoatMotionController implements VelocityProfileListener {
                 PPIErrorAccumulator = 0;
             }
 
-            //String distanceString = String.format("Distance from x to xd = %5.3e",containers.distToDest.get());
-            //Log.w("jjb",distanceString);
-
             // Heading PID control is always operating!
             for (int i = 0; i < 3; i++) {
                 simplePIDErrorAccumulator[i] += xError.getEntry(i,0)*dt;
             }
-            //String simplePIDErrorAccumulatorString = String.format("simplePIDErrorAccumulator = %f",simplePIDErrorAccumulator[2]);
-            //Log.w("jjb",simplePIDErrorAccumulatorString);
-
-
             xErrorDiff = xError.subtract(xErrorOld).scalarMultiply(1.0/dt);
 
-            //String xErrorDiffString = String.format("xError = %s",RMO.realMatrixToString(xErrorDiff));
-            //Log.w("jjb",xErrorDiffString);
+            String xErrorDiffString = String.format("xError = %s",RMO.realMatrixToString(xErrorDiff));
+            Log.i("jjb_XERROR",xErrorDiffString);
 
             headingSignal = simplePIDGains[1][0]*xError.getEntry(2,0) + // P
                                         simplePIDGains[1][1]*simplePIDErrorAccumulator[2] + // I
                                             simplePIDGains[1][2]*xErrorDiff.getEntry(2,0); // D
-
-            //String headingSignalString = String.format("headingSignal = %f",headingSignal);
-            //Log.w("jjb",headingSignalString);
 
             // Determine which controller to use, simple PID or P-PI pos./vel. cascade
             //if (containers.executingProfile.get() == 1) {
@@ -145,26 +135,10 @@ public class BoatMotionController implements VelocityProfileListener {
         // The boat's heading should converge to the direction of water flow (i.e. fx,fy)
         // That way the boat just needs to go straight forward to stay on the right spot
 
-        // POSITION
-        // P
-        // I
-        // D
-
         double srssP = SRSS(xError.getEntry(0,0),xError.getEntry(1,0));
         double srssI = SRSS(simplePIDErrorAccumulator[0],simplePIDErrorAccumulator[1]);
         double srssD = SRSS(xErrorDiff.getEntry(0,0),xErrorDiff.getEntry(1,0));
-
-        /*
-        double thrustSignalX = simplePIDGains[0][0]*xError.getEntry(0,0) +
-                simplePIDGains[0][1]*simplePIDErrorAccumulator[0] +
-                simplePIDGains[0][2]*xErrorDiff.getEntry(0,0);
-        double thrustSignalY = simplePIDGains[0][0]*xError.getEntry(1,0) +
-                simplePIDGains[0][1]*simplePIDErrorAccumulator[1] +
-                simplePIDGains[0][2]*xErrorDiff.getEntry(1,0);
-        */
-        //thrustSignal = simplePIDGains[0][0]*1.0;
         thrustSignal = simplePIDGains[0][0]*srssP + simplePIDGains[0][1]*srssI + simplePIDGains[0][2]*srssD;
-
     }
 
     double SRSS(double a, double b) {
@@ -208,6 +182,7 @@ public class BoatMotionController implements VelocityProfileListener {
         }
     }
 
+    /*
     void setThrustAndBearingFractions() {
         // construct fractions from the motor signals
         double m0 = containers.motorCommands.get(0);
@@ -222,6 +197,7 @@ public class BoatMotionController implements VelocityProfileListener {
             containers.bearingFraction.set(m0*Math.sin(Math.PI/2.0*m1));
         }
     }
+    */
 
     void motorCommandsFromThrustAndBearingFractions() {
         double m0 = 0.0;
@@ -230,6 +206,9 @@ public class BoatMotionController implements VelocityProfileListener {
         double B = containers.bearingFraction.get();
         double trueT = 0;
         double trueB = 0;
+        RealMatrix z = MatrixUtils.createRealMatrix(1,1);
+        RealMatrix R = MatrixUtils.createRealMatrix(1,1);
+        t = System.currentTimeMillis();
         if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
             m0 = clip(T + B, -1, 1);
             m1 = clip(T - B, -1, 1);
@@ -242,6 +221,10 @@ public class BoatMotionController implements VelocityProfileListener {
             trueT = T;
             trueB = B;
         }
+        z.setEntry(0,0,trueT);
+        Datum datum = new Datum(SENSOR_TYPES.MOTOR,t,z,R);
+        datumListener.newDatum(datum);
+
         containers.motorCommands.set(0,m0);
         containers.motorCommands.set(1,m1);
 
@@ -249,21 +232,6 @@ public class BoatMotionController implements VelocityProfileListener {
         String velocityMapTestString = String.format("t = %d   X = %.2f   Y = %.2f   trueT = %.4f   trueB = %.4f",
                 System.currentTimeMillis(),x.getEntry(0,0),x.getEntry(1,0),trueT,trueB);
         Log.i("jjb_VEL", velocityMapTestString);
-
-        //TODO: after the velocity maps are built, use them to treat expected velocities as a sensor
-        //TODO: alternatively, gather JSON's from arduino and put that through the map as the faux sensor
-        /*
-        double[] velocities = velocityMotorMap.Signal_to_VW(signal0,signal1);
-        // send intended steady state velocities to the localization filter
-        RealMatrix z = MatrixUtils.createRealMatrix(2,1);
-        z.setEntry(0,0,velocities[0]);
-        z.setEntry(1,0,velocities[1]);
-        RealMatrix R = MatrixUtils.createRealMatrix(2,2); // all zeros b/c this is a "perfect" sensor
-        t = System.currentTimeMillis();
-        Datum datum = new Datum(SENSOR_TYPES.MOTOR,t,z,R);
-        datumListener.newDatum(datum);
-        */
-
     }
 
     void thrustAndBearingFractionsFromErrorSignal() {
@@ -280,33 +248,13 @@ public class BoatMotionController implements VelocityProfileListener {
             double Tmax = (1 - angleErrorRatio)*SAFE_DIFFERENTIAL_THRUST;
             T = clip(thrustSignal,-Tmax,Tmax);
             B = clip(headingSignal,-Bmax,Bmax);
-
-
-            /*
-            m0 = map(clip(thrustSignal - headingSignal,-1,1)
-                    ,-1, 1,-SAFE_DIFFERENTIAL_THRUST, SAFE_DIFFERENTIAL_THRUST);
-            m1 = map(clip(thrustSignal + headingSignal,-1,1)
-                    ,-1, 1,-SAFE_DIFFERENTIAL_THRUST, SAFE_DIFFERENTIAL_THRUST);
-            */
-
         }
         else if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
-            T = clip(thrustSignal,0,1);
+            T = clip(thrustSignal,0,SAFE_VECTORED_THRUST);
             B = clip(headingSignal,-1,1);
-            //m0 = map(clip(thrustSignal,0,1),0,1,0,SAFE_VECTORED_THRUST);
-            //m1 = clip(headingSignal, -1, 1);
         }
-
         containers.thrustFraction.set(T);
         containers.bearingFraction.set(B);
-
-        //String signalString = String.format("thrustSignal = %f      headingSignal = %f",thrustSignal,headingSignal);
-        //String m0m1String = String.format("AFTER CLIP/MAP: Motor 0 Signal = %f       Motor 1 Signal = %f",m0,m1);
-        //Log.w("jjb",signalString);
-        //Log.w("jjb",m0m1String);
-
-        //containers.motorCommands.set(0, m0);
-        //containers.motorCommands.set(1, m1);
     }
 
     void updateFromKnowledgeBase() {
