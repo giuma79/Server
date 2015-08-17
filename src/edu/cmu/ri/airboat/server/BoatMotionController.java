@@ -127,6 +127,16 @@ public class BoatMotionController implements VelocityProfileListener {
         else { // some form of teleoperation is occurring, so don't accumulate error and don't try to control anything
             zeroErrors();
         }
+
+        //generate MOTOR sensor data from thrust fraction
+        double expectedSpeed = velocityMotorMap.thrustFractionToVelocity(containers.thrustFraction.get());
+        RealMatrix z = MatrixUtils.createRealMatrix(1,1);
+        z.setEntry(0, 0, expectedSpeed);
+        RealMatrix R = MatrixUtils.createRealMatrix(1,1);
+        R.setEntry(0, 0, 0.0);
+        Datum datum = new Datum(SENSOR_TYPE.MOTOR,System.currentTimeMillis(),z,R,(int)containers.self.id.get());
+        datumListener.newDatum(datum);
+
         motorCommandsFromThrustAndBearingFractions();
     }
 
@@ -170,7 +180,6 @@ public class BoatMotionController implements VelocityProfileListener {
             // use actual velocity towards goal (use velocityTowardGoal()), actual distance from goal (distToDest container) to generate errors
             double vError = vd - containers.velocityTowardGoal();
             double dError = dd - containers.distToDest.get();
-            //TODO: determine thrustSignal based on P-PI error signals
             PPIErrorAccumulator += PPIGains[0]*dError + vError;
             thrustSignal = PPIGains[1]*(PPIGains[0]*dError + vError) + PPIGains[2]*PPIErrorAccumulator;
             //containers.teleopThrustFraction.set(PPIGains[1]*(PPIGains[0]*dError + vError) + PPIGains[2]*PPIErrorAccumulator);
@@ -181,23 +190,6 @@ public class BoatMotionController implements VelocityProfileListener {
             //containers.teleopThrustFraction.set(0.5*containers.teleopThrustFraction.get());
         }
     }
-
-    /*
-    void setThrustAndBearingFractions() {
-        // construct fractions from the motor signals
-        double m0 = containers.motorCommands.get(0);
-        double m1 = containers.motorCommands.get(1);
-
-        if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
-            containers.thrustFraction.set((m0 + m1)/2.0);
-            containers.bearingFraction.set((m0 - m1)/2.0);
-        }
-        else if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
-            containers.thrustFraction.set(m0*Math.cos(Math.PI/2.0*m1));
-            containers.bearingFraction.set(m0*Math.sin(Math.PI/2.0*m1));
-        }
-    }
-    */
 
     void motorCommandsFromThrustAndBearingFractions() {
         double m0 = 0.0;
@@ -221,13 +213,11 @@ public class BoatMotionController implements VelocityProfileListener {
             trueT = T;
             trueB = B;
         }
-        z.setEntry(0,0,trueT);
-        Datum datum = new Datum(SENSOR_TYPES.MOTOR,t,z,R);
-        datumListener.newDatum(datum);
+        containers.thrustFraction.set(trueT);
+        containers.bearingFraction.set(trueB);
 
         containers.motorCommands.set(0,m0);
         containers.motorCommands.set(1,m1);
-
 
         String velocityMapTestString = String.format("t = %d   X = %.2f   Y = %.2f   trueT = %.4f   trueB = %.4f",
                 System.currentTimeMillis(),x.getEntry(0,0),x.getEntry(1,0),trueT,trueB);
@@ -235,11 +225,7 @@ public class BoatMotionController implements VelocityProfileListener {
     }
 
     void thrustAndBearingFractionsFromErrorSignal() {
-        double m0 = 0.0;
-        double m1 = 0.0;
         double angleError = xError.getEntry(2,0);
-        double c = Math.cos(angleError);
-        double s = Math.sin(angleError);
         double T = 0;
         double B = 0;
         double angleErrorRatio = Math.abs(angleError)/Math.PI;

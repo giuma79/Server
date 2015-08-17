@@ -20,16 +20,8 @@ import robotutils.Pose3D;
  *
  */
 public class DwellAlgorithm extends BaseAlgorithm {
-//public class DwellAlgorithm extends DebuggerAlgorithm {
 
-    // Local reference to vehicle server.
-    protected AbstractVehicleServer _server;
-    // IP address including port number
-    protected String _ipAddress;
-
-    public DwellAlgorithm(AbstractVehicleServer _server, String ipAddress) {
-        this._server = _server;
-        this._ipAddress = ipAddress;
+    public DwellAlgorithm() {
     }
 
     @Override

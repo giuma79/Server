@@ -91,6 +91,7 @@ public class LutraPlatform extends BasePlatform {
         boatEKF = new BoatEKF(knowledge,containers); // has to occur AFTER containers() b/c it needs "self"
         boatMotionController = new BoatMotionController(knowledge,boatEKF,containers);
         velocityProfileListener = boatMotionController;
+        Datum.setContainersObject(containers);
     }
 
     public void start() {
@@ -302,6 +303,7 @@ public class LutraPlatform extends BasePlatform {
     }
 
     public int sense() {
+        containers.connectivityWatchdog.set(1L);
 
         // move local .x localization state into device.id.location
         // remember to add in device.id.home because .x is about (0,0)

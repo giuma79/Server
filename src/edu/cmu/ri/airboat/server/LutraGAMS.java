@@ -17,29 +17,33 @@ public class LutraGAMS extends AbstractVehicleServer {
 
     int id;
     int teamSize;
-    public String ipAddress;
     public THRUST_TYPES thrustType;
 
     BaseController controller;
     LutraPlatform platform;
     QoSTransportSettings settings;
+    QoSTransportSettings simSettings;
+
     KnowledgeBase knowledge;
     BaseAlgorithm algorithm;
 
-    public LutraGAMS(int id, int teamSize, String ipAddress, THRUST_TYPES thrustType) {
+    public LutraGAMS(int id, int teamSize, THRUST_TYPES thrustType) {
         this.id = id;
         this.teamSize = teamSize;
-        this.ipAddress = ipAddress;
         this.thrustType = thrustType;
 
         settings = new QoSTransportSettings();
-        //settings.setHosts(new String[]{"239.255.0.1:4150"});
-        //settings.setType(TransportType.MULTICAST_TRANSPORT);
         settings.setHosts(new String[]{"192.168.1.255:15000"});
         settings.setType(TransportType.BROADCAST_TRANSPORT);
         settings.setRebroadcastTtl(2);
         settings.enableParticipantTtl(1);
-        knowledge = new KnowledgeBase(ipAddress,settings);
+        knowledge = new KnowledgeBase(String.format("device.%d_KB",id),settings);
+
+        simSettings = new QoSTransportSettings();
+        simSettings.setHosts(new String[]{"239.255.0.1:4150"});
+        simSettings.setType(TransportType.MULTICAST_TRANSPORT);
+        knowledge.attachTransport(String.format("device.%d_KB", id),simSettings);
+
         controller = new BaseController(knowledge);
 
         //com.madara.logger.GlobalLogger.setLevel(6);
@@ -50,7 +54,7 @@ public class LutraGAMS extends AbstractVehicleServer {
     void start(final AbstractVehicleServer lutra) {
         controller.initVars(id, teamSize);
         platform = new LutraPlatform(knowledge,thrustType);
-        algorithm = new DwellAlgorithm(lutra, ipAddress);
+        algorithm = new DwellAlgorithm();
         controller.initPlatform(platform);
         controller.initAlgorithm(algorithm);
         platform.start();

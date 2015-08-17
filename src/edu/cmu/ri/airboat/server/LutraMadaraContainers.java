@@ -6,10 +6,12 @@ import com.gams.variables.Self;
 import com.madara.KnowledgeBase;
 import com.madara.KnowledgeRecord;
 import com.madara.UpdateSettings;
+import com.madara.containers.Counter;
 import com.madara.containers.Double;
 import com.madara.containers.FlexMap;
 import com.madara.containers.Integer;
 import com.madara.containers.DoubleVector;
+import com.madara.containers.IntegerVector;
 import com.madara.containers.NativeDoubleVector;
 import com.madara.containers.String;
 
@@ -19,6 +21,8 @@ import org.apache.commons.math.linear.RealMatrix;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
+
+import java.util.HashMap;
 
 import javax.measure.unit.NonSI;
 import javax.measure.unit.SI;
@@ -62,7 +66,6 @@ public class LutraMadaraContainers {
     // allows other agents to change this value but does not broadcast changes made locally
     // e.g. i want to teleoperate the boat by changing the motor commands directly from the GUI agent
 
-    FlexMap environmentalData;
     String unhandledException;
     Double distToDest;
     Double sufficientProximity;
@@ -82,6 +85,8 @@ public class LutraMadaraContainers {
     Integer compassInitialized; // == 1 if the first compass measurement has come in
     Integer localized; // == 1 if both GPS and compass are initialized
     Integer resetLocalization; // operator will temporarily set this to 1 to force the boat to totally reset its local state
+    Integer connectivityWatchdog;
+    Integer wifiStrength;
     NativeDoubleVector motorCommands;
     Double thrustFraction;
     Double bearingFraction;
@@ -100,6 +105,9 @@ public class LutraMadaraContainers {
     final double[] bearingPIDGainsDefaults = new double[]{0.25,0.05,0.5}; // cols: P,I,D
     final double[] thrustPIDGainsDefaults = new double[]{0.2,0,0.3}; // cols: P,I,D
     final double[] thrustPPIGainsDefaults = new double[]{0.2,0.2,0.2}; // cols: Pos-P, Vel-P, Vel-I
+
+    //static long[] environmentalDataCount = new long[SENSOR_TYPE.environmental.size()];
+    HashMap<SENSOR_TYPE, Long> environmentalDataCount = new HashMap<>();
 
     Self self;
 
@@ -177,36 +185,32 @@ public class LutraMadaraContainers {
         bearingPIDGains.setName(knowledge, prefix + "bearingPIDGains");
         bearingPIDGains.setSettings(settings);
         bearingPIDGains.resize(3);
-
-
         thrustPIDGains= new NativeDoubleVector();
         thrustPIDGains.setName(knowledge, prefix + "thrustPIDGains");
         thrustPIDGains.setSettings(settings);
         thrustPIDGains.resize(3);
-
-
         thrustPPIGains= new NativeDoubleVector();
         thrustPPIGains.setName(knowledge, prefix + "thrustPPIGains");
         thrustPPIGains.setSettings(settings);
         thrustPPIGains.resize(3);
 
-
         thrustFraction = new Double();
         bearingFraction = new Double();
         thrustFraction.setName(knowledge, prefix + "thrustFraction");
         bearingFraction.setName(knowledge, prefix + "bearingFraction");
-        //thrustFraction.setSettings(settings);
-        //bearingFraction.setSettings(settings);
 
         unhandledException = new String();
         unhandledException.setName(knowledge, prefix + "unhandledException");
 
         resetLocalization = new Integer();
         resetLocalization.setName(knowledge, prefix + "resetLocalization");
-        //resetLocalization.setSettings(settings);
 
-        environmentalData = new FlexMap();
-        environmentalData.setName(knowledge, "environmentalData");
+        connectivityWatchdog = new Integer();
+        connectivityWatchdog.setName(knowledge, prefix + "connectivityWatchdog");
+        connectivityWatchdog.set(1L); // boat sets to 1, GUI sets to 0, if the GUI doesn't see a 1, there is an issue with the connection
+
+        wifiStrength = new Integer();
+        wifiStrength.setName(knowledge, prefix + "wifiStrength");
 
         restoreDefaults();
 
@@ -226,6 +230,8 @@ public class LutraMadaraContainers {
         gpsInitialized.free();
         compassInitialized.free();
         localized.free();
+        connectivityWatchdog.free();
+        wifiStrength.free();
         motorCommands.free();
         longitudeZone.free();
         latitudeZone.free();

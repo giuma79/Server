@@ -105,6 +105,7 @@ import robotutils.Pose3D;
 import robotutils.Quaternion;
 
 
+import com.madara.containers.FlexMap;
 import com.madara.threads.Threader;
 import com.madara.threads.BaseThread;
 
@@ -119,18 +120,19 @@ import com.madara.threads.BaseThread;
  */
 public class AirboatService extends Service {
 
-    //Android Logging Tag
     private static final java.lang.String WIFITAG = "WifiLogger";
     private WifiManager wifiManager;
     private WifiInfo wifiInfo;
     private java.lang.String SSID;
     //Wifi Scanning Rate in milliseconds
-    private final int scanningRate = 200;
+    private final int wifiScanningRate = 1000; // ms interval
     private FileOutputStream logFileWriter;
     private Handler scanHandler;
     private boolean isLogging = false;
-    void getWifiInfo()
-    {
+    private String wifiLog;
+    private int signalStrength;
+    private String signalStrengthString;
+    void getWifiInfo() {
         wifiInfo = wifiManager.getConnectionInfo();
         SSID = wifiInfo.getSSID();
         SSID = SSID.substring(1, SSID.length() - 1);
@@ -140,40 +142,60 @@ public class AirboatService extends Service {
         @Override
         public void run() {
             if (lutra.knowledge != null) {
-                newScan(); //this function can change value of mInterval.
-                scanHandler.postDelayed(scanStatusChecker, scanningRate);
+                newWifiScan(); //this function can change value of mInterval.
+                scanHandler.postDelayed(scanStatusChecker, wifiScanningRate);
             }
         }
     };
-    void newScan(){
-        String log;
+    void newWifiScan(){
         // check if Location enabled
-        if((int)lutra.platform.containers.gpsInitialized.get()==1) {
-            double[] latLongBearing = lutra.platform.containers.self.device.location.toRecord().toDoubleArray();
-            log = Double.toString(latLongBearing[0]);
-            log = log + " , " + latLongBearing[1] + " : ";
-        }else{
-            //Location is unavailable
-            log = "LOCATION UNAVAILABLE: ";
-        }
+        double lat = -999;
+        double lon = -999;
         //Get signal strength for connected network
         wifiInfo = wifiManager.getConnectionInfo();
-        String signalStrength = Integer.toString(wifiInfo.getRssi());
-        log = log + wifiInfo.getSSID() + " " + signalStrength + " dBi\n";
+        signalStrength = wifiInfo.getRssi();
+        lutra.platform.containers.wifiStrength.set(signalStrength);
+        signalStrengthString = Integer.toString(signalStrength);
+        if(lutra.platform.containers.gpsInitialized.get()==1L) {
+            lat = lutra.platform.containers.self.device.location.get(0);
+            lon = lutra.platform.containers.self.device.location.get(1);
+            wifiLog = Double.toString(lat);
+            wifiLog = wifiLog + " , " + lon + " : ";
+
+            environmentalDataToContainer(SENSOR_TYPE.WIFI, (double)signalStrength);
+
+        }
+        else {
+            //Location is unavailable
+            wifiLog = "LOCATION UNAVAILABLE: ";
+        }
+        wifiLog = wifiLog + wifiInfo.getSSID() + " " + signalStrengthString + " dBi\n";
         try {
-            logger.info(log);
-            logFileWriter.write(log.getBytes());
+            logger.info(wifiLog);
+            logFileWriter.write(wifiLog.getBytes());
         }catch(IOException e) {
         }catch (NullPointerException e){
         }
-
     }
-    void startScanning() {
+    void startWifiScanning() {
         scanStatusChecker.run();
     }
 
-    void stopScanning() {
+    void stopWifiScanning() {
         scanHandler.removeCallbacks(scanStatusChecker);
+    }
+
+    void environmentalDataToContainer(SENSOR_TYPE type, double value) {
+        long[] a = lutra.platform.containers.environmentalDataCount; // just a shorter variable name
+        FlexMap flexMap = new FlexMap();
+        flexMap.setName(lutra.knowledge, String.format("environmentalData.%s",
+                Datum.typeString(type)));
+        flexMap.get("device").set(_id);
+        flexMap.get("time").set(System.currentTimeMillis());
+        a[SENSOR_TYPE.getEnvironmentalOrdinal(SENSOR_TYPE.WIFI)] += 1;
+        flexMap.get((int)a[SENSOR_TYPE.getEnvironmentalOrdinal(SENSOR_TYPE.WIFI)])
+                .get("value").set(value);
+        flexMap.free();
     }
 
     /////////////////////////////////////////
@@ -182,6 +204,8 @@ public class AirboatService extends Service {
     final double gpsHistoryTimeWindow = 3.0; // if a gps point is older than X seconds, abandon it
     Long t; // current time in this thread
     double eBoardGPSTimestamp = 0.0;
+    SimpleRegression regX = new SimpleRegression();
+    SimpleRegression regY = new SimpleRegression();
     synchronized void gpsVelocity(Datum datum) {
 
         t = System.currentTimeMillis();
@@ -193,13 +217,12 @@ public class AirboatService extends Service {
                 gpsHistory.remove(i);
             }
         }
-        //String gpsHistoryString = String.format("There are %d GPS measurements in the history",gpsHistory.size());
-        //Log.w("jjb",gpsHistoryString);
+        String gpsHistoryString = String.format("There are %d GPS measurements in the history",gpsHistory.size());
+        Log.i("jjb_DGPS",gpsHistoryString);
 
         if (gpsHistory.size() < 6) {return;} // need at least three data points
 
         // Least squares linear regression with respect to time
-        //RealMatrix relevantGPS = MatrixUtils.createRealMatrix(gpsHistory.size(),3);
         double[][] xvst = new double[gpsHistory.size()][2];
         double [][] yvst = new double [gpsHistory.size()][2];
         for (int i = 0; i < gpsHistory.size(); i++) {
@@ -209,8 +232,8 @@ public class AirboatService extends Service {
             xvst[i][1] = gpsHistory.get(i).getZ().getEntry(0,0);
             yvst[i][1] = gpsHistory.get(i).getZ().getEntry(1,0);
         }
-        SimpleRegression regX = new SimpleRegression();
-        SimpleRegression regY = new SimpleRegression();
+        //SimpleRegression regX = new SimpleRegression();
+        //SimpleRegression regY = new SimpleRegression();
         regX.addData(xvst);
         regY.addData(yvst);
         double xdot = regX.getSlope();
@@ -226,7 +249,7 @@ public class AirboatService extends Service {
         RealMatrix R = MatrixUtils.createRealMatrix(2,2);
         R.setEntry(0, 0, 10.0);
         R.setEntry(1, 1, 10.0);
-        Datum datum2 = new Datum(SENSOR_TYPES.DGPS,t,z,R,_id);
+        Datum datum2 = new Datum(SENSOR_TYPE.DGPS,t,z,R,_id);
         datumListener.newDatum(datum2);
 
         //String DGPSString = String.format("DGPS has enough measurements to activate -- z = %s",RMO.realMatrixToString(z));
@@ -380,7 +403,7 @@ public class AirboatService extends Service {
             R.setEntry(0, 0, 20.0);
             R.setEntry(1,1,20.0);
             t = System.currentTimeMillis();
-            Datum datum = new Datum(SENSOR_TYPES.GPS,t,z,R, _id);
+            Datum datum = new Datum(SENSOR_TYPE.GPS,t,z,R, _id);
             datumListener.newDatum(datum);
 
             gpsVelocity(datum);
@@ -441,7 +464,7 @@ public class AirboatService extends Service {
                 RealMatrix R = MatrixUtils.createRealMatrix(1,1);
                 R.setEntry(0, 0, Math.pow((Math.PI/18.0)/2.0,2.0)); // estimate 10 degrees is 2 std. dev's
                 t = System.currentTimeMillis();
-                Datum datum = new Datum(SENSOR_TYPES.COMPASS,t,z,R,_id);
+                Datum datum = new Datum(SENSOR_TYPE.COMPASS,t,z,R,_id);
                 datumListener.newDatum(datum);
                 /////////////////////////////////////////////////////////////////////
 
@@ -606,7 +629,7 @@ public class AirboatService extends Service {
             RealMatrix R = MatrixUtils.createRealMatrix(1,1);
             R.setEntry(0, 0, 0.0004*0.0004); // the noise floor with zero input --> TINY error, so this is supreme overconfidence
             t = System.currentTimeMillis();
-            Datum datum = new Datum(SENSOR_TYPES.GYRO,t,z,R,_id);
+            Datum datum = new Datum(SENSOR_TYPE.GYRO,t,z,R,_id);
             datumListener.newDatum(datum);
             /////////////////////////////////////////////////////////////////////
         }
@@ -832,11 +855,10 @@ public class AirboatService extends Service {
 
         // Create the GAMS loop object ///////////////////////////////////////////////////////////////////////////////
         readMadaraConfig();
-        _ipAddress = "heyheyhey";
-        lutra = new LutraGAMS(_id,_teamSize,_ipAddress,_thrustType);
+        lutra = new LutraGAMS(_id,_teamSize,_thrustType);
         lutra.start(lutra);
         datumListener = lutra.platform.boatEKF;
-        startScanning();
+        startWifiScanning();
 
         ////////////////////////////////////////////////////////////////////////
 		new Thread(new Runnable() {
@@ -996,7 +1018,7 @@ public class AirboatService extends Service {
         Log.w("jjb","AirboatService.onDestroy()");
 
         try {
-            stopScanning();
+            stopWifiScanning();
             logFileWriter.close();
         }catch(IOException e) {
         }catch (NullPointerException e){
@@ -1253,7 +1275,7 @@ public class AirboatService extends Service {
                     R.setEntry(0, 0, 5.0);
                     R.setEntry(1, 1, 5.0);
                     t = System.currentTimeMillis();
-                    Datum datum = new Datum(SENSOR_TYPES.GPS,t,z,R,_id);
+                    Datum datum = new Datum(SENSOR_TYPE.GPS,t,z,R,_id);
                     datumListener.newDatum(datum);
 
                     gpsVelocity(datum);
