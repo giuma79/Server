@@ -162,7 +162,7 @@ public class AirboatService extends Service {
             wifiLog = Double.toString(lat);
             wifiLog = wifiLog + " , " + lon + " : ";
 
-            environmentalDataToContainer(SENSOR_TYPE.WIFI, (double)signalStrength);
+            //environmentalDataToContainer(SENSOR_TYPE.WIFI, (double)signalStrength);
 
         }
         else {
@@ -185,6 +185,7 @@ public class AirboatService extends Service {
         scanHandler.removeCallbacks(scanStatusChecker);
     }
 
+    /*
     void environmentalDataToContainer(SENSOR_TYPE type, double value) {
         long[] a = lutra.platform.containers.environmentalDataCount; // just a shorter variable name
         FlexMap flexMap = new FlexMap();
@@ -197,6 +198,7 @@ public class AirboatService extends Service {
                 .get("value").set(value);
         flexMap.free();
     }
+    */
 
     /////////////////////////////////////////
     DatumListener datumListener;
@@ -226,9 +228,9 @@ public class AirboatService extends Service {
         double[][] xvst = new double[gpsHistory.size()][2];
         double [][] yvst = new double [gpsHistory.size()][2];
         for (int i = 0; i < gpsHistory.size(); i++) {
-            double t = gpsHistory.get(i).getTimestamp().doubleValue()/1000.0;
-            xvst[i][0] = t;
-            yvst[i][0] = t;
+            double local_t = gpsHistory.get(i).getTimestamp().doubleValue()/1000.0;
+            xvst[i][0] = local_t;
+            yvst[i][0] = local_t;
             xvst[i][1] = gpsHistory.get(i).getZ().getEntry(0,0);
             yvst[i][1] = gpsHistory.get(i).getZ().getEntry(1,0);
         }
@@ -247,8 +249,8 @@ public class AirboatService extends Service {
         z.setEntry(0,0,xdot);
         z.setEntry(1, 0, ydot);
         RealMatrix R = MatrixUtils.createRealMatrix(2,2);
-        R.setEntry(0, 0, 10.0);
-        R.setEntry(1, 1, 10.0);
+        R.setEntry(0, 0, 0.25); // probably overconfidence, but useless if we don't incorporate it
+        R.setEntry(1, 1, 0.25);
         Datum datum2 = new Datum(SENSOR_TYPE.DGPS,t,z,R,_id);
         datumListener.newDatum(datum2);
 
@@ -802,7 +804,7 @@ public class AirboatService extends Service {
         //Sensor imu = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION); //excludes gravity
         //sm.registerListener(imuListener,imu,SensorManager.SENSOR_DELAY_FASTEST);
 
-        // Hook up to the GPS system
+        // Hook up to the GPS system ---- CURRENTLY DISABLED DUE TO ADAFRUIT GPS
         /*
         LocationManager gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Criteria c = new Criteria();

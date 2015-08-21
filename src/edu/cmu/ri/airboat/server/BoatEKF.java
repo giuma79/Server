@@ -155,7 +155,7 @@ public class BoatEKF implements DatumListener {
             if (datum.isType(SENSOR_TYPE.GPS)) {
                 double[] _z = new double[] {z.getEntry(0,0),z.getEntry(1,0),x.getEntry(2,0)};
 
-                String aaa = String.format("GPS initialization z = %s",RMO.realMatrixToString(MatrixUtils.createColumnRealMatrix(_z)));
+                String aaa = String.format("GPS initialization x = %s",RMO.realMatrixToString(MatrixUtils.createColumnRealMatrix(_z)));
                 Log.w("jjb",aaa);
 
                 for (int i = 0; i < 3; i++) {
@@ -190,7 +190,7 @@ public class BoatEKF implements DatumListener {
                 double[] x_array = containers.NDV_to_DA(containers.eastingNorthingBearing);
                 double[] _z = new double[] {x_array[0],x_array[1],z.getEntry(0,0)};
 
-                String aaa = String.format("Compass initialization z = %s",RMO.realMatrixToString(MatrixUtils.createColumnRealMatrix(_z)));
+                String aaa = String.format("Compass initialization x = %s",RMO.realMatrixToString(MatrixUtils.createColumnRealMatrix(_z)));
                 Log.w("jjb",aaa);
 
                 for (int i = 0; i < 3; i++) {

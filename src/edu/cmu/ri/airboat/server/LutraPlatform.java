@@ -18,6 +18,8 @@ import org.apache.commons.math.linear.RealMatrix;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 
+import java.util.Arrays;
+
 import javax.measure.unit.NonSI;
 
 import edu.cmu.ri.crw.data.UtmPose;
@@ -44,7 +46,7 @@ public class LutraPlatform extends BasePlatform {
     final double METERS_PER_LATLONG_DEGREE = 111*1000;
     Long startTime;
     Position position;
-    Position currentTarget;
+    double[] currentTarget;
     final int timeSteps = 100;
     RealMatrix velocityProfile = MatrixUtils.createRealMatrix(timeSteps, 3); // t, vel., pos.
     LatLong latLong;
@@ -81,7 +83,7 @@ public class LutraPlatform extends BasePlatform {
         threader = new Threader(knowledge);
         this.thrustType = thrustType;
         position = new Position(0.0,0.0,0.0);
-        currentTarget = new Position(-999,-999,-999);
+        currentTarget = new double[3];
     }
 
     @Override
@@ -186,11 +188,13 @@ public class LutraPlatform extends BasePlatform {
     }
 
     public int move(Position target, double proximity) {
-        if (currentTarget.equals(target)) {
+        double[] targetArray;
+        targetArray = target.toArray();
+        if (Arrays.equals(targetArray, currentTarget)) {
             return PlatformStatusEnum.OK.value();
         }
         else {
-            currentTarget = target;
+            currentTarget = targetArray;
             self.device.source.set(0, containers.eastingNorthingBearing.get(0));
             self.device.source.set(1, containers.eastingNorthingBearing.get(1));
             self.device.source.set(2, containers.eastingNorthingBearing.get(2));

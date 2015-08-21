@@ -43,12 +43,14 @@ public class VelocityMotorMap {
     // the forward map --> this is the model fit to the collected data
     double thrustFractionToVelocity(double thrustFraction) {
         // enforce bounds on thrustFraction
-        if (thrustFraction < MIN_THRUST_FRACTION) {
-            Log.w("jjb","WARNING: input thrust fraction is less than 0.1. Returning velocity = 0 ...");
+        if (thrustFraction < MIN_THRUST_FRACTION && thrustFraction > 0.0) {
+            if (thrustFraction > 0.0) {
+                Log.w("jjb", "WARNING: input thrust fraction is less than 0.1. Returning velocity = 0 ...");
+            }
             return 0.0;
         }
         if (thrustFraction > 1.0) {
-            Log.w("jjb","WARNING: input thrust fraction is lmore than 1.0. Using thrust fraction of 1.0 ...");
+            Log.w("jjb","WARNING: input thrust fraction is more than 1.0. Using thrust fraction of 1.0 ...");
             thrustFraction = 1.0;
         }
         if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {

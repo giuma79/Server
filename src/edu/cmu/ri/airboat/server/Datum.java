@@ -100,8 +100,10 @@ public class Datum {
     public RealMatrix getR() {return this.R.copy();}
     public Long getTimestamp() {return this.timestamp;}
     public Position getPosition() {return this.position;}
+
+    @Override
     public String toString() {
-        return String.format("TYPE = %s,  DATE = %s,  LAT = %d,  LONG = %d, VALUE = %f",
+        return String.format("TYPE = %s,  DATE = %s,  LAT = %.6e,  LONG = %.6e, VALUE = %s",
                 typeString(this.type),df.format(dateobj),position.getX(),position.getY(),zString());
     }
 
@@ -110,7 +112,7 @@ public class Datum {
         for (int i = 0; i < z.getRowDimension()-1; i++) {
             a = a + String.format("%f,",z.getEntry(i,0));
         }
-        a = a + String.format("%f]");
+        a = a + String.format("%f]",z.getEntry(z.getRowDimension()-1,0));
         return a;
     }
 
