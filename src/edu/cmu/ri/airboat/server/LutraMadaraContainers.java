@@ -87,13 +87,14 @@ public class LutraMadaraContainers {
     Integer resetLocalization; // operator will temporarily set this to 1 to force the boat to totally reset its local state
     Integer connectivityWatchdog;
     Integer wifiStrength;
+    Integer gpsWatchdog;
     NativeDoubleVector motorCommands;
     Double thrustFraction;
     Double bearingFraction;
     NativeDoubleVector bearingPIDGains;
     NativeDoubleVector thrustPIDGains;
     NativeDoubleVector thrustPPIGains;
-    final double defaultSufficientProximity = 3.0;
+    final double defaultSufficientProximity = 2.0;
     final double defaultPeakVelocity = 2.0;
     final double defaultAccelTime = 5.0;
     final double defaultDecelTime = 5.0;
@@ -207,10 +208,14 @@ public class LutraMadaraContainers {
 
         connectivityWatchdog = new Integer();
         connectivityWatchdog.setName(knowledge, prefix + "connectivityWatchdog");
-        connectivityWatchdog.set(1L); // boat sets to 1, GUI sets to 0, if the GUI doesn't see a 1, there is an issue with the connection
+        connectivityWatchdog.set(0L); // boat sets to 1, GUI sets to 0, if the GUI doesn't see a 1, there is an issue with the connection
 
         wifiStrength = new Integer();
         wifiStrength.setName(knowledge, prefix + "wifiStrength");
+
+        gpsWatchdog = new Integer();
+        gpsWatchdog.setName(knowledge, prefix + "gpsWatchdog");
+        gpsWatchdog.set(0L);
 
         restoreDefaults();
 
@@ -232,6 +237,7 @@ public class LutraMadaraContainers {
         localized.free();
         connectivityWatchdog.free();
         wifiStrength.free();
+        gpsWatchdog.free();
         motorCommands.free();
         longitudeZone.free();
         latitudeZone.free();
@@ -282,11 +288,15 @@ public class LutraMadaraContainers {
     public double velocityTowardGoal() {
         // calculate the boat's current velocity along the line between its current location and the goal
         RealMatrix initialV = MatrixUtils.createRealMatrix(2,1);
-        initialV.setEntry(0,0,this.localState.get(3)*Math.cos(this.localState.get(2)) - this.localState.get(5));
-        initialV.setEntry(1,0,this.localState.get(3)*Math.sin(this.localState.get(2)) - this.localState.get(6));
+        //initialV.setEntry(0,0,this.localState.get(3)*Math.cos(this.localState.get(2)) - this.localState.get(5));
+        //initialV.setEntry(1,0,this.localState.get(3)*Math.sin(this.localState.get(2)) - this.localState.get(6));
+        //initialV.setEntry(0,0,this.localState.get(3)*Math.cos(this.localState.get(2)));
+        //initialV.setEntry(1,0,this.localState.get(3)*Math.sin(this.localState.get(2)));
+        initialV.setEntry(0,0,this.localState.get(4));
+        initialV.setEntry(1,0,this.localState.get(5));
         RealMatrix xd = NDV_to_RM(self.device.dest).subtract(NDV_to_RM(self.device.home));
         RealMatrix x = MatrixUtils.createRealMatrix(2, 1);
-        x.setEntry(0, 0, this.localState.get(0));
+        x.setEntry(0,0, this.localState.get(0));
         x.setEntry(1,0,this.localState.get(1));
         RealMatrix xError = xd.getSubMatrix(0,1,0,0).subtract(x);
         RealMatrix xErrorNormalized = xError.scalarMultiply(1 / RMO.norm2(xError));

@@ -34,7 +34,7 @@ public class BoatMotionController implements VelocityProfileListener {
     double PPIErrorAccumulator; // [Pos-P*(pos error) + vel error] accumulation
     double[] simplePIDErrorAccumulator; // cols: x,y,th
     public static final double SAFE_DIFFERENTIAL_THRUST = 0.6;
-    public static final double MIN_DIFFERENTIAL_BEARING = 0.15;
+    public static final double MIN_DIFFERENTIAL_BEARING = 0.0;
     public static final double MAX_DIFFERENTIAL_BEARING = 0.4;
 
     public static final double SAFE_VECTORED_THRUST = 0.6;
@@ -49,8 +49,8 @@ public class BoatMotionController implements VelocityProfileListener {
         this.containers = containers;
         this.stateSize = boatEKF.stateSize;
         x = MatrixUtils.createRealMatrix(this.stateSize,1);
-        xError = MatrixUtils.createRealMatrix(4,1); // [x y th v]
-        xErrorOld = MatrixUtils.createRealMatrix(4,1); // [x y th v]
+        xError = MatrixUtils.createRealMatrix(3,1); // [x y th w]
+        xErrorOld = MatrixUtils.createRealMatrix(3,1); // [x y th w]
         xd = MatrixUtils.createRealMatrix(2,1); // [x y]
         PPIErrorAccumulator = 0;
         simplePIDErrorAccumulator = new double[]{0,0,0};
@@ -93,7 +93,7 @@ public class BoatMotionController implements VelocityProfileListener {
 
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             double velToGoal = containers.velocityTowardGoal();
-            double rotVel = x.getEntry(4, 0)*180.0/Math.PI;
+            double rotVel = x.getEntry(3, 0)*180.0/Math.PI;
             if (pointing) {
                 //if (velToGoal > 0.5 && Math.abs(rotVel) < 5.0) {
                 if (Math.abs(rotVel) < 4.0 && Math.abs(angleError) < headingErrorThreshold) {
@@ -101,10 +101,10 @@ public class BoatMotionController implements VelocityProfileListener {
                     zeroErrors(); // start integration of error with shooting status
                 }
             }
-            Log.i("jjb_POINTING", String.format("angleError = %.4f [deg]  velocity toward goal = %.4f [m/s]   rotVel = %.4f [deg/s]   STATUS = %s", angleError * 180.0 / Math.PI, velToGoal, rotVel, (pointing ? "pointing" : "shooting")));
+            Log.i("jjb_POINTING", String.format("angleError = %.4f [deg]  vel toward goal = %.4f [m/s]   rotVel = %.4f [deg/s]   STATUS = %s", angleError * 180.0 / Math.PI, velToGoal, rotVel, (pointing ? "pointing" : "shooting")));
             ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-            if (angleError > returnToPointingThreshold) { // the only two ways to point is to arrive at your goal after shooting or if your angle error is very large
+            if (Math.abs(angleError) > returnToPointingThreshold) { // the only two ways to point is to arrive at your goal after shooting or if your angle error is very large
                 pointing = true;
             }
 
@@ -129,15 +129,13 @@ public class BoatMotionController implements VelocityProfileListener {
                 for (int i = 0; i < 3; i++) {
                     simplePIDErrorAccumulator[i] += xError.getEntry(i, 0) * dt;
                 }
-                xErrorDiff = xError.subtract(xErrorOld).scalarMultiply(1.0 / dt);
+                xErrorDiff = (xError.subtract(xErrorOld)).scalarMultiply(1.0 / dt);
 
                 String xErrorDiffString = String.format("xErrorDiff = %s", RMO.realMatrixToString(xErrorDiff));
                 Log.i("jjb_XERRORDIFF",xErrorDiffString);
 
                 double Pterm = simplePIDGains[1][0] * xError.getEntry(2, 0);
                 double Iterm = 0.0;
-
-                //double Dterm = simplePIDGains[1][2]*xErrorDiff.getEntry(2,0);
                 double Dterm = 0.0;
                 if (pointing) {
                     Dterm = simplePIDGains[1][2] * xErrorDiff.getEntry(2, 0);
@@ -146,15 +144,15 @@ public class BoatMotionController implements VelocityProfileListener {
                 }
 
                 headingSignal = Pterm + Iterm + Dterm;
-                Log.i("jjb_BEARINGPID", String.format("Bearing PID: total signal = %.4f  P-term = %.4f  I-term = %.4f  D-term = %.4f, ERROR = %f [deg] .... thrustSignal = %.4f",
-                        headingSignal, Pterm, Iterm, Dterm, angleError * 180.0 / Math.PI, thrustSignal));
+                Log.i("jjb_BEARINGPID", String.format("Bearing PID: total = %.4f  P-term = %.4f  I-term = %.4f  D-term = %.4f, ERROR = %f [deg]",
+                        headingSignal, Pterm, Iterm, Dterm, angleError * 180.0 / Math.PI));
 
                 // Determine which controller to use, simple PID or P-PI pos./vel. cascade
                 //if (containers.executingProfile.get() == 1) {
                 //    PPICascade();
                 //}
                 //else {
-                simplePID();
+                //simplePID();
                 //}
             }
             thrustAndBearingFractionsFromErrorSignal();
@@ -163,6 +161,7 @@ public class BoatMotionController implements VelocityProfileListener {
             zeroErrors();
         }
 
+        /*
         //generate MOTOR sensor data from thrust fraction
         double expectedSpeed = velocityMotorMap.thrustFractionToVelocity(containers.thrustFraction.get());
         RealMatrix z = MatrixUtils.createRealMatrix(1,1);
@@ -171,6 +170,7 @@ public class BoatMotionController implements VelocityProfileListener {
         R.setEntry(0, 0, 0.0);
         Datum datum = new Datum(SENSOR_TYPE.MOTOR,System.currentTimeMillis(),z,R,(int)containers.self.id.get());
         datumListener.newDatum(datum);
+        */
 
         motorCommandsFromThrustAndBearingFractions();
     }
@@ -238,14 +238,14 @@ public class BoatMotionController implements VelocityProfileListener {
         double B = containers.bearingFraction.get();
         double trueT = 0;
         double trueB = 0;
-        RealMatrix z = MatrixUtils.createRealMatrix(1,1);
-        RealMatrix R = MatrixUtils.createRealMatrix(1,1);
+        //RealMatrix z = MatrixUtils.createRealMatrix(1,1);
+        //RealMatrix R = MatrixUtils.createRealMatrix(1,1);
         t = System.currentTimeMillis();
         if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
-            m0 = clip(T - B, -1, 1);
-            m1 = clip(T + B, -1, 1);
+            m0 = clip(T + B, -1, 1);
+            m1 = clip(T - B, -1, 1);
             trueT = (m0 + m1)/2;
-            trueB = (m1 - m0)/2;
+            trueB = (m0 - m1)/2;
         }
         if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
             m0 = Math.sqrt(Math.pow(T,2.0)+Math.pow(B,2.0));
@@ -259,8 +259,8 @@ public class BoatMotionController implements VelocityProfileListener {
         containers.motorCommands.set(0,m0);
         containers.motorCommands.set(1,m1);
 
-        String velocityMapTestString = String.format("t = %d   X = %.2f   Y = %.2f   trueT = %.4f   trueB = %.4f",
-                System.currentTimeMillis(),x.getEntry(0,0),x.getEntry(1,0),trueT,trueB);
+        String velocityMapTestString = String.format("t = %d   X = %.2f   Y = %.2f   trueT = %.4f   trueB = %.4f  m0 = %.3f  m1 = %.3f",
+                System.currentTimeMillis(),x.getEntry(0,0),x.getEntry(1,0),trueT,trueB,m0,m1);
         Log.i("jjb_VEL", velocityMapTestString);
     }
 
@@ -268,12 +268,20 @@ public class BoatMotionController implements VelocityProfileListener {
         double angleError = xError.getEntry(2,0);
         double T = 0;
         double B = 0;
-        double clippedAngleError = clip(Math.abs(angleError),0,headingErrorThreshold);
+        double clippedAngleError = clip(Math.abs(angleError), 0, headingErrorThreshold);
         double thrustReductionRatio = Math.cos((Math.PI/2.0)/headingErrorThreshold*clippedAngleError);
-        double maxThrust = thrustReductionRatio*SAFE_DIFFERENTIAL_THRUST;
         if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
+            double maxThrust = thrustReductionRatio*SAFE_DIFFERENTIAL_THRUST;
             T = clip(thrustSignal,-maxThrust,maxThrust);
-            B = clip(-headingSignal,Math.signum(-headingSignal)*MIN_DIFFERENTIAL_BEARING,Math.signum(-headingSignal)*MAX_DIFFERENTIAL_BEARING);
+            if (Math.signum(-headingSignal) < 0) {
+                B = clip(-headingSignal,Math.signum(-headingSignal)*MAX_DIFFERENTIAL_BEARING,Math.signum(-headingSignal)*MIN_DIFFERENTIAL_BEARING);
+            }
+            else {
+                B = clip(-headingSignal,MIN_DIFFERENTIAL_BEARING,MAX_DIFFERENTIAL_BEARING);
+            }
+
+            Log.i("jjb_TANDB", String.format("clippedAngleError = %.3f  thrustReductionRatio = %.3f  T = %.3f  B = %.3f", clippedAngleError, thrustReductionRatio,T,B));
+
         }
         else if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
             T = clip(thrustSignal,0,SAFE_VECTORED_THRUST);

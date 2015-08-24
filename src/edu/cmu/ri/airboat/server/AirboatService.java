@@ -428,6 +428,7 @@ public class AirboatService extends Service {
                 double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
 
 
+                /* // IF CURRENT YAW IS ALWAYS -PI TO PI, THIS YAW MEASUREMENT DOES NOT NEED TO BE ALTERED b/c ATAN2 IS ALREADY -PI TO PI ONLY
                 // alter the measurement by 2*PI until its difference with current yaw is minimized
                 if (lutra.platform.containers != null) {
                     double currentYaw = lutra.platform.containers.eastingNorthingBearing.get(2);
@@ -445,6 +446,7 @@ public class AirboatService extends Service {
                         }
                     }
                 }
+                */
 
 
                 //while (Math.abs(yaw) > Math.PI) {
@@ -465,6 +467,7 @@ public class AirboatService extends Service {
                 z.setEntry(0,0,yaw);
                 RealMatrix R = MatrixUtils.createRealMatrix(1,1);
                 R.setEntry(0, 0, Math.pow((Math.PI/18.0)/2.0,2.0)); // estimate 10 degrees is 2 std. dev's
+                //R.setEntry(0,0,0.0); // trust sensor completely for testing purposes only
                 t = System.currentTimeMillis();
                 Datum datum = new Datum(SENSOR_TYPE.COMPASS,t,z,R,_id);
                 datumListener.newDatum(datum);
@@ -626,13 +629,16 @@ public class AirboatService extends Service {
             /////////////////////////////////////////////////////////////////////
             //Log.w("jjb","the gyro listener has activated");
 
+
             RealMatrix z = MatrixUtils.createRealMatrix(1,1);
             z.setEntry(0,0,(double)gyroValues[2]);
             RealMatrix R = MatrixUtils.createRealMatrix(1,1);
-            R.setEntry(0, 0, 0.0004*0.0004); // the noise floor with zero input --> TINY error, so this is supreme overconfidence
+            //R.setEntry(0, 0, 4*0.0004*0.0004); // the noise floor with zero input --> TINY error, so this is supreme overconfidence
+            R.setEntry(0,0,0.1); // [rad/s]
             t = System.currentTimeMillis();
             Datum datum = new Datum(SENSOR_TYPE.GYRO,t,z,R,_id);
             datumListener.newDatum(datum);
+
             /////////////////////////////////////////////////////////////////////
         }
         @Override
@@ -1175,7 +1181,7 @@ public class AirboatService extends Service {
         @SuppressWarnings("unchecked")
         Iterator<String> keyIterator = (Iterator<String>)cmd.keys();
 
-        Log.w("jjb","receiveJSON()...");
+        Log.i("jjb_JSONRECEIVE","receiveJSON()...");
 
         // Iterate through JSON fields
         while (keyIterator.hasNext()) {
@@ -1253,7 +1259,7 @@ public class AirboatService extends Service {
                     String a = String.format(
                             "eBoard GPS received at time %.1f:\n    LAT: %.5f\n    LONG: %.5f\n",
                             eBoardGPSTimestamp,latitude,longitude);
-                    //Log.w("jjb",a);
+                    Log.i("jjb_EBOARDGPS",a);
 
                     UTM utmLoc = UTM.latLongToUtm(LatLong.valueOf(latitude,longitude,NonSI.DEGREE_ANGLE),ReferenceEllipsoid.WGS84);
                     /*
@@ -1268,6 +1274,7 @@ public class AirboatService extends Service {
                     if (lutra != null) {
                         lutra.platform.containers.longitudeZone.set((long)utmLoc.longitudeZone());
                         lutra.platform.containers.latitudeZone.set(java.lang.String.format("%c",utmLoc.latitudeZone()));
+                        //lutra.platform.containers.gpsWatchdog.set(1L); // we'll do this in the EKF instead
                     }
 
                     RealMatrix z = MatrixUtils.createRealMatrix(2,1);

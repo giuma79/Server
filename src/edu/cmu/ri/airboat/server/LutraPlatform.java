@@ -71,6 +71,13 @@ public class LutraPlatform extends BasePlatform {
         }
     }
 
+    class KBPrintingThread extends BaseThread {
+        @Override
+        public void run() {
+            knowledge.print();
+        }
+    }
+
     String ipAddress;
 
     // Delay for sending modified fields
@@ -99,6 +106,7 @@ public class LutraPlatform extends BasePlatform {
     public void start() {
         startTime = System.currentTimeMillis();
         threader.run(containers.controlHz, "FilterAndController", new FilterAndControllerThread());
+        threader.run(1.0,"KBPrinting", new KBPrintingThread());
     }
 
 
@@ -184,7 +192,7 @@ public class LutraPlatform extends BasePlatform {
         self.device.dest.set(0,localTarget[0]+home[0]);
         self.device.dest.set(1,localTarget[1]+home[1]);
 
-        containers.sufficientProximity.set(proximity);
+        //containers.sufficientProximity.set(proximity);
     }
 
     public int move(Position target, double proximity) {
@@ -333,7 +341,7 @@ public class LutraPlatform extends BasePlatform {
         containers.errorEllipse.set(2,errorEllipse[2]);
 
         //Log.w("jjb","platform sense() KB:");
-        knowledge.print();
+        //knowledge.print();
 
         return PlatformStatusEnum.OK.value();
     }

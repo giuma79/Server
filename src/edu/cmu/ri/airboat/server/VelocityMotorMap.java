@@ -22,11 +22,11 @@ public class VelocityMotorMap {
     double velocityToThrustFraction(double desiredVelocity) {
         // enforce bounds on desiredVelocity
         if (desiredVelocity < MIN_DESIRED_VELOCITY) {
-            Log.w("jjb","WARNING: input desired velocity is less than 1.52. Returning thrust fraction = 0 ...");
+            Log.i("jjb_VELMAP", "WARNING: input desired velocity is less than 1.52. Returning thrust fraction = 0 ...");
             return 0.0;
         }
         if (desiredVelocity > MAX_DESIRED_VELOCITY) {
-            Log.w("jjb","WARNING: input desired velocity is more than 2.45. Using velocity = 2.45 ...");
+            Log.i("jjb_VELMAP", "WARNING: input desired velocity is more than 2.45. Using velocity = 2.45 ...");
             desiredVelocity = MAX_DESIRED_VELOCITY;
         }
         if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
@@ -36,21 +36,21 @@ public class VelocityMotorMap {
         else if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
         }
 
-        Log.w("jjb", "Unknown thrust type. Returning 0 ...");
+        Log.i("jjb_VELMAP", "Unknown thrust type. Returning 0 ...");
         return 0.0;
     }
 
     // the forward map --> this is the model fit to the collected data
     double thrustFractionToVelocity(double thrustFraction) {
         // enforce bounds on thrustFraction
-        if (thrustFraction < MIN_THRUST_FRACTION && thrustFraction > 0.0) {
+        if (thrustFraction < MIN_THRUST_FRACTION)  {
             if (thrustFraction > 0.0) {
-                Log.w("jjb", "WARNING: input thrust fraction is less than 0.1. Returning velocity = 0 ...");
+                Log.i("jjb_VELMAP","WARNING: input thrust fraction is less than 0.1. Returning velocity = 0 ...");
             }
             return 0.0;
         }
         if (thrustFraction > 1.0) {
-            Log.w("jjb","WARNING: input thrust fraction is more than 1.0. Using thrust fraction of 1.0 ...");
+            Log.i("jjb_VELMAP", "WARNING: input thrust fraction is lmore than 1.0. Using thrust fraction of 1.0 ...");
             thrustFraction = 1.0;
         }
         if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
@@ -59,7 +59,7 @@ public class VelocityMotorMap {
         else if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
         }
 
-        Log.w("jjb", "Unknown thrust type. Returning 0 ...");
+        Log.i("jjb_VELMAP", "Unknown thrust type. Returning 0 ...");
         return 0.0;
     }
 
