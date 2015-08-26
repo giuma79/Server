@@ -27,7 +27,7 @@ public class BoatMotionController implements VelocityProfileListener {
     boolean t0set;
     boolean pointing;
     LutraMadaraContainers containers;
-    final double headingErrorThreshold = 15.0*Math.PI/180.0; // +/- 15 deg
+    final double headingErrorThreshold = 20.0*Math.PI/180.0; // +/- 20 deg
     final double returnToPointingThreshold = 45.0*Math.PI/180.0; // +/- 45 deg
     double simplePIDGains[][];
     double PPIGains[];
@@ -36,7 +36,6 @@ public class BoatMotionController implements VelocityProfileListener {
     public static final double SAFE_DIFFERENTIAL_THRUST = 0.6;
     public static final double MIN_DIFFERENTIAL_BEARING = 0.0;
     public static final double MAX_DIFFERENTIAL_BEARING = 0.4;
-
     public static final double SAFE_VECTORED_THRUST = 0.6;
     double headingSignal = 0.0;
     double thrustSignal = 0.0;
@@ -152,7 +151,7 @@ public class BoatMotionController implements VelocityProfileListener {
                 //    PPICascade();
                 //}
                 //else {
-                //simplePID();
+                simplePID();
                 //}
             }
             thrustAndBearingFractionsFromErrorSignal();
