@@ -85,6 +85,7 @@ public class LutraMadaraContainers {
     Integer compassInitialized; // == 1 if the first compass measurement has come in
     Integer localized; // == 1 if both GPS and compass are initialized
     Integer resetLocalization; // operator will temporarily set this to 1 to force the boat to totally reset its local state
+    Integer dwelling;
     Integer connectivityWatchdog;
     Integer wifiStrength;
     Integer gpsWatchdog;
@@ -205,6 +206,9 @@ public class LutraMadaraContainers {
 
         resetLocalization = new Integer();
         resetLocalization.setName(knowledge, prefix + "resetLocalization");
+
+        dwelling = new Integer();
+        dwelling.setName(knowledge, prefix + "dwelling");
 
         connectivityWatchdog = new Integer();
         connectivityWatchdog.setName(knowledge, prefix + "connectivityWatchdog");

@@ -37,6 +37,7 @@ public class LutraPlatform extends BasePlatform {
 
     BoatEKF boatEKF;
     BoatMotionController boatMotionController;
+    HysteresisFilter hysteresisFilter;
     Threader threader;
     boolean homeSet = false;
     VelocityProfileListener velocityProfileListener;
@@ -99,6 +100,7 @@ public class LutraPlatform extends BasePlatform {
         containers = new LutraMadaraContainers(knowledge,self,thrustType); // has to occur AFTER super.init, or "self" will be null
         boatEKF = new BoatEKF(knowledge,containers); // has to occur AFTER containers() b/c it needs "self"
         boatMotionController = new BoatMotionController(knowledge,boatEKF,containers);
+        hysteresisFilter = new HysteresisFilter(knowledge, containers);
         velocityProfileListener = boatMotionController;
         Datum.setContainersObject(containers);
     }
@@ -208,7 +210,6 @@ public class LutraPlatform extends BasePlatform {
             self.device.source.set(2, containers.eastingNorthingBearing.get(2));
         }
 
-        // TODO: add some kind of last destination vs. current destination if statement protection so this isn't called over and over
         double[] localTarget = containers.PositionToLocalXY(target);
         moveLocalXY(localTarget, proximity);
         return PlatformStatusEnum.OK.value();

@@ -15,25 +15,26 @@ enum SENSOR_CATEGORY {
 }
 enum SENSOR_TYPE {
 
-    GPS(SENSOR_CATEGORY.LOCALIZATION),
-    COMPASS(SENSOR_CATEGORY.LOCALIZATION),
-    GYRO(SENSOR_CATEGORY.LOCALIZATION),
-    IMU(SENSOR_CATEGORY.LOCALIZATION),
-    DGPS(SENSOR_CATEGORY.LOCALIZATION),
-    MOTOR(SENSOR_CATEGORY.LOCALIZATION),
-    ES2(SENSOR_CATEGORY.ENVIRONMENTAL),
-    EC(SENSOR_CATEGORY.ENVIRONMENTAL),
-    TEMP(SENSOR_CATEGORY.ENVIRONMENTAL),
-    DO(SENSOR_CATEGORY.ENVIRONMENTAL),
-    WIFI(SENSOR_CATEGORY.ENVIRONMENTAL);
+    GPS(SENSOR_CATEGORY.LOCALIZATION,false),
+    COMPASS(SENSOR_CATEGORY.LOCALIZATION,false),
+    GYRO(SENSOR_CATEGORY.LOCALIZATION,false),
+    IMU(SENSOR_CATEGORY.LOCALIZATION,false),
+    DGPS(SENSOR_CATEGORY.LOCALIZATION,false),
+    MOTOR(SENSOR_CATEGORY.LOCALIZATION,false),
+    EC(SENSOR_CATEGORY.ENVIRONMENTAL,false),
+    TEMP(SENSOR_CATEGORY.ENVIRONMENTAL,true),
+    DO(SENSOR_CATEGORY.ENVIRONMENTAL,true),
+    WIFI(SENSOR_CATEGORY.ENVIRONMENTAL,false);
 
     SENSOR_CATEGORY category;
+    boolean hysteresis;
 
-    SENSOR_TYPE(SENSOR_CATEGORY category) {
+    SENSOR_TYPE(SENSOR_CATEGORY category, boolean hysteresis) {
         this.category = category;
+        this.hysteresis = hysteresis;
     }
     public static Set<SENSOR_TYPE> localization = EnumSet.of(GPS, COMPASS, GYRO, IMU, DGPS, MOTOR);
-    public static Set<SENSOR_TYPE> environmental = EnumSet.of(ES2, EC, TEMP, DO, WIFI);
+    public static Set<SENSOR_TYPE> environmental = EnumSet.of(EC, TEMP, DO, WIFI);
 
     public static int getEnvironmentalOrdinal(SENSOR_TYPE type) {
         SENSOR_TYPE[] types = SENSOR_TYPE.values();
@@ -103,8 +104,8 @@ public class Datum {
 
     @Override
     public String toString() {
-        return String.format("TYPE = %s,  DATE = %s,  LAT = %.6e,  LONG = %.6e, VALUE = %s",
-                typeString(this.type),df.format(dateobj),position.getX(),position.getY(),zString());
+        return String.format("TYPE = %s,  DATE = %s,  TIME = %d,  LAT = %.6e,  LONG = %.6e, VALUE = %s",
+                typeString(this.type),df.format(dateobj),timestamp,position.getX(),position.getY(),zString());
     }
 
     String zString () {
@@ -137,9 +138,6 @@ public class Datum {
         if (type == SENSOR_TYPE.MOTOR) {
             return "MOTOR";
         }
-        if (type == SENSOR_TYPE.ES2) {
-            return "ES2";
-        }
         if (type == SENSOR_TYPE.EC) {
             return "EC";
         }
@@ -156,7 +154,7 @@ public class Datum {
     }
 
     public void toKnowledgeBase() {
-        // put everything into the environmentalData FlexMap in LutraMadaraContainers
+        // TODO: put everything into the environmentalData FlexMap in LutraMadaraContainers
 
         //long currentCount = ;
 

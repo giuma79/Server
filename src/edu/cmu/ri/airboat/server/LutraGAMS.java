@@ -61,7 +61,7 @@ public class LutraGAMS extends AbstractVehicleServer {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                controller.run(1.0/5.0,3600.0); // run --> time interval, duration |  runHz --> run Hz, run duration, send Hz
+                controller.runHz(5.0,3600.0,5.0); // run --> time interval, duration, send interval |  runHz --> run Hz, run duration, send Hz
             }
         }).start();
     }

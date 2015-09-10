@@ -33,9 +33,9 @@ public class BoatMotionController implements VelocityProfileListener {
     double PPIGains[];
     double PPIErrorAccumulator; // [Pos-P*(pos error) + vel error] accumulation
     double[] simplePIDErrorAccumulator; // cols: x,y,th
-    public static final double SAFE_DIFFERENTIAL_THRUST = 0.6;
+    public static final double SAFE_DIFFERENTIAL_THRUST = 0.15;
     public static final double MIN_DIFFERENTIAL_BEARING = 0.0;
-    public static final double MAX_DIFFERENTIAL_BEARING = 0.4;
+    public static final double MAX_DIFFERENTIAL_BEARING = 0.15;
     public static final double SAFE_VECTORED_THRUST = 0.6;
     double headingSignal = 0.0;
     double thrustSignal = 0.0;
