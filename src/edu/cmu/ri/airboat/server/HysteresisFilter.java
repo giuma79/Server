@@ -12,7 +12,7 @@ import java.util.List;
  */
 public class HysteresisFilter implements DatumListener {
 
-    HashMap<SENSOR_TYPE,List<Double>> datumHashMap;
+    HashMap<SENSOR_TYPE,List<Double[]>> datumHashMap;
     HashMap<SENSOR_TYPE,Boolean> convergedHashMap;
     HashMap<SENSOR_TYPE,Long> dataToKBCount; // number of data points pushed into knowledge base
     KnowledgeBase knowledge;
@@ -50,7 +50,10 @@ public class HysteresisFilter implements DatumListener {
         SENSOR_TYPE type = datum.getType();
         if (type.hysteresis && dwelling) {
             if (!convergedHashMap.get(datum.getType())) {
-                datumHashMap.get(datum.getType()).add(datum.getZ().getEntry(0, 0));
+                Double[] newEntry = new Double[2];
+                newEntry[0] = datum.getTimestamp().doubleValue()/1000.0; // time [s]
+                newEntry[1] = datum.getZ().getEntry(0,0); // value
+                datumHashMap.get(datum.getType()).add(newEntry);
             }
             else {
                 datum.toKnowledgeBase(); // push into knowledge base
@@ -65,11 +68,16 @@ public class HysteresisFilter implements DatumListener {
     void checkForConvergence() {
         // iterate over the hashmap. if it isn't already converged, check for convergence
 
-        for (HashMap.Entry<SENSOR_TYPE, List<Double>> entry : datumHashMap.entrySet()) {
+        for (HashMap.Entry<SENSOR_TYPE, List<Double[]>> entry : datumHashMap.entrySet()) {
             if (!convergedHashMap.get(entry.getKey())) { // not already converged
                 if (entry.getValue().size() >= MIN_NUMBER_OF_SAMPLES) {
-                    Double[] values = new Double[entry.getValue().size()];
-                    entry.getValue().toArray(values);
+                    int n = entry.getValue().size();
+                    double[] times = new double[n];
+                    double[] values = new double[n];
+                    for (int i = 0; i < n; i++) {
+                        times[i] = entry.getValue().get(i)[0];
+                        values[i] = entry.getValue().get(i)[1];
+                    }
                     boolean converged = false;
 
                     // TODO: run tests of values, fit some kind of function (exponential?) to the vector of data, make sure the slope is less than a cutoff? Need to normalize data to make this universal?

@@ -222,7 +222,7 @@ public class AirboatService extends Service {
         String gpsHistoryString = String.format("There are %d GPS measurements in the history",gpsHistory.size());
         Log.i("jjb_DGPS",gpsHistoryString);
 
-        if (gpsHistory.size() < 6) {return;} // need at least three data points
+        if (gpsHistory.size() < 6) {return;} // need at least six data points
 
         // Least squares linear regression with respect to time
         double[][] xvst = new double[gpsHistory.size()][2];
@@ -703,12 +703,14 @@ public class AirboatService extends Service {
         t = System.currentTimeMillis();
         tAccel = t;
         t0 = t;
+        /*
         imuHistoryX = new ArrayList<>();
         imuHistoryY = new ArrayList<>();
         imuACalX = new ArrayList<>();
         imuACalY = new ArrayList<>();
         imuVCalX = new ArrayList<>();
         imuVCalY = new ArrayList<>();
+        */
         ////////////////////////////////////////////////////////////////
 
 
