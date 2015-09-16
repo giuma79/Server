@@ -15,6 +15,14 @@ public class HysteresisFilter implements DatumListener {
     HashMap<SENSOR_TYPE,List<Double[]>> datumHashMap;
     HashMap<SENSOR_TYPE,Boolean> convergedHashMap;
     HashMap<SENSOR_TYPE,Long> dataToKBCount; // number of data points pushed into knowledge base
+
+    // sum terms from exponential least squares fitting - these terms are summed up incrementally online
+    HashMap<SENSOR_TYPE,Double> x2y;
+    HashMap<SENSOR_TYPE,Double> ylny;
+    HashMap<SENSOR_TYPE,Double> xy;
+    HashMap<SENSOR_TYPE,Double> xylny;
+    HashMap<SENSOR_TYPE,Double> y;
+
     KnowledgeBase knowledge;
     LutraMadaraContainers containers;
     boolean dwelling;
@@ -81,6 +89,8 @@ public class HysteresisFilter implements DatumListener {
                     boolean converged = false;
 
                     // TODO: run tests of values, fit some kind of function (exponential?) to the vector of data, make sure the slope is less than a cutoff? Need to normalize data to make this universal?
+
+
 
                     if (converged) {
                         convergedHashMap.put(entry.getKey(), true);

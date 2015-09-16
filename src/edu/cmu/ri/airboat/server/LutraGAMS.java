@@ -35,14 +35,20 @@ public class LutraGAMS extends AbstractVehicleServer {
         settings = new QoSTransportSettings();
         settings.setHosts(new String[]{"192.168.1.255:15000"});
         settings.setType(TransportType.BROADCAST_TRANSPORT);
-        settings.setRebroadcastTtl(2);
-        settings.enableParticipantTtl(1);
+        //settings.setRebroadcastTtl(2);
+        //settings.enableParticipantTtl(1);
+        settings.setDeadline(2);
+
+
         knowledge = new KnowledgeBase(String.format("device.%d_KB",id),settings);
 
+
+        /*
         simSettings = new QoSTransportSettings();
         simSettings.setHosts(new String[]{"239.255.0.1:4150"});
         simSettings.setType(TransportType.MULTICAST_TRANSPORT);
         knowledge.attachTransport(String.format("device.%d_KB", id),simSettings);
+        */
 
         controller = new BaseController(knowledge);
 
@@ -61,7 +67,7 @@ public class LutraGAMS extends AbstractVehicleServer {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                controller.runHz(5.0,3600.0,5.0); // run --> time interval, duration, send interval |  runHz --> run Hz, run duration, send Hz
+                controller.runHz(5.0,7200.0,5.0); // run --> time interval, duration, send interval |  runHz --> run Hz, run duration, send Hz
             }
         }).start();
     }
