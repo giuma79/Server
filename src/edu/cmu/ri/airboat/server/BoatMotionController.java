@@ -109,9 +109,13 @@ public class BoatMotionController implements VelocityProfileListener {
 
             xError.setEntry(2, 0, angleError);
 
-            containers.distToDest.set(RMO.distance(x.getSubMatrix(0, 1, 0, 0), xd.getSubMatrix(0, 1, 0, 0)));
+            double distToDestCalc = RMO.distance(x.getSubMatrix(0, 1, 0, 0), xd.getSubMatrix(0, 1, 0, 0));
 
-            Log.i("jjb_DISTTODEST",String.format("distToDest = %.3f  sufficientProximity = %.3f",containers.distToDest.get(),containers.sufficientProximity.get()));
+            containers.distToDest.set(distToDestCalc);
+
+            Log.i("jjb_XD","xd = " + RMO.realMatrixToString(xd));
+            Log.i("jjb_X","x = " + RMO.realMatrixToString(x));
+            Log.i("jjb_DISTTODEST",String.format("distToDest CALC = %.3f  distToDest CONTAINER = %.3f  sufficientProximity = %.3f",distToDestCalc,containers.distToDest.get(),containers.sufficientProximity.get()));
 
             if (containers.distToDest.get() < containers.sufficientProximity.get()) {
                 containers.executingProfile.set(0);
@@ -306,8 +310,8 @@ public class BoatMotionController implements VelocityProfileListener {
             x.setEntry(i,0,containers.localState.get(i));
         }
 
-        //Log.w("jjb","xd = " + RMO.realMatrixToString(xd));
-        //Log.w("jjb","x = " + RMO.realMatrixToString(x));
+       //Log.i("jjb_XD","xd = " + RMO.realMatrixToString(xd));
+       //Log.i("jjb_X","x = " + RMO.realMatrixToString(x));
     }
 
     public void newProfile(RealMatrix profile) {

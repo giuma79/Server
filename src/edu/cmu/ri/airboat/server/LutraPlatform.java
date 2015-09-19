@@ -4,6 +4,7 @@ import android.util.Log;
 
 import com.gams.controllers.BaseController;
 import com.gams.platforms.BasePlatform;
+import com.gams.platforms.PlatformReturnStatusEnum;
 import com.gams.platforms.PlatformStatusEnum;
 import com.gams.utility.Position;
 import com.gams.utility.Axes;
@@ -162,7 +163,7 @@ public class LutraPlatform extends BasePlatform {
     public double getPositionAccuracy() { // not relevant to C++ waypoints algorithm as of 2015-7-26. It uses getAccuracy() instead.
         // TODO: propagate uncertainty in covariance of x,y coordinate to find overall estimate of distance variance in meters
         // TODO: This function returns the MAXIMUM of the sufficient proximity container and that result
-        return 5.0;
+        return containers.sufficientProximity.get();
     }
 
     /**
@@ -192,7 +193,7 @@ public class LutraPlatform extends BasePlatform {
 
         double[] home = containers.NDV_to_DA(self.device.home);
         self.device.dest.set(0,localTarget[0]+home[0]);
-        self.device.dest.set(1,localTarget[1]+home[1]);
+        self.device.dest.set(1, localTarget[1] + home[1]);
 
         //containers.sufficientProximity.set(proximity);
     }
@@ -200,8 +201,9 @@ public class LutraPlatform extends BasePlatform {
     public int move(Position target, double proximity) {
         double[] targetArray;
         targetArray = target.toArray();
+
         if (Arrays.equals(targetArray, currentTarget)) {
-            return PlatformStatusEnum.OK.value();
+            //return PlatformStatusEnum.OK.value();
         }
         else {
             currentTarget = targetArray;
@@ -212,7 +214,12 @@ public class LutraPlatform extends BasePlatform {
 
         double[] localTarget = containers.PositionToLocalXY(target);
         moveLocalXY(localTarget, proximity);
-        return PlatformStatusEnum.OK.value();
+        if (containers.distToDest.get() < containers.sufficientProximity.get()) {
+            return PlatformReturnStatusEnum.PLATFORM_ARRIVED.value();
+        }
+        else {
+            return PlatformReturnStatusEnum.PLATFORM_MOVING.value();
+        }
     }
 
     public int move(UTM utm, double proximity) {

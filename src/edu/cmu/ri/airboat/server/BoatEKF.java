@@ -81,7 +81,7 @@ public class BoatEKF implements DatumListener {
         containers.localStateXYCovariance.set(2,P.getEntry(0,1));
         containers.localStateXYCovariance.set(3, P.getEntry(1, 1));
 
-        Log.i("jjb_EKF", String.format("x = %s", RMO.realMatrixToString(x)));
+        //Log.i("jjb_EKF", String.format("x = %s", RMO.realMatrixToString(x)));
         //Log.i("jjb_EKF", String.format("P = %s", RMO.realMatrixToString(P)));
     }
 
