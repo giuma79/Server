@@ -157,7 +157,8 @@ public class LutraPlatform extends BasePlatform {
     }
 
     public double getAccuracy() {
-        return getPositionAccuracy()/METERS_PER_LATLONG_DEGREE; // this is accuracy in latitude and longitude. 0.00001 is about 1 meter.
+        return getPositionAccuracy(); //returns accuracy in meters
+        //return getPositionAccuracy()/METERS_PER_LATLONG_DEGREE; // this is accuracy in latitude and longitude. 0.00001 is about 1 meter.
     }
 
     public double getPositionAccuracy() { // not relevant to C++ waypoints algorithm as of 2015-7-26. It uses getAccuracy() instead.
@@ -315,7 +316,7 @@ public class LutraPlatform extends BasePlatform {
     }
 
     public java.lang.String getId() {
-        return String.format("%s_%d",getName(),getId());
+        return String.format("%s_%d",getName(),self.id.get());
     }
 
     public java.lang.String getName() {
