@@ -4,6 +4,7 @@ import com.madara.KnowledgeBase;
 import com.madara.KnowledgeRecord;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -12,110 +13,114 @@ import java.util.List;
  */
 public class HysteresisFilter implements DatumListener {
 
-    HashMap<SENSOR_TYPE,List<Double[]>> datumHashMap;
+    HashMap<SENSOR_TYPE,List<Double>> heightsHashMap; // 5 numbers, using P squared algorithm for calculating median without storing values
+    HashMap<SENSOR_TYPE,List<Integer>> markersHashMap;
+    HashMap<SENSOR_TYPE,List<Double>> desiredMarkersHashMap;
+
     HashMap<SENSOR_TYPE,Boolean> convergedHashMap;
     HashMap<SENSOR_TYPE,Long> dataToKBCount; // number of data points pushed into knowledge base
-
-    // sum terms from exponential least squares fitting - these terms are summed up incrementally online
-    HashMap<SENSOR_TYPE,Double> x2y;
-    HashMap<SENSOR_TYPE,Double> ylny;
-    HashMap<SENSOR_TYPE,Double> xy;
-    HashMap<SENSOR_TYPE,Double> xylny;
-    HashMap<SENSOR_TYPE,Double> y;
 
     KnowledgeBase knowledge;
     LutraMadaraContainers containers;
     boolean dwelling;
-    final int MIN_NUMBER_OF_SAMPLES = 5;
+
+    final double percentile = 0.5;
+    final double[] increment = new double[] {0, percentile/2.0, percentile, (1.0 + percentile)/2.0, 1};
+    final double[] defaultDesiredMarkers = new double[] {1, 1+2*percentile, 1+4*percentile, 3+2*percentile, 5};
+    //final int[] defaultMarkers = new int[] {1, 2, 3, 4, 5};
 
     HysteresisFilter(KnowledgeBase knowledge, LutraMadaraContainers containers) {
         this.knowledge = knowledge;
         this.containers = containers;
         dwelling = false;
-        datumHashMap = new HashMap<>();
+        heightsHashMap = new HashMap<>();
+        markersHashMap = new HashMap<>();
+        desiredMarkersHashMap = new HashMap<>();
         convergedHashMap = new HashMap<>();
         dataToKBCount = new HashMap<>();
-    }
-
-    public void filter() {
-        if (containers.distToDest.get() < containers.sufficientProximity.get()) {
-            if (dwelling) {
-                checkForConvergence();
-            }
-            else { // you are now near your goal but you weren't dwelling already, clear the datum list
-                dwelling = true;
-                clearAll(); // clear all the datum lists
-            }
-        }
-        else {
-            dwelling = false;
-            clearAll(); // you aren't near your goal, clear all the datum lists
+        for (SENSOR_TYPE type : SENSOR_TYPE.environmental) {
+            convergedHashMap.put(type,!type.hysteresis); // non-hysteresis sensors are inherently converged
         }
     }
 
     @Override
     public void newDatum(Datum datum) {
         SENSOR_TYPE type = datum.getType();
-        if (type.hysteresis && dwelling) {
-            if (!convergedHashMap.get(datum.getType())) {
-                Double[] newEntry = new Double[2];
-                newEntry[0] = datum.getTimestamp().doubleValue()/1000.0; // time [s]
-                newEntry[1] = datum.getZ().getEntry(0,0); // value
-                datumHashMap.get(datum.getType()).add(newEntry);
-            }
-            else {
-                datum.toKnowledgeBase(); // push into knowledge base
-            }
+        String logString = datum.toString();
+        if (!isConverged(type)) {
+            logString = logString + " -- WARNING: MAY HAVE HYSTERESIS";
+            filter(datum);
         }
         else {
             datum.toKnowledgeBase(); //push into knowledge base
+            incrementCount(datum.getType());
         }
-        // TODO: log all environmental data, perhaps include possible hysteresis warning flag?
+        // TODO: save logString to file
     }
 
-    void checkForConvergence() {
-        // iterate over the hashmap. if it isn't already converged, check for convergence
-
-        for (HashMap.Entry<SENSOR_TYPE, List<Double[]>> entry : datumHashMap.entrySet()) {
-            if (!convergedHashMap.get(entry.getKey())) { // not already converged
-                if (entry.getValue().size() >= MIN_NUMBER_OF_SAMPLES) {
-                    int n = entry.getValue().size();
-                    double[] times = new double[n];
-                    double[] values = new double[n];
-                    for (int i = 0; i < n; i++) {
-                        times[i] = entry.getValue().get(i)[0];
-                        values[i] = entry.getValue().get(i)[1];
-                    }
-                    boolean converged = false;
-
-                    // TODO: run tests of values, fit some kind of function (exponential?) to the vector of data, make sure the slope is less than a cutoff? Need to normalize data to make this universal?
-
-
-
-                    if (converged) {
-                        convergedHashMap.put(entry.getKey(), true);
-                        clearSpecific(entry.getKey()); // clear specific - start pushing good data into knowledge base instead of these lists
-                    }
-                }
-                else {
-                    convergedHashMap.put(entry.getKey(), false);
-                }
+    public void filter(Datum datum) {
+        if (containers.distToDest.get() < containers.sufficientProximity.get()) {
+            if (!dwelling) {
+                dwelling = true;
+                resetAll();
             }
+            checkForConvergence(datum);
+        }
+        else {
+            dwelling = false;
+            convergedHashMap.put(datum.getType(), false);
         }
     }
 
-    void clearAll() {
-        datumHashMap.clear();
+    void checkForConvergence(Datum datum) {
+        List<Double> entry = heightsHashMap.get(datum.getType());
+        if (entry.size() < 5) {
+            entry.add(datum.getZ().getEntry(0,0));
+            return;
+        }
+        if (entry.size() == 5) { // need to sort initial list of five values in ASCENDING order
+            Collections.sort(entry);
+            return;
+        }
+
+        boolean converged = false;
+        // TODO: P squared method for median without storing values
+        
+
+
+
+        if (converged) {
+            convergedHashMap.put(datum.getType(), true);
+        } else {
+            convergedHashMap.put(datum.getType(), false);
+        }
     }
 
-    void clearSpecific(SENSOR_TYPE type) {
-        datumHashMap.get(type).clear();
-    }
 
+    void resetAll() {
+        for (HashMap.Entry<SENSOR_TYPE, List<Double>> entry : heightsHashMap.entrySet()) {
+            resetSpecific(entry.getKey());
+        }
+    }
+    void resetSpecific(SENSOR_TYPE type) {
+        heightsHashMap.get(type).clear();
+        markersHashMap.get(type).clear();
+        desiredMarkersHashMap.get(type).clear();
+        for (int i = 0; i < 5; i++) {
+            markersHashMap.get(type).add(i);
+            desiredMarkersHashMap.get(type).add(defaultDesiredMarkers[i]);
+        }
+    }
     void allUnconverged() {
         for (HashMap.Entry<SENSOR_TYPE, Boolean> entry : convergedHashMap.entrySet()) {
             entry.setValue(false);
         }
+    }
+    boolean isConverged(SENSOR_TYPE type) {
+        return convergedHashMap.get(type);
+    }
+    void incrementCount(SENSOR_TYPE type) {
+        dataToKBCount.put(type,dataToKBCount.get(type) + 1);
     }
 
 
