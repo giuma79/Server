@@ -16,6 +16,7 @@ public class HysteresisFilter implements DatumListener {
     HashMap<SENSOR_TYPE,List<Double>> heightsHashMap; // 5 numbers, using P squared algorithm for calculating median without storing values
     HashMap<SENSOR_TYPE,List<Integer>> markersHashMap;
     HashMap<SENSOR_TYPE,List<Double>> desiredMarkersHashMap;
+    HashMap<SENSOR_TYPE,List<Double>> medianChangesHashMap;
 
     HashMap<SENSOR_TYPE,Boolean> convergedHashMap;
     HashMap<SENSOR_TYPE,Long> dataToKBCount; // number of data points pushed into knowledge base
@@ -23,6 +24,7 @@ public class HysteresisFilter implements DatumListener {
     KnowledgeBase knowledge;
     LutraMadaraContainers containers;
     boolean dwelling;
+    double oldMedian;
 
     final double percentile = 0.5;
     final double[] increment = new double[] {0, percentile/2.0, percentile, (1.0 + percentile)/2.0, 1};
@@ -41,6 +43,7 @@ public class HysteresisFilter implements DatumListener {
         for (SENSOR_TYPE type : SENSOR_TYPE.environmental) {
             convergedHashMap.put(type,!type.hysteresis); // non-hysteresis sensors are inherently converged
         }
+        oldMedian = 1e30; // humongous value rather than infinity so weird NaN stuff doesn't happen
     }
 
     @Override
@@ -73,20 +76,74 @@ public class HysteresisFilter implements DatumListener {
     }
 
     void checkForConvergence(Datum datum) {
-        List<Double> entry = heightsHashMap.get(datum.getType());
-        if (entry.size() < 5) {
-            entry.add(datum.getZ().getEntry(0,0));
+        SENSOR_TYPE type = datum.getType();
+        List<Double> heights = heightsHashMap.get(type);
+        List<Integer> markers = markersHashMap.get(type);
+        List<Double> desiredMarkers = desiredMarkersHashMap.get(type);
+        double newValue = datum.getZ().getEntry(0,0);
+        if (heights.size() < 5) {
+            heights.add(newValue);
             return;
         }
-        if (entry.size() == 5) { // need to sort initial list of five values in ASCENDING order
-            Collections.sort(entry);
+        if (heights.size() == 5) { // need to sort initial list of five values in ASCENDING order
+            Collections.sort(heights);
             return;
         }
 
         boolean converged = false;
         // TODO: P squared method for median without storing values
-        
+        double signSum = 0;
+        int k = 0;
+        for (int i = 0; i < 5; i++) {
+            signSum = Math.signum(newValue - heights.get(i));
+        }
+        if (signSum == -5) {
+            k = 1;
+            heights.set(1,newValue);
+        }
+        else if ((signSum == -4) || (signSum == -3)) {
+            k = 1;
+        }
+        else if ((signSum == -2) || (signSum == -1)) {
+            k = 2;
+        }
+        else if ((signSum == 0) || (signSum == 1)) {
+            k = 3;
+        }
+        else if ((signSum == 2) || (signSum == 3)) {
+            k = 4;
+        }
+        else {
+            k = 4;
+            heights.set(5,newValue);
+        }
 
+        for (int i = k; i < 5; i++) {
+            markers.set(i,markers.get(i) + 1);
+        }
+        for (int i = 1; i < 5; i++) {
+            desiredMarkers.set(i,desiredMarkers.get(i) + increment[i]);
+        }
+
+        for (int j = 1; j < 4; j++) {
+            double d = desiredMarkers.get(j) - markers.get(j);
+            if ((d >= 1 && (markers.get(j+1)-markers.get(j)) > 1) || (d <= -1 && (markers.get(j-1) - markers.get(j)) < -1)) {
+                d = Math.signum(d);
+                double candidateHeight = heights.get(j) + d/(markers.get(j+1)-markers.get(j-1))*
+                    ((markers.get(j)-markers.get(j-1)+d)*(heights.get(j+1)-heights.get(j))/(markers.get(j+1)-markers.get(j)) +
+                    (markers.get(j+1)-markers.get(j)-d)*(heights.get(j)-heights.get(j-1))/(markers.get(j)-markers.get(j-1)));
+                if ((heights.get(j-1) < candidateHeight) && (candidateHeight < heights.get(j+1))) {
+                    heights.set(j,candidateHeight);
+                }
+                else {
+                    heights.set(j,heights.get(j) + d*(heights.get(j + (int)d) - heights.get(j))/(markers.get(j + (int)d) - markers.get(j)));
+                }
+                markers.set(j,markers.get(j) + (int)d);
+            }
+        }
+
+        double median = heights.get(3);
+        double medianChange = median - oldMedian;
 
 
         if (converged) {
