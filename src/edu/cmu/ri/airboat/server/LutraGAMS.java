@@ -22,7 +22,7 @@ public class LutraGAMS extends AbstractVehicleServer {
     BaseController controller;
     LutraPlatform platform;
     QoSTransportSettings settings;
-    QoSTransportSettings simSettings;
+    //QoSTransportSettings simSettings;
 
     KnowledgeBase knowledge;
     BaseAlgorithm algorithm;

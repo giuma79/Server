@@ -29,7 +29,7 @@ public class HysteresisFilter implements DatumListener {
     final double percentile = 0.5;
     final double[] increment = new double[] {0, percentile/2.0, percentile, (1.0 + percentile)/2.0, 1};
     final double[] defaultDesiredMarkers = new double[] {1, 1+2*percentile, 1+4*percentile, 3+2*percentile, 5};
-    //final int[] defaultMarkers = new int[] {1, 2, 3, 4, 5};
+    final double WORST_ONE_SECOND_MEDIAN_CHANGE_ALLOWED = 0.25;
 
     HysteresisFilter(KnowledgeBase knowledge, LutraMadaraContainers containers) {
         this.knowledge = knowledge;
@@ -80,6 +80,7 @@ public class HysteresisFilter implements DatumListener {
         List<Double> heights = heightsHashMap.get(type);
         List<Integer> markers = markersHashMap.get(type);
         List<Double> desiredMarkers = desiredMarkersHashMap.get(type);
+        List<Double> medianChanges = medianChangesHashMap.get(type);
         double newValue = datum.getZ().getEntry(0,0);
         if (heights.size() < 5) {
             heights.add(newValue);
@@ -144,7 +145,22 @@ public class HysteresisFilter implements DatumListener {
 
         double median = heights.get(3);
         double medianChange = median - oldMedian;
+        oldMedian = median;
 
+        if (Math.abs(medianChange) > 0) {
+            medianChanges.add(medianChange);
+            if (medianChanges.size() > type.Hz) {
+                medianChanges.remove(1); // only maintain last second's worth of measurements
+            }
+
+            double max = -1e30;
+            for (Double change : medianChanges) {
+                max = Math.max(max,Math.abs(change));
+            }
+            if (max < WORST_ONE_SECOND_MEDIAN_CHANGE_ALLOWED) {
+                converged = true;
+            }
+        }
 
         if (converged) {
             convergedHashMap.put(datum.getType(), true);

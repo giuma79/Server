@@ -101,7 +101,7 @@ public class LutraPlatform extends BasePlatform {
         containers = new LutraMadaraContainers(knowledge,self,thrustType); // has to occur AFTER super.init, or "self" will be null
         boatEKF = new BoatEKF(knowledge,containers); // has to occur AFTER containers() b/c it needs "self"
         boatMotionController = new BoatMotionController(knowledge,boatEKF,containers);
-        //hysteresisFilter = new HysteresisFilter(knowledge, containers);
+        hysteresisFilter = new HysteresisFilter(knowledge, containers);
         velocityProfileListener = boatMotionController;
         Datum.setContainersObject(containers);
     }
