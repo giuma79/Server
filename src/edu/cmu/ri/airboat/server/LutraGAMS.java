@@ -1,5 +1,7 @@
 package edu.cmu.ri.airboat.server;
 
+import android.provider.Settings;
+
 import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.data.Twist;
 import edu.cmu.ri.crw.data.UtmPose;
@@ -7,8 +9,12 @@ import edu.cmu.ri.crw.data.UtmPose;
 import com.gams.algorithms.BaseAlgorithm;
 import com.gams.controllers.BaseController;
 import com.madara.KnowledgeBase;
+import com.madara.logger.GlobalLogger;
 import com.madara.transport.QoSTransportSettings;
 import com.madara.transport.TransportType;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * @author jjb
@@ -26,6 +32,12 @@ public class LutraGAMS extends AbstractVehicleServer {
 
     KnowledgeBase knowledge;
     BaseAlgorithm algorithm;
+
+    private static String MadaraLogFilename() {
+        Date d = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
+        return "MADARA_LOG_" + sdf.format(d) + ".txt";
+    }
 
     public LutraGAMS(int id, int teamSize, THRUST_TYPES thrustType) {
         this.id = id;
@@ -52,8 +64,10 @@ public class LutraGAMS extends AbstractVehicleServer {
 
         controller = new BaseController(knowledge);
 
-        com.madara.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
-        //com.madara.logger.GlobalLogger.setLevel(6);
+        GlobalLogger.addFile(MadaraLogFilename());
+        GlobalLogger.setTimestampFormat("%F  %X: ");
+        GlobalLogger.setLevel(5);
+
         //com.gams.utility.Logging.setLevel(6);
     }
 
