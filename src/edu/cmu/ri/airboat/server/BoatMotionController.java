@@ -24,6 +24,8 @@ public class BoatMotionController implements VelocityProfileListener {
     Long tOld;
     double dt;
     double t0; // time at the start of the velocity profile
+    double tRampStart;
+    double tRampCurrent;
     boolean t0set;
     boolean pointing;
     LutraMadaraContainers containers;
@@ -41,7 +43,6 @@ public class BoatMotionController implements VelocityProfileListener {
     double thrustSignal = 0.0;
     DatumListener datumListener;
     VelocityMotorMap velocityMotorMap;
-
 
     public BoatMotionController(KnowledgeBase knowledge, BoatEKF boatEKF, LutraMadaraContainers containers) {
         this.knowledge = knowledge;

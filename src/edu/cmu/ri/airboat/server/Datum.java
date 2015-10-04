@@ -1,9 +1,16 @@
 package edu.cmu.ri.airboat.server;
 
+import android.os.Environment;
+import android.util.Log;
+
 import com.gams.utility.Position;
 
 import org.apache.commons.math.linear.RealMatrix;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -26,7 +33,8 @@ enum SENSOR_TYPE {
     TEMP(SENSOR_CATEGORY.ENVIRONMENTAL,true,20.0),
     DO(SENSOR_CATEGORY.ENVIRONMENTAL,true,5.0),
     WIFI(SENSOR_CATEGORY.ENVIRONMENTAL,false,1.0),
-    DEPTH(SENSOR_CATEGORY.ENVIRONMENTAL,false,1.0);
+    DEPTH(SENSOR_CATEGORY.ENVIRONMENTAL,false,1.0),
+    FLOW(SENSOR_CATEGORY.ENVIRONMENTAL,true,5.0);
 
     SENSOR_CATEGORY category;
     boolean hysteresis;
@@ -38,7 +46,7 @@ enum SENSOR_TYPE {
         this.Hz = Hz;
     }
     public static Set<SENSOR_TYPE> localization = EnumSet.of(GPS, COMPASS, GYRO, IMU, DGPS, MOTOR);
-    public static Set<SENSOR_TYPE> environmental = EnumSet.of(EC, TEMP, DO, WIFI, DEPTH);
+    public static Set<SENSOR_TYPE> environmental = EnumSet.of(EC, TEMP, DO, WIFI, DEPTH, FLOW);
 
     /*
     public static int getEnvironmentalOrdinal(SENSOR_TYPE type) { // return index of environmental sensor --> not necessary if you use a HashMap
@@ -74,6 +82,7 @@ public class Datum {
     Date dateobj;
 
     static LutraMadaraContainers containers;
+    private static FileOutputStream logFileWriter;
 
     public Datum(SENSOR_TYPE type, Long timestamp, RealMatrix z, int boatID) {
         this.type = type;
@@ -165,6 +174,31 @@ public class Datum {
         //long currentCount = ;
 
 
+    }
+
+    private static String EnvironmentalLogFilename() {
+        Date d = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
+        return "ENVIRONMENTAL_DATA_" + sdf.format(d) + ".txt";
+    }
+
+    public static void establishLogger() {
+        File logfile = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
+        String filename = EnvironmentalLogFilename();
+        String path = logfile.getPath() + "/" + filename;
+        try {
+            logFileWriter = new FileOutputStream(path);
+        } catch (FileNotFoundException e) {
+            Log.e("jjb_DATA_LOGGER", e.toString() + ": failed to create " + filename);
+        }
+    }
+
+    public void pushToLog() {
+        try {
+            logFileWriter.write(toString().getBytes());
+        }catch(IOException e) {
+        }catch (NullPointerException e){
+        }
     }
 
 

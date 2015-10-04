@@ -53,6 +53,7 @@ public class LutraPlatform extends BasePlatform {
     RealMatrix velocityProfile = MatrixUtils.createRealMatrix(timeSteps, 3); // t, vel., pos.
     LatLong latLong;
     RealMatrix covariance = MatrixUtils.createRealMatrix(2,2);
+    final double FLOW_MEASUREMENT_HZ = 5.0;
 
     class FilterAndControllerThread extends BaseThread {
         @Override
@@ -77,6 +78,29 @@ public class LutraPlatform extends BasePlatform {
         @Override
         public void run() {
             knowledge.print();
+        }
+    }
+
+    class FlowMeasurementThread extends BaseThread {
+        @Override
+        public void run() {
+            // need both predicted velocity and global velocity
+            // also, only valid when bearing fraction is very small, like < 0.05
+            if (containers.bearingFraction.get() < 0.05) {
+                double vx = containers.localState.get(4);
+                double vy = containers.localState.get(5);
+                double vPredicted = boatMotionController.velocityMotorMap.thrustFractionToVelocity(containers.bearingFraction.get());
+                double vxPredicted = vPredicted*Math.cos(containers.localState.get(2));
+                double vyPredicted = vPredicted*Math.sin(containers.localState.get(2));
+                double fx = vx - vxPredicted;
+                double fy = vy - vyPredicted;
+                RealMatrix F = MatrixUtils.createRealMatrix(2,1);
+                F.setEntry(0,0,fx);
+                F.setEntry(1,0,fy);
+                Position position = new Position(self.device.location.get(0),self.device.location.get(1),0.0);
+                Datum datum = new Datum(SENSOR_TYPE.FLOW,position,System.currentTimeMillis(),F,(int)self.id.get());
+                hysteresisFilter.newDatum(datum);
+            }
         }
     }
 
@@ -110,6 +134,7 @@ public class LutraPlatform extends BasePlatform {
         startTime = System.currentTimeMillis();
         threader.run(containers.controlHz, "FilterAndController", new FilterAndControllerThread());
         threader.run(1.0,"KBPrinting", new KBPrintingThread());
+        threader.run(FLOW_MEASUREMENT_HZ,"FlowMeasurement",new FlowMeasurementThread());
     }
 
 

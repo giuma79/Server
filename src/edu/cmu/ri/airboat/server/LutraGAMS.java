@@ -52,8 +52,8 @@ public class LutraGAMS extends AbstractVehicleServer {
 
         controller = new BaseController(knowledge);
 
+        com.madara.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
         //com.madara.logger.GlobalLogger.setLevel(6);
-        //com.madara.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
         //com.gams.utility.Logging.setLevel(6);
     }
 

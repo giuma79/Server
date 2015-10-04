@@ -58,7 +58,7 @@ public class HysteresisFilter implements DatumListener {
             datum.toKnowledgeBase(); //push into knowledge base
             incrementCount(datum.getType());
         }
-        // TODO: save logString to file
+        datum.pushToLog();
     }
 
     public void filter(Datum datum) {
@@ -92,11 +92,11 @@ public class HysteresisFilter implements DatumListener {
         }
 
         boolean converged = false;
-        // TODO: P squared method for median without storing values
+
         double signSum = 0;
         int k = 0;
         for (int i = 0; i < 5; i++) {
-            signSum = Math.signum(newValue - heights.get(i));
+            signSum += Math.signum(newValue - heights.get(i));
         }
         if (signSum == -5) {
             k = 1;

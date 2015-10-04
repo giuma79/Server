@@ -59,6 +59,7 @@ import android.os.PowerManager.WakeLock;
 import android.os.StrictMode;
 import android.util.Log;
 
+import com.gams.utility.Position;
 import com.google.code.microlog4android.LoggerFactory;
 import com.google.code.microlog4android.appender.FileAppender;
 import com.google.code.microlog4android.config.PropertyConfigurator;
@@ -162,7 +163,11 @@ public class AirboatService extends Service {
             wifiLog = Double.toString(lat);
             wifiLog = wifiLog + " , " + lon + " : ";
 
-            //environmentalDataToContainer(SENSOR_TYPE.WIFI, (double)signalStrength);
+            RealMatrix W = MatrixUtils.createRealMatrix(1,1);
+            W.setEntry(0,0,signalStrength);
+            Position position = new Position(lat,lon,0.0);
+            Datum datum = new Datum(SENSOR_TYPE.WIFI,position,System.currentTimeMillis(),W,_id);
+            environmentalListener.newDatum(datum);
 
         }
         else {
@@ -185,23 +190,9 @@ public class AirboatService extends Service {
         scanHandler.removeCallbacks(scanStatusChecker);
     }
 
-    /*
-    void environmentalDataToContainer(SENSOR_TYPE type, double value) {
-        long[] a = lutra.platform.containers.environmentalDataCount; // just a shorter variable name
-        FlexMap flexMap = new FlexMap();
-        flexMap.setName(lutra.knowledge, String.format("environmentalData.%s",
-                Datum.typeString(type)));
-        flexMap.get("device").set(_id);
-        flexMap.get("time").set(System.currentTimeMillis());
-        a[SENSOR_TYPE.getEnvironmentalOrdinal(SENSOR_TYPE.WIFI)] += 1;
-        flexMap.get((int)a[SENSOR_TYPE.getEnvironmentalOrdinal(SENSOR_TYPE.WIFI)])
-                .get("value").set(value);
-        flexMap.free();
-    }
-    */
-
     /////////////////////////////////////////
-    DatumListener datumListener;
+    DatumListener localizationListener;
+    DatumListener environmentalListener;
     List<Datum> gpsHistory; // maintain a list of GPS data within some time window
     final double gpsHistoryTimeWindow = 3.0; // if a gps point is older than X seconds, abandon it
     Long t; // current time in this thread
@@ -252,7 +243,7 @@ public class AirboatService extends Service {
         R.setEntry(0, 0, 0.25); // probably overconfidence, but useless if we don't incorporate it
         R.setEntry(1, 1, 0.25);
         Datum datum2 = new Datum(SENSOR_TYPE.DGPS,t,z,R,_id);
-        datumListener.newDatum(datum2);
+        localizationListener.newDatum(datum2);
 
         //String DGPSString = String.format("DGPS has enough measurements to activate -- z = %s",RMO.realMatrixToString(z));
         //Log.w("jjb",DGPSString);
@@ -406,7 +397,7 @@ public class AirboatService extends Service {
             R.setEntry(1,1,20.0);
             t = System.currentTimeMillis();
             Datum datum = new Datum(SENSOR_TYPE.GPS,t,z,R, _id);
-            datumListener.newDatum(datum);
+            localizationListener.newDatum(datum);
 
             gpsVelocity(datum);
 
@@ -470,7 +461,7 @@ public class AirboatService extends Service {
                 //R.setEntry(0,0,0.0); // trust sensor completely for testing purposes only
                 t = System.currentTimeMillis();
                 Datum datum = new Datum(SENSOR_TYPE.COMPASS,t,z,R,_id);
-                datumListener.newDatum(datum);
+                localizationListener.newDatum(datum);
                 /////////////////////////////////////////////////////////////////////
 
 
@@ -533,7 +524,7 @@ public class AirboatService extends Service {
                     R.setEntry(0, 0, covarianceScale); // needs to grow logarithmically until a baseline
                     R.setEntry(1, 1, covarianceScale); // needs to grow logarithmically until a baseline
                     Datum datum = new Datum(SENSOR_TYPES.IMU, t, z, R, _id);
-                    datumListener.newDatum(datum);
+                    localizationListener.newDatum(datum);
                 }
                 else {
                     double[] x = new double[]{tSeconds,imuVelocity[0]};
@@ -637,7 +628,7 @@ public class AirboatService extends Service {
             R.setEntry(0,0,0.1); // [rad/s]
             t = System.currentTimeMillis();
             Datum datum = new Datum(SENSOR_TYPE.GYRO,t,z,R,_id);
-            datumListener.newDatum(datum);
+            localizationListener.newDatum(datum);
 
             /////////////////////////////////////////////////////////////////////
         }
@@ -867,7 +858,8 @@ public class AirboatService extends Service {
         readMadaraConfig();
         lutra = new LutraGAMS(_id,_teamSize,_thrustType);
         lutra.start(lutra);
-        datumListener = lutra.platform.boatEKF;
+        localizationListener = lutra.platform.boatEKF;
+        environmentalListener = lutra.platform.hysteresisFilter;
         startWifiScanning();
 
         ////////////////////////////////////////////////////////////////////////
@@ -1203,14 +1195,23 @@ public class AirboatService extends Service {
                     if (value.has("type")) {
                         String type = value.getString("type");
                         if (type.equalsIgnoreCase("es2")) {
-                            SensorData reading = new SensorData();
-                            reading.channel = sensor;
-                            reading.type = VehicleServer.SensorType.TE;
-                            reading.data = new double[] {
-                                    value.getDouble("t"),
-                                    value.getDouble("c")
-                            };
+                            //SensorData reading = new SensorData();
+                            //reading.channel = sensor;
+                            //reading.type = VehicleServer.SensorType.TE;
+                            //reading.data = new double[] {
+                            //        value.getDouble("t"),
+                            //        value.getDouble("c")
+                            //};
                             //sendSensor(sensor, reading);
+                            RealMatrix T = MatrixUtils.createRealMatrix(1,1);
+                            T.setEntry(0,0,value.getDouble("t"));
+                            RealMatrix EC = MatrixUtils.createRealMatrix(1,1);
+                            EC.setEntry(0,0,value.getDouble("c"));
+                            Position position = new Position(lutra.platform.self.device.location.get(0),lutra.platform.self.device.location.get(1),0.0);
+                            Datum newTDatum = new Datum(SENSOR_TYPE.TEMP,position,System.currentTimeMillis(),T,_id);
+                            Datum newECDatum = new Datum(SENSOR_TYPE.EC,position,System.currentTimeMillis(),EC,_id);
+                            localizationListener.newDatum(newTDatum);
+                            localizationListener.newDatum(newECDatum);
                         }
                         else if (type.equalsIgnoreCase("hdf5")) {
                             String nmea = value.getString("nmea");
@@ -1287,7 +1288,7 @@ public class AirboatService extends Service {
                     R.setEntry(1, 1, 5.0);
                     t = System.currentTimeMillis();
                     Datum datum = new Datum(SENSOR_TYPE.GPS,t,z,R,_id);
-                    datumListener.newDatum(datum);
+                    localizationListener.newDatum(datum);
 
                     gpsVelocity(datum);
 
