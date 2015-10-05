@@ -251,7 +251,7 @@ public class BoatMotionController implements VelocityProfileListener {
             trueT = (m0 + m1)/2;
             trueB = (m0 - m1)/2;
         }
-        if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
+        else if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
             m0 = Math.sqrt(Math.pow(T,2.0)+Math.pow(B,2.0));
             m1 = 2/Math.PI*Math.asin(B/Math.sqrt(Math.pow(T,2.0)+Math.pow(B,2.0)));
             trueT = T;

@@ -1,6 +1,7 @@
 package edu.cmu.ri.airboat.server;
 
 import android.provider.Settings;
+import android.util.Log;
 
 import edu.cmu.ri.crw.AbstractVehicleServer;
 import edu.cmu.ri.crw.data.Twist;
@@ -36,7 +37,7 @@ public class LutraGAMS extends AbstractVehicleServer {
     private static String MadaraLogFilename() {
         Date d = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
-        return "MADARA_LOG_" + sdf.format(d) + ".txt";
+        return "/mnt/sdcard/MADARA_LOG_" + sdf.format(d) + ".txt";
     }
 
     public LutraGAMS(int id, int teamSize, THRUST_TYPES thrustType) {
@@ -47,7 +48,7 @@ public class LutraGAMS extends AbstractVehicleServer {
         settings = new QoSTransportSettings();
         settings.setHosts(new String[]{"192.168.1.255:15000"});
         settings.setType(TransportType.BROADCAST_TRANSPORT);
-        //settings.setRebroadcastTtl(2);
+        //settings.setRebroadcastTtl(1);
         //settings.enableParticipantTtl(1);
         settings.setDeadline(2);
 
@@ -64,9 +65,15 @@ public class LutraGAMS extends AbstractVehicleServer {
 
         controller = new BaseController(knowledge);
 
-        GlobalLogger.addFile(MadaraLogFilename());
-        GlobalLogger.setTimestampFormat("%F  %X: ");
-        GlobalLogger.setLevel(5);
+
+        Log.i("jjb","ABOUT TO CREATE MADARA LOGFILE");
+        GlobalLogger.clear();
+        //GlobalLogger.setLevel(1);
+        //GlobalLogger.setTimestampFormat("%F  %X: ");
+        //GlobalLogger.addFile(MadaraLogFilename());
+
+
+
 
         //com.gams.utility.Logging.setLevel(6);
     }

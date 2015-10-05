@@ -60,6 +60,7 @@ import android.os.StrictMode;
 import android.util.Log;
 
 import com.gams.utility.Position;
+import com.google.code.microlog4android.Logger;
 import com.google.code.microlog4android.LoggerFactory;
 import com.google.code.microlog4android.appender.FileAppender;
 import com.google.code.microlog4android.config.PropertyConfigurator;
@@ -293,6 +294,9 @@ public class AirboatService extends Service {
     private static final String TAG = AirboatService.class.getName();
     private static final com.google.code.microlog4android.Logger logger = LoggerFactory
             .getLogger();
+
+
+
 
     // Default values for parameters
     private static final String DEFAULT_LOG_PREFIX = "airboat_";
@@ -668,11 +672,14 @@ public class AirboatService extends Service {
         String filename = String.format("WIFI_LOG_%d.txt",System.currentTimeMillis());
         String path = logfile.getPath() + "/" + filename;
         try {
-            logFileWriter = new FileOutputStream(path);
+            //logFileWriter = new FileOutputStream(path);
+            logFileWriter = new FileOutputStream("/mnt/sdcard/" + filename);
         } catch (FileNotFoundException e) {
             Log.d(WIFITAG, "... " + e.toString() + ": failed to create " + filename);
         }
         ////////////////////////////////////////////////////////////////////////
+
+        Datum.establishLogger(); // start the environmental data logger
 
         // Disable all DNS lookups (safer for private/ad-hoc networks)
         CrwSecurityManager.loadIfDNSIsSlow();
@@ -785,6 +792,7 @@ public class AirboatService extends Service {
         _fileAppender.setFileName(logFilename);
         _fileAppender.setAppend(true);
         _fileAppender.setFormatter(formatter);
+
         try {
             _fileAppender.open();
         } catch (IOException e) {
@@ -1022,6 +1030,7 @@ public class AirboatService extends Service {
         try {
             stopWifiScanning();
             logFileWriter.close();
+            Datum.endLog();
         }catch(IOException e) {
         }catch (NullPointerException e){
 

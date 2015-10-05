@@ -4,6 +4,10 @@ import android.os.Environment;
 import android.util.Log;
 
 import com.gams.utility.Position;
+import com.google.code.microlog4android.Logger;
+import com.google.code.microlog4android.LoggerFactory;
+import com.google.code.microlog4android.appender.FileAppender;
+import com.google.code.microlog4android.format.PatternFormatter;
 
 import org.apache.commons.math.linear.RealMatrix;
 
@@ -83,6 +87,8 @@ public class Datum {
 
     static LutraMadaraContainers containers;
     private static FileOutputStream logFileWriter;
+    //private static final Logger newLogger = LoggerFactory.getLogger();
+    //private static final FileAppender fileAppender = new FileAppender();
 
     public Datum(SENSOR_TYPE type, Long timestamp, RealMatrix z, int boatID) {
         this.type = type;
@@ -179,25 +185,51 @@ public class Datum {
     private static String EnvironmentalLogFilename() {
         Date d = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
-        return "ENVIRONMENTAL_DATA_" + sdf.format(d) + ".txt";
+        return "/mnt/sdcard/ENVIRONMENTAL_DATA_" + sdf.format(d) + ".txt";
     }
 
     public static void establishLogger() {
-        File logfile = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
-        String filename = EnvironmentalLogFilename();
-        String path = logfile.getPath() + "/" + filename;
+        /*
+        String logFilename = EnvironmentalLogFilename();
+        fileAppender.setFileName(logFilename);
+        fileAppender.setAppend(true);
+        PatternFormatter formatter = new PatternFormatter();
+        fileAppender.setFormatter(formatter);
+
         try {
-            logFileWriter = new FileOutputStream(path);
+            fileAppender.open();
+        } catch (IOException e) {
+            Log.e("jjb", "Failed to open data log file: " + logFilename, e);
+        }
+        newLogger.addAppender(fileAppender);
+        */
+
+
+        //File logfile = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
+        String filename = EnvironmentalLogFilename();
+        //String path = logfile.getPath() + "/" + filename;
+        try {
+            logFileWriter = new FileOutputStream(filename);
         } catch (FileNotFoundException e) {
             Log.e("jjb_DATA_LOGGER", e.toString() + ": failed to create " + filename);
         }
+
     }
 
     public void pushToLog() {
         try {
-            logFileWriter.write(toString().getBytes());
+            //newLogger.info(toString());
+            logFileWriter.write((toString() + "\n").getBytes());
         }catch(IOException e) {
         }catch (NullPointerException e){
+        }
+    }
+
+    public static void endLog() {
+        try {
+            //newLogger.close();
+            logFileWriter.close();
+        }catch(IOException e) {
         }
     }
 

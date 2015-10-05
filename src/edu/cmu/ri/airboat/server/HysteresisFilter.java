@@ -193,7 +193,12 @@ public class HysteresisFilter implements DatumListener {
         return convergedHashMap.get(type);
     }
     void incrementCount(SENSOR_TYPE type) {
-        dataToKBCount.put(type,dataToKBCount.get(type) + 1);
+        if (!dataToKBCount.containsKey(type)) {
+            dataToKBCount.put(type,1L);
+        }
+        else {
+            dataToKBCount.put(type, dataToKBCount.get(type) + 1);
+        }
     }
 
 
