@@ -41,10 +41,16 @@ public class HysteresisFilter implements DatumListener {
         heightsHashMap = new HashMap<>();
         markersHashMap = new HashMap<>();
         desiredMarkersHashMap = new HashMap<>();
+        medianChangesHashMap = new HashMap<>();
         convergedHashMap = new HashMap<>();
         dataToKBCount = new HashMap<>();
-        for (SENSOR_TYPE type : SENSOR_TYPE.environmental) {
+        for (SENSOR_TYPE type : SENSOR_TYPE.environmental) { // need to initialize hashmaps
+            heightsHashMap.put(type,new ArrayList<Double>());
+            markersHashMap.put(type,new ArrayList<Integer>());
+            desiredMarkersHashMap.put(type,new ArrayList<Double>());
+            medianChangesHashMap.put(type,new ArrayList<Double>());
             convergedHashMap.put(type,!type.hysteresis); // non-hysteresis sensors are inherently converged
+            dataToKBCount.put(type,0L);
         }
         oldMedian = 1e30; // humongous value rather than infinity so weird NaN stuff doesn't happen
     }

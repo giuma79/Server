@@ -72,12 +72,12 @@ public class LutraGAMS extends AbstractVehicleServer {
         com.madara.logger.GlobalLogger.clear();
         com.madara.logger.GlobalLogger.setLevel(3);
         com.madara.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
-        //com.madara.logger.GlobalLogger.addFile(MadaraLogFilename());
+        com.madara.logger.GlobalLogger.addFile(MadaraLogFilename());
 
         com.gams.logger.GlobalLogger.clear();
         com.gams.logger.GlobalLogger.setLevel(3);
         com.gams.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
-        //com.gams.logger.GlobalLogger.addFile(GAMSLogFilename());
+        com.gams.logger.GlobalLogger.addFile(GAMSLogFilename());
     }
 
 

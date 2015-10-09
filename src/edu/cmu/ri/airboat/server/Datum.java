@@ -2,7 +2,6 @@ package edu.cmu.ri.airboat.server;
 
 import android.util.Log;
 import org.apache.commons.math.linear.RealMatrix;
-import org.jscience.geography.coordinates.LatLong;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -33,7 +32,7 @@ enum SENSOR_TYPE {
     DO(SENSOR_CATEGORY.ENVIRONMENTAL,"DO",true,5.0),
     WIFI(SENSOR_CATEGORY.ENVIRONMENTAL,"WIFI",false,1.0),
     DEPTH(SENSOR_CATEGORY.ENVIRONMENTAL,"DEPTH",false,1.0),
-    FLOW(SENSOR_CATEGORY.ENVIRONMENTAL,"FLOW",true,5.0);
+    FLOW(SENSOR_CATEGORY.ENVIRONMENTAL,"FLOW",true,1.0);
 
     SENSOR_CATEGORY category;
     boolean hysteresis;
@@ -156,21 +155,6 @@ public class Datum {
     }
 
     public static void establishLogger() {
-        /*
-        String logFilename = EnvironmentalLogFilename();
-        fileAppender.setFileName(logFilename);
-        fileAppender.setAppend(true);
-        PatternFormatter formatter = new PatternFormatter();
-        fileAppender.setFormatter(formatter);
-
-        try {
-            fileAppender.open();
-        } catch (IOException e) {
-            Log.e("jjb", "Failed to open data log file: " + logFilename, e);
-        }
-        newLogger.addAppender(fileAppender);
-        */
-
 
         //File logfile = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
         String filename = EnvironmentalLogFilename();
@@ -188,7 +172,6 @@ public class Datum {
         String stringForLog = (toString() + "\n");
 
         try {
-            //newLogger.info(toString());
             logFileWriter.write(stringForLog.getBytes());
         }catch(IOException e) {
         }catch (NullPointerException e){
@@ -197,7 +180,6 @@ public class Datum {
 
     public static void endLog() {
         try {
-            //newLogger.close();
             logFileWriter.close();
         }catch(IOException e) {
         }

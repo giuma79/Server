@@ -53,7 +53,6 @@ public class LutraPlatform extends BasePlatform {
     RealMatrix velocityProfile = MatrixUtils.createRealMatrix(timeSteps, 3); // t, vel., pos.
     LatLong latLong;
     RealMatrix covariance = MatrixUtils.createRealMatrix(2,2);
-    final double FLOW_MEASUREMENT_HZ = 5.0;
 
     class FilterAndControllerThread extends BaseThread {
         @Override
@@ -135,7 +134,7 @@ public class LutraPlatform extends BasePlatform {
         startTime = System.currentTimeMillis();
         threader.run(containers.controlHz, "FilterAndController", new FilterAndControllerThread());
         threader.run(1.0,"KBPrinting", new KBPrintingThread());
-        threader.run(FLOW_MEASUREMENT_HZ,"FlowMeasurement",new FlowMeasurementThread());
+        threader.run(SENSOR_TYPE.FLOW.Hz,"FlowMeasurement",new FlowMeasurementThread());
     }
 
 

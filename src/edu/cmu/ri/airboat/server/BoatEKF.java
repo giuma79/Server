@@ -108,7 +108,7 @@ public class BoatEKF implements DatumListener {
             Log.i("jjb_GYRO",String.format("received gyro datum z = %.2f", datum.getZ().getEntry(0,0)*180.0/Math.PI));
         }
         if (datum.getType() == SENSOR_TYPE.GPS) {
-            Log.i("jjb_GYRO",String.format("received GPS datum X = %.6e  Y = %.6e", datum.getZ().getEntry(0,0), datum.getZ().getEntry(1,0)));
+            Log.i("jjb_GPS",String.format("received GPS datum X = %.6e  Y = %.6e", datum.getZ().getEntry(0,0), datum.getZ().getEntry(1,0)));
         }
 
         //String timeString = String.format("EKF.t BEFORE = %d",t);
