@@ -1204,21 +1204,14 @@ public class AirboatService extends Service {
                     if (value.has("type")) {
                         String type = value.getString("type");
                         if (type.equalsIgnoreCase("es2")) {
-                            //SensorData reading = new SensorData();
-                            //reading.channel = sensor;
-                            //reading.type = VehicleServer.SensorType.TE;
-                            //reading.data = new double[] {
-                            //        value.getDouble("t"),
-                            //        value.getDouble("c")
-                            //};
-                            //sendSensor(sensor, reading);
 
-                            Log.i("jjb_ES2",String.format("Received ES2 data: T = %f, EC = %f",value.getDouble("t"),value.getDouble("c")));
+                            String[] data = value.getString("data").trim().split(" ");
+                            Log.i("jjb_ES2",String.format("Received ES2 data: T = %f, EC = %f",Double.parseDouble(data[1]),Double.parseDouble(data[0])));
 
                             RealMatrix T = MatrixUtils.createRealMatrix(1,1);
-                            T.setEntry(0,0,value.getDouble("t"));
+                            T.setEntry(0,0,Double.parseDouble(data[1]));
                             RealMatrix EC = MatrixUtils.createRealMatrix(1,1);
-                            EC.setEntry(0,0,value.getDouble("c"));
+                            EC.setEntry(0,0,Double.parseDouble(data[0]));
                             double lat = lutra.platform.self.device.location.get(0);
                             double lon = lutra.platform.self.device.location.get(1);
                             Datum newTDatum = new Datum(SENSOR_TYPE.TEMP,System.currentTimeMillis(),T,lat,lon,_id);
