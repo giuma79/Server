@@ -134,12 +134,12 @@ public class BoatEKF implements DatumListener {
         // warning if datum timestamp is too far away from filter's current time
         if ((datum.getTimestamp().doubleValue() - t.doubleValue())/1000.0 > ROLLBACK_LIMIT) {
             String warning = String.format(
-                    "WARNING: %s sensor is more than %f seconds AHEAD of filter",datum.typeString(datum.getType()),ROLLBACK_LIMIT);
+                    "WARNING: %s sensor is more than %f seconds AHEAD of filter",datum.getType().typeString,ROLLBACK_LIMIT);
             Log.w("jjb",warning);
         }
         else if ((datum.getTimestamp().doubleValue() - t.doubleValue())/1000.0 < -ROLLBACK_LIMIT) {
             String warning = String.format(
-                    "WARNING: %s sensor is more than %f seconds BEHIND of filter",datum.typeString(datum.getType()),ROLLBACK_LIMIT);
+                    "WARNING: %s sensor is more than %f seconds BEHIND of filter",datum.getType().typeString,ROLLBACK_LIMIT);
             Log.w("jjb",warning);
         }
 
