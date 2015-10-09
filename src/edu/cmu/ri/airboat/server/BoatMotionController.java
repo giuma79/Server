@@ -138,13 +138,26 @@ public class BoatMotionController implements VelocityProfileListener {
                 String xErrorDiffString = String.format("xErrorDiff = %s", RMO.realMatrixToString(xErrorDiff));
                 Log.i("jjb_XERRORDIFF",xErrorDiffString);
 
-                double Pterm = simplePIDGains[1][0] * xError.getEntry(2, 0);
+                double Pterm = 0.0;
                 double Iterm = 0.0;
                 double Dterm = 0.0;
-                if (pointing) {
-                    Dterm = simplePIDGains[1][2] * xErrorDiff.getEntry(2, 0);
-                } else {
-                    Iterm = simplePIDGains[1][1] * simplePIDErrorAccumulator[2];
+                if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
+                    Pterm = simplePIDGains[1][0] * xError.getEntry(2, 0);
+                    if (pointing) {
+                        Dterm = simplePIDGains[1][2] * xErrorDiff.getEntry(2, 0);
+                    } else {
+                        Iterm = simplePIDGains[1][1] * simplePIDErrorAccumulator[2];
+                    }
+                }
+                else if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
+                    if (pointing) {
+                        Pterm = simplePIDGains[1][0] * xError.getEntry(2, 0);
+                        Dterm = simplePIDGains[1][2] * xErrorDiff.getEntry(2, 0);
+                    } else {
+                        Pterm = 0.1*simplePIDGains[1][0] * xError.getEntry(2, 0);
+                        Iterm = simplePIDGains[1][1] * simplePIDErrorAccumulator[2];
+                        Dterm = 0.1*simplePIDGains[1][2] * xErrorDiff.getEntry(2, 0);
+                    }
                 }
 
                 headingSignal = Pterm + Iterm + Dterm;

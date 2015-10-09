@@ -167,7 +167,7 @@ public class AirboatService extends Service {
             RealMatrix W = MatrixUtils.createRealMatrix(1,1);
             W.setEntry(0,0,signalStrength);
             Position position = new Position(lat,lon,0.0);
-            Datum datum = new Datum(SENSOR_TYPE.WIFI,position,System.currentTimeMillis(),W,_id);
+            Datum datum = new Datum(SENSOR_TYPE.WIFI,System.currentTimeMillis(),W,lat,lon,_id);
             environmentalListener.newDatum(datum);
 
         }
@@ -1212,15 +1212,19 @@ public class AirboatService extends Service {
                             //        value.getDouble("c")
                             //};
                             //sendSensor(sensor, reading);
+
+                            Log.i("jjb_ES2",String.format("Received ES2 data: T = %f, EC = %f",value.getDouble("t"),value.getDouble("c")));
+
                             RealMatrix T = MatrixUtils.createRealMatrix(1,1);
                             T.setEntry(0,0,value.getDouble("t"));
                             RealMatrix EC = MatrixUtils.createRealMatrix(1,1);
                             EC.setEntry(0,0,value.getDouble("c"));
-                            Position position = new Position(lutra.platform.self.device.location.get(0),lutra.platform.self.device.location.get(1),0.0);
-                            Datum newTDatum = new Datum(SENSOR_TYPE.TEMP,position,System.currentTimeMillis(),T,_id);
-                            Datum newECDatum = new Datum(SENSOR_TYPE.EC,position,System.currentTimeMillis(),EC,_id);
-                            localizationListener.newDatum(newTDatum);
-                            localizationListener.newDatum(newECDatum);
+                            double lat = lutra.platform.self.device.location.get(0);
+                            double lon = lutra.platform.self.device.location.get(1);
+                            Datum newTDatum = new Datum(SENSOR_TYPE.TEMP,System.currentTimeMillis(),T,lat,lon,_id);
+                            Datum newECDatum = new Datum(SENSOR_TYPE.EC,System.currentTimeMillis(),EC,lat,lon,_id);
+                            environmentalListener.newDatum(newTDatum);
+                            environmentalListener.newDatum(newECDatum);
                         }
                         else if (type.equalsIgnoreCase("hdf5")) {
                             String nmea = value.getString("nmea");

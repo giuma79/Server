@@ -1,15 +1,8 @@
 package edu.cmu.ri.airboat.server;
 
-import android.os.Environment;
 import android.util.Log;
-
-import com.gams.utility.Position;
-import com.google.code.microlog4android.Logger;
-import com.google.code.microlog4android.LoggerFactory;
-import com.google.code.microlog4android.appender.FileAppender;
-import com.google.code.microlog4android.format.PatternFormatter;
-
 import org.apache.commons.math.linear.RealMatrix;
+import org.jscience.geography.coordinates.LatLong;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -20,6 +13,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.Set;
+
+import javax.measure.unit.NonSI;
 
 enum SENSOR_CATEGORY {
     LOCALIZATION, ENVIRONMENTAL
@@ -75,7 +70,8 @@ enum SENSOR_TYPE {
 public class Datum {
 
     SENSOR_TYPE type;
-    Position position;
+    double lat;
+    double lon;
     Long timestamp;
     RealMatrix z; // sensor value
     RealMatrix R; // sensor covariance
@@ -103,9 +99,10 @@ public class Datum {
         this(type,timestamp,z, boatID);
         this.R = R.copy();
     }
-    public Datum(SENSOR_TYPE type, Position position, Long timestamp, RealMatrix z, int boatID) { // for environmental data
+    public Datum(SENSOR_TYPE type, Long timestamp, RealMatrix z, double lat, double lon, int boatID) { // for environmental data
         this(type,timestamp,z, boatID);
-        this.position = position;
+        this.lat = lat;
+        this.lon = lon;
     }
 
     static void setContainersObject(LutraMadaraContainers inputContainers) {
@@ -114,19 +111,21 @@ public class Datum {
 
     public void setZ(RealMatrix z) {this.z = z.copy(); }
     public void setR(RealMatrix R) {this.R = R.copy(); }
-    public void setPosition(Position position) {this.position = position;}
+    public void setLat(double lat) {this.lat = lat;}
+    public void setLon(double lon) {this.lon = lon;}
     public void setTimestamp(Long timestamp) {this.timestamp = timestamp;}
     public void setType(SENSOR_TYPE type) {this.type = type;}
     public RealMatrix getZ() {return this.z.copy();}
     public SENSOR_TYPE getType() {return this.type;}
     public RealMatrix getR() {return this.R.copy();}
     public Long getTimestamp() {return this.timestamp;}
-    public Position getPosition() {return this.position;}
+    public double getLat() {return this.lat;}
+    public double getLon() {return this.lon;}
 
     @Override
     public String toString() {
         return String.format("TYPE = %s,  DATE = %s,  TIME = %d,  LAT = %.6e,  LONG = %.6e, VALUE = %s",
-                typeString(this.type),df.format(dateobj),timestamp,position.getX(),position.getY(),zString());
+                typeString(this.type),df.format(dateobj),timestamp,lat,lon,zString());
     }
 
     String zString () {
@@ -217,9 +216,12 @@ public class Datum {
     }
 
     public void pushToLog() {
+
+        String stringForLog = (toString() + "\n");
+
         try {
             //newLogger.info(toString());
-            logFileWriter.write((toString() + "\n").getBytes());
+            logFileWriter.write(stringForLog.getBytes());
         }catch(IOException e) {
         }catch (NullPointerException e){
         }

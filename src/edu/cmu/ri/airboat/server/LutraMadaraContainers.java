@@ -105,6 +105,8 @@ public class LutraMadaraContainers {
     final long defaultThrustType = THRUST_TYPES.DIFFERENTIAL.getLongValue();
     final double controlHz = 25.0; // frequency of control loop and sending the corresponding JSON commands
     final double[] bearingPIDGainsDefaults = new double[]{0.3,0.01,0.5}; // cols: P,I,D
+    // for airboat: 5, 0.1, 5
+
     final double[] thrustPIDGainsDefaults = new double[]{0.1,0,0.2}; // cols: P,I,D
     final double[] thrustPPIGainsDefaults = new double[]{0.2,0.2,0.05}; // cols: Pos-P, Vel-P, Vel-I
 

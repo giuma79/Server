@@ -1,5 +1,7 @@
 package edu.cmu.ri.airboat.server;
 
+import android.util.Log;
+
 import com.madara.KnowledgeBase;
 import com.madara.KnowledgeRecord;
 
@@ -7,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author jjb
@@ -50,6 +53,9 @@ public class HysteresisFilter implements DatumListener {
     public void newDatum(Datum datum) {
         SENSOR_TYPE type = datum.getType();
         String logString = datum.toString();
+
+        Log.i("jjb_HYSTERESIS",String.format("New datum: %s",datum.toString()));
+
         if (!isConverged(type)) {
             logString = logString + " -- WARNING: MAY HAVE HYSTERESIS";
             filter(datum);
@@ -76,6 +82,9 @@ public class HysteresisFilter implements DatumListener {
     }
 
     void checkForConvergence(Datum datum) {
+
+        Log.i("jjb_HYSTERESIS","new iteration of checkForConvergence() ");
+
         SENSOR_TYPE type = datum.getType();
         List<Double> heights = heightsHashMap.get(type);
         List<Integer> markers = markersHashMap.get(type);
@@ -171,7 +180,7 @@ public class HysteresisFilter implements DatumListener {
 
 
     void resetAll() {
-        for (HashMap.Entry<SENSOR_TYPE, List<Double>> entry : heightsHashMap.entrySet()) {
+        for (Map.Entry<SENSOR_TYPE, List<Double>> entry : heightsHashMap.entrySet()) {
             resetSpecific(entry.getKey());
         }
     }
@@ -185,7 +194,7 @@ public class HysteresisFilter implements DatumListener {
         }
     }
     void allUnconverged() {
-        for (HashMap.Entry<SENSOR_TYPE, Boolean> entry : convergedHashMap.entrySet()) {
+        for (Map.Entry<SENSOR_TYPE, Boolean> entry : convergedHashMap.entrySet()) {
             entry.setValue(false);
         }
     }
