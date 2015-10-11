@@ -33,16 +33,16 @@ public class LutraGAMS extends AbstractVehicleServer {
     KnowledgeBase knowledge;
     BaseAlgorithm algorithm;
 
-    private static String MadaraLogFilename() {
+    private String MadaraLogFilename() {
         Date d = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
-        return "/mnt/sdcard/MADARA_LOG_" + sdf.format(d) + ".txt";
+        return String.format("/mnt/sdcard/MADARA_LOG_AGENT#%d_",id) + sdf.format(d) + ".txt";
     }
 
-    private static String GAMSLogFilename() {
+    private String GAMSLogFilename() {
         Date d = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
-        return "/mnt/sdcard/GAMS_LOG_" + sdf.format(d) + ".txt";
+        return String.format("/mnt/sdcard/GAMS_LOG_AGENT#%d_",id) + sdf.format(d) + ".txt";
     }
 
     public LutraGAMS(int id, int teamSize, THRUST_TYPES thrustType) {
