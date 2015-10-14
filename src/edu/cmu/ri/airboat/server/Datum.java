@@ -32,7 +32,8 @@ enum SENSOR_TYPE {
     DO(SENSOR_CATEGORY.ENVIRONMENTAL,"DO",true,5.0),
     WIFI(SENSOR_CATEGORY.ENVIRONMENTAL,"WIFI",false,1.0),
     DEPTH(SENSOR_CATEGORY.ENVIRONMENTAL,"DEPTH",false,1.0),
-    FLOW(SENSOR_CATEGORY.ENVIRONMENTAL,"FLOW",true,1.0);
+    FLOW(SENSOR_CATEGORY.ENVIRONMENTAL,"FLOW",true,1.0),
+    PH(SENSOR_CATEGORY.ENVIRONMENTAL,"PH",false,4.0);
 
     SENSOR_CATEGORY category;
     boolean hysteresis;
@@ -46,7 +47,7 @@ enum SENSOR_TYPE {
         this.typeString = typeString;
     }
     public static Set<SENSOR_TYPE> localization = EnumSet.of(GPS, COMPASS, GYRO, IMU, DGPS, MOTOR);
-    public static Set<SENSOR_TYPE> environmental = EnumSet.of(EC, TEMP, DO, WIFI, DEPTH, FLOW);
+    public static Set<SENSOR_TYPE> environmental = EnumSet.of(EC, TEMP, DO, WIFI, DEPTH, FLOW, PH);
 
     /*
     public static int getEnvironmentalOrdinal(SENSOR_TYPE type) { // return index of environmental sensor --> not necessary if you use a HashMap

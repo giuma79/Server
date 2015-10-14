@@ -1219,38 +1219,56 @@ public class AirboatService extends Service {
                             environmentalListener.newDatum(newTDatum);
                             environmentalListener.newDatum(newECDatum);
                         }
-                        else if (type.equalsIgnoreCase("hdf5")) {
+                        else if (type.equalsIgnoreCase("atlas_do")) {
+                            RealMatrix DO = MatrixUtils.createRealMatrix(1,1);
+                            DO.setEntry(0,0,value.getDouble("data"));
+                            double lat = lutra.platform.self.device.location.get(0);
+                            double lon = lutra.platform.self.device.location.get(1);
+                            Datum newDODatum = new Datum(SENSOR_TYPE.DO,System.currentTimeMillis(),DO,lat,lon,_id);
+                            environmentalListener.newDatum(newDODatum);
+                        }
+                        else if (type.equalsIgnoreCase("atlas_ph")) {
+                            RealMatrix PH = MatrixUtils.createRealMatrix(1,1);
+                            PH.setEntry(0,0,value.getDouble("data"));
+                            double lat = lutra.platform.self.device.location.get(0);
+                            double lon = lutra.platform.self.device.location.get(1);
+                            Datum newPHDatum = new Datum(SENSOR_TYPE.PH,System.currentTimeMillis(),PH,lat,lon,_id);
+                            environmentalListener.newDatum(newPHDatum);
+                        }
+                        else if (type.equalsIgnoreCase("hds")) {
                             String nmea = value.getString("nmea");
                             if (nmea.startsWith("$SDDBT")) {
                                 try {
                                     double depth = Double.parseDouble(nmea.split(",")[3]);
 
-                                    SensorData reading = new SensorData();
-                                    reading.type = VehicleServer.SensorType.DEPTH;
-                                    reading.channel = sensor;
-                                    reading.data = new double[] { depth };
-
-                                    //sendSensor(sensor, reading);
+                                    RealMatrix D = MatrixUtils.createRealMatrix(1,1);
+                                    D.setEntry(0,0,depth);
+                                    double lat = lutra.platform.self.device.location.get(0);
+                                    double lon = lutra.platform.self.device.location.get(1);
+                                    Datum newDDatum = new Datum(SENSOR_TYPE.DEPTH,System.currentTimeMillis(),D,lat,lon,_id);
+                                    environmentalListener.newDatum(newDDatum);
                                 } catch(Exception e) {
-                                    //Log.w(logTag, "Failed to parse depth reading: " + nmea);
+                                }
+                            }
+                            else if (nmea.startsWith("$SDMTW")) { // hds water temp
+                                try {
+                                    // TODO: hds water temp
+                                } catch(Exception e) {
+                                }
+                            }
+                            else if (nmea.startsWith("$SDRMC")) { // hds gps
+                                try {
+                                    // TODO: hds gps
+                                } catch(Exception e) {
                                 }
                             }
                         }
                         else if (type.equalsIgnoreCase("winch")) {
-                            SensorData reading = new SensorData();
-                            reading.channel = sensor;
-                            reading.type = VehicleServer.SensorType.UNKNOWN;
-                            reading.data = new double[] {
-                                    value.getDouble("depth")
-                            };
-                            //sendSensor(sensor, reading);
-
-                            // TODO: Remove this hack to store winch depth
-                            //winch_depth_ = reading.data[0];
+                            // TODO: winch
                         }
                     }
                 }
-                else if (name.startsWith("g")) { ////////////////////// //TODO: finish new gps firmware
+                else if (name.startsWith("g")) {
                     int gpsReceiver = name.charAt(1) - 48;
 
                     double latitude = -999;
@@ -1303,8 +1321,7 @@ public class AirboatService extends Service {
                     //Log.w(logTag, "Received unknown param '" + cmd + "'.");
                 }
             } catch (JSONException e) {
-                //Log.w(logTag, "Malformed JSON command '" + cmd + "'.", e);
-                Log.w("jjb", "Malformed JSON command '" + cmd + "'.", e);
+                Log.w("jjb_JSONRECEIVE", "Malformed JSON command '" + cmd + "'.", e);
             }
         }
 
@@ -1312,7 +1329,7 @@ public class AirboatService extends Service {
 
     void sendMotorJSON() {
 
-        //Log.w("jjb","sendMotorJSON() thread iteration...");
+        Log.d("jjb_SEND_MOTOR_JSON","sendMotorJSON() thread iteration...");
 
         // Send vehicle command by converting raw command to appropriate vehicle model.
         JSONObject command = new JSONObject();
@@ -1333,8 +1350,6 @@ public class AirboatService extends Service {
                 usbWriter.flush();
             }
             catch (JSONException e) {
-                //Log.w(logTag, "Failed to serialize command.", e); // TODO: remove this.
-                //Log.w("jjb", "Failed to serialize command.",e);
             }
         }
         else if (lutra.platform.containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
@@ -1351,13 +1366,11 @@ public class AirboatService extends Service {
                 usbWriter.println(command.toString());
                 usbWriter.flush();
             } catch (JSONException e) {
-               // Log.w(logTag, "Failed to serialize command.", e); // TODO: remove this.
-                //Log.w("jjb", "Failed to serialize command.",e);
             }
         }
         else {
             //Log.w(logTag, "Unknown vehicle type: " + vehicle_type);
-            Log.w("jjb","Unknown thrust type");
+            Log.w("jjb_SEND_MOTOR_JSON","Unknown thrust type");
         }
 
     }
