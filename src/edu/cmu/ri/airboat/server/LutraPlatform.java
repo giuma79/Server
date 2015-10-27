@@ -129,6 +129,7 @@ public class LutraPlatform extends BasePlatform {
         boatMotionController = new BoatMotionController(knowledge,boatEKF,containers);
         hysteresisFilter = new HysteresisFilter(knowledge, containers);
         velocityProfileListener = boatMotionController;
+        Datum.establishLogger(); // start the environmental data logger
         Datum.setContainersObject(containers);
     }
 
@@ -392,6 +393,7 @@ public class LutraPlatform extends BasePlatform {
 
     public void shutdown() {
 
+        Datum.endLog();
         boatEKF.shutdown();
         boatMotionController.shutdown();
 

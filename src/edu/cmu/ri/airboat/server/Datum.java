@@ -123,6 +123,7 @@ public class Datum {
     public Long getTimestamp() {return this.timestamp;}
     public double getLat() {return this.lat;}
     public double getLon() {return this.lon;}
+    public String getDateString() { return df.format(dateobj);}
 
     @Override
     public String toString() {
@@ -141,13 +142,6 @@ public class Datum {
 
     public boolean isType(SENSOR_TYPE type) {return this.type == type;}
 
-    public void toKnowledgeBase() {
-        // TODO: put everything into the environmentalData FlexMap in LutraMadaraContainers
-
-        //long currentCount = ;
-
-
-    }
 
     private static String EnvironmentalLogFilename() {
         Date d = new Date();

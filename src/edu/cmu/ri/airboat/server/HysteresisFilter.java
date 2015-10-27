@@ -3,6 +3,11 @@ package edu.cmu.ri.airboat.server;
 import android.util.Log;
 
 import com.madara.KnowledgeBase;
+import com.madara.KnowledgeRecord;
+import com.madara.containers.FlexMap;
+import com.madara.containers.NativeDoubleVector;
+
+import org.apache.commons.math.linear.RealMatrix;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,7 +34,7 @@ public class HysteresisFilter implements DatumListener {
     boolean dwelling;
     double oldMedian;
 
-    final double percentile = 0.5;
+    final double percentile = 0.5; // we want the median
     final double[] increment = new double[] {0, percentile/2.0, percentile, (1.0 + percentile)/2.0, 1};
     final double[] defaultDesiredMarkers = new double[] {1, 1+2*percentile, 1+4*percentile, 3+2*percentile, 5};
     final double WORST_ONE_SECOND_MEDIAN_CHANGE_ALLOWED = 0.25;
@@ -69,7 +74,7 @@ public class HysteresisFilter implements DatumListener {
             filter(datum);
         }
         else {
-            datum.toKnowledgeBase(); //push into knowledge base
+            toKnowledgeBase(datum); //push into knowledge base
             incrementCount(datum.getType());
         }
         datum.pushToLog();
@@ -189,7 +194,6 @@ public class HysteresisFilter implements DatumListener {
         }
     }
 
-
     void resetAll() {
         for (Map.Entry<SENSOR_TYPE, List<Double>> entry : heightsHashMap.entrySet()) {
             resetSpecific(entry.getKey());
@@ -214,11 +218,48 @@ public class HysteresisFilter implements DatumListener {
         return convergedHashMap.get(type);
     }
     void incrementCount(SENSOR_TYPE type) {
+        /*
         if (!dataToKBCount.containsKey(type)) {
             dataToKBCount.put(type,1L);
         }
         else {
             dataToKBCount.put(type, dataToKBCount.get(type) + 1);
         }
+        */
+        dataToKBCount.put(type, dataToKBCount.get(type) + 1);
     }
+
+    void toKnowledgeBase(Datum datum) {
+        String type = datum.getType().typeString;
+        String count = String.format("%d",dataToKBCount.get(datum.getType().typeString));
+        RealMatrix z = datum.getZ();
+        containers.environmentalData.get(type).get("count").set(dataToKBCount.get(datum.getType().typeString));
+        containers.environmentalData.get(type).get(count).get("type").set(datum.getType().typeString);
+        containers.environmentalData.get(type).get(count).get("latitude").set(containers.self.device.location.get(0));
+        containers.environmentalData.get(type).get(count).get("longitude").set(containers.self.device.location.get(1));
+        containers.environmentalData.get(type).get(count).get("date_time").set(datum.getDateString());
+        if (z.getRowDimension() == 1) {
+            containers.environmentalData.get(type).get(count).get("value").set(z.getEntry(0, 0));
+        }
+        else {
+            NativeDoubleVector sizeNDV = new NativeDoubleVector();
+            NativeDoubleVector valueNDV = new NativeDoubleVector();
+            sizeNDV.setName(knowledge, containers.environmentalData.get(type).get("size").getName());
+            valueNDV.setName(knowledge, containers.environmentalData.get(type).get("value").getName());
+            sizeNDV.resize(2);
+            sizeNDV.set(0, z.getRowDimension());
+            sizeNDV.set(1,z.getColumnDimension());
+            valueNDV.resize(z.getRowDimension()*z.getColumnDimension());
+            for (int i = 0; i < z.getRowDimension(); i++) {
+                for (int j = 0; j < z.getColumnDimension(); j++) {
+                    valueNDV.set(i*z.getRowDimension() + j,z.getEntry(i,j));
+                }
+            }
+            sizeNDV.free();
+            valueNDV.free();
+
+        }
+        knowledge.sendModifieds();
+    }
+
 }

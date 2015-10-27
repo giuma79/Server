@@ -495,7 +495,7 @@ public class AirboatActivity extends Activity {
 
 	public static String getLocalIpAddress() {
 
-		/*
+
 		try {
 			for (Enumeration<NetworkInterface> en = NetworkInterface
 					.getNetworkInterfaces(); en.hasMoreElements();) {
@@ -511,7 +511,7 @@ public class AirboatActivity extends Activity {
 		} catch (SocketException ex) {
 			Log.e(logTag, "Failed to get local IP.", ex);
 		}
-		*/
+
 		return null;
 	}
 

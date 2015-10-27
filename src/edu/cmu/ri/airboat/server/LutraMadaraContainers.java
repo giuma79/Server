@@ -66,6 +66,7 @@ public class LutraMadaraContainers {
     // allows other agents to change this value but does not broadcast changes made locally
     // e.g. i want to teleoperate the boat by changing the motor commands directly from the GUI agent
 
+    FlexMap environmentalData;
     String unhandledException;
     Double distToDest;
     Double sufficientProximity;
@@ -104,14 +105,10 @@ public class LutraMadaraContainers {
     final long defaultTeleopStatus = TELEOPERATION_TYPES.GUI_MS.getLongValue(); // start in teleop mode!
     final long defaultThrustType = THRUST_TYPES.DIFFERENTIAL.getLongValue();
     final double controlHz = 25.0; // frequency of control loop and sending the corresponding JSON commands
-    final double[] bearingPIDGainsDefaults = new double[]{0.3,0.01,0.5}; // cols: P,I,D
-    // for airboat: 5, 0.1, 5
-
+    double[] bearingPIDGainsDefaults_PROP = new double[]{0.3,0.01,0.5}; // cols: P,I,D
+    double[] bearingPIDGainsDefaults_AIR = new double[]{5.0,0.1,5.0}; // cols: P,I,D
     final double[] thrustPIDGainsDefaults = new double[]{0.1,0,0.2}; // cols: P,I,D
     final double[] thrustPPIGainsDefaults = new double[]{0.2,0.2,0.05}; // cols: Pos-P, Vel-P, Vel-I
-
-    //static long[] environmentalDataCount = new long[SENSOR_TYPE.environmental.size()];
-    HashMap<SENSOR_TYPE, Long> environmentalDataCount = new HashMap<>();
 
     Self self;
 
@@ -223,6 +220,9 @@ public class LutraMadaraContainers {
         gpsWatchdog.setName(knowledge, prefix + "gpsWatchdog");
         gpsWatchdog.set(0L);
 
+        environmentalData = new FlexMap();
+        environmentalData.setName(knowledge, java.lang.String.format("%senvironmentalData.",prefix));
+
         restoreDefaults();
 
         settings.free(); // don't need this object past the initialization
@@ -255,6 +255,7 @@ public class LutraMadaraContainers {
         resetLocalization.free();
         errorEllipse.free();
         localStateXYCovariance.free();
+        environmentalData.free();
     }
 
     public void restoreDefaults() {
@@ -267,7 +268,12 @@ public class LutraMadaraContainers {
         //thrustType.set(defaultThrustType);
         resetLocalization.set(0);
         for (int i = 0; i < 3; i++) {
-            bearingPIDGains.set(i,bearingPIDGainsDefaults[i]);
+            if (thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
+                bearingPIDGains.set(i, bearingPIDGainsDefaults_PROP[i]);
+            }
+            else if (thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
+                bearingPIDGains.set(i, bearingPIDGainsDefaults_AIR[i]);
+            }
             thrustPIDGains.set(i,thrustPIDGainsDefaults[i]);
             thrustPPIGains.set(i,thrustPPIGainsDefaults[i]);
         }

@@ -679,8 +679,6 @@ public class AirboatService extends Service {
         }
         ////////////////////////////////////////////////////////////////////////
 
-        Datum.establishLogger(); // start the environmental data logger
-
         // Disable all DNS lookups (safer for private/ad-hoc networks)
         CrwSecurityManager.loadIfDNSIsSlow();
         isRunning = true;
@@ -740,7 +738,7 @@ public class AirboatService extends Service {
     public int onStartCommand(final Intent intent, int flags, int startId) {
 
         ////////////////////////////////////////////////
-        Log.w("jjb","AirboatService.onStartCommand");
+        Log.d("jjb","AirboatService.onStartCommand");
         ////////////////////////////////////////////////
 
 
