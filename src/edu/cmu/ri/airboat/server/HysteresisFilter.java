@@ -235,9 +235,25 @@ public class HysteresisFilter implements DatumListener {
         RealMatrix z = datum.getZ();
         containers.environmentalData.get(type).get("count").set(dataToKBCount.get(datum.getType().typeString));
         containers.environmentalData.get(type).get(count).get("type").set(datum.getType().typeString);
-        containers.environmentalData.get(type).get(count).get("latitude").set(containers.self.device.location.get(0));
-        containers.environmentalData.get(type).get(count).get("longitude").set(containers.self.device.location.get(1));
+
+        NativeDoubleVector latLongNDV = new NativeDoubleVector();
+        NativeDoubleVector utmNDV = new NativeDoubleVector();
+        latLongNDV.setName(knowledge,containers.environmentalData.get(type).get("latLong").getName());
+        latLongNDV.resize(2);
+        latLongNDV.set(0,containers.self.device.location.get(0));
+        latLongNDV.set(1,containers.self.device.location.get(1));
+        utmNDV.setName(knowledge,containers.environmentalData.get(type).get("eastingNorthingBearing").getName());
+        utmNDV.resize(3);
+        utmNDV.set(0,containers.eastingNorthingBearing.get(0));
+        utmNDV.set(1,containers.eastingNorthingBearing.get(1));
+        utmNDV.set(2,containers.eastingNorthingBearing.get(2));
+        utmNDV.free();
+        latLongNDV.free();
+        containers.environmentalData.get(type).get(count).get("latitudeZone").set(containers.latitudeZone.get());
+        containers.environmentalData.get(type).get(count).get("longitudeZone").set(containers.longitudeZone.get());
+
         containers.environmentalData.get(type).get(count).get("date_time").set(datum.getDateString());
+        
         if (z.getRowDimension() == 1) {
             containers.environmentalData.get(type).get(count).get("value").set(z.getEntry(0, 0));
         }
