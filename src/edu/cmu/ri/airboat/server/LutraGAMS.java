@@ -10,6 +10,7 @@ import edu.cmu.ri.crw.data.UtmPose;
 import com.gams.algorithms.BaseAlgorithm;
 import com.gams.controllers.BaseController;
 import com.madara.KnowledgeBase;
+import com.madara.filters.EndpointClear;
 import com.madara.transport.QoSTransportSettings;
 import com.madara.transport.TransportType;
 
@@ -28,6 +29,7 @@ public class LutraGAMS extends AbstractVehicleServer {
     BaseController controller;
     LutraPlatform platform;
     QoSTransportSettings settings;
+    //QoSTransportSettings analyticsAgentSettings;
     //QoSTransportSettings simSettings;
 
     KnowledgeBase knowledge;
@@ -50,12 +52,40 @@ public class LutraGAMS extends AbstractVehicleServer {
         this.teamSize = teamSize;
         this.thrustType = thrustType;
 
+        /*
+        Log.i("jjb", "ABOUT TO CREATE MADARA LOGFILE");
+        com.madara.logger.GlobalLogger.clear();
+        com.madara.logger.GlobalLogger.setLevel(3);
+        com.madara.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
+        com.madara.logger.GlobalLogger.addFile(MadaraLogFilename());
+        */
+        
+        /*
+        Log.i("jjb", "ABOUT TO CREATE GAMS LOGFILE");
+        com.gams.logger.GlobalLogger.clear();
+        com.gams.logger.GlobalLogger.setLevel(3);
+        com.gams.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
+        com.gams.logger.GlobalLogger.addFile(GAMSLogFilename());
+        */
+
         settings = new QoSTransportSettings();
+
+
+
         settings.setHosts(new String[]{"192.168.1.255:15000"});
         settings.setType(TransportType.BROADCAST_TRANSPORT);
         //settings.setRebroadcastTtl(1);
         //settings.enableParticipantTtl(1);
         settings.setDeadline(2);
+
+
+        /*
+        settings.setHosts(new String[]{"registry.senseplatypus.com:6078"});
+        settings.setType(TransportType.REGISTRY_CLIENT);
+        EndpointClear filter = new EndpointClear();
+        filter.addReceiveFilterTo(settings);
+        */
+
 
         knowledge = new KnowledgeBase(String.format("device.%d_KB",id),settings);
 
@@ -68,16 +98,12 @@ public class LutraGAMS extends AbstractVehicleServer {
 
         controller = new BaseController(knowledge);
 
-        Log.i("jjb","ABOUT TO CREATE MADARA LOGFILE");
-        com.madara.logger.GlobalLogger.clear();
-        com.madara.logger.GlobalLogger.setLevel(3);
-        com.madara.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
-        com.madara.logger.GlobalLogger.addFile(MadaraLogFilename());
+        /*
+        analyticsAgentSettings = new QoSTransportSettings();
+        settings.setHosts( ... ); unicast?
+        analyticsAgentSettings.setDomains( ... ); comma separated "domain1,domain2"? how to send to a specific domain?
+        */
 
-        com.gams.logger.GlobalLogger.clear();
-        com.gams.logger.GlobalLogger.setLevel(3);
-        com.gams.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
-        com.gams.logger.GlobalLogger.addFile(GAMSLogFilename());
     }
 
 

@@ -253,7 +253,7 @@ public class HysteresisFilter implements DatumListener {
         containers.environmentalData.get(type).get(count).get("longitudeZone").set(containers.longitudeZone.get());
 
         containers.environmentalData.get(type).get(count).get("date_time").set(datum.getDateString());
-        
+
         if (z.getRowDimension() == 1) {
             containers.environmentalData.get(type).get(count).get("value").set(z.getEntry(0, 0));
         }
