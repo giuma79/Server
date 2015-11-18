@@ -69,15 +69,16 @@ public class HysteresisFilter implements DatumListener {
 
         Log.i("jjb_HYSTERESIS",String.format("New datum: %s", datum.toString()));
 
-        if (!isConverged(type)) {
-            logString = logString + " -- WARNING: MAY HAVE HYSTERESIS";
-            filter(datum);
+        if (containers.localized.get() == 1L) {
+            if (!isConverged(type)) {
+                logString = logString + " -- WARNING: MAY HAVE HYSTERESIS";
+                filter(datum);
+            } else {
+                /////////////////////////////////////////////////////toKnowledgeBase(datum); //push into knowledge base
+                incrementCount(datum.getType());
+            }
+            datum.pushToLog();
         }
-        else {
-            toKnowledgeBase(datum); //push into knowledge base
-            incrementCount(datum.getType());
-        }
-        datum.pushToLog();
     }
 
     public void filter(Datum datum) {
@@ -231,10 +232,36 @@ public class HysteresisFilter implements DatumListener {
 
     void toKnowledgeBase(Datum datum) {
         String type = datum.getType().typeString;
-        String count = String.format("%d",dataToKBCount.get(datum.getType().typeString));
+        String count = String.format("%d",dataToKBCount.get(datum.getType()));
         RealMatrix z = datum.getZ();
-        containers.environmentalData.get(type).get("count").set(dataToKBCount.get(datum.getType().typeString));
-        containers.environmentalData.get(type).get(count).get("type").set(datum.getType().typeString);
+
+        /*
+        if (type == null) {
+            Log.w("jjb_TO_KNOWLEDGEBASE","type is null");
+        }
+        if (containers.environmentalData == null) {
+            Log.w("jjb_TO_KNOWLEDGEBASE","containers.environmentalData is null");
+        }
+        if (containers.environmentalData.get(type) == null) {
+            Log.w("jjb_TO_KNOWLEDGEBASE","containers.environmentalData.get(type) is null");
+        }
+        if (dataToKBCount == null) {
+            Log.w("jjb_TO_KNOWLEDGEBASE","dataToKBCount is null");
+        }
+        if (datum == null) {
+            Log.w("jjb_TO_KNOWLEDGEBASE","datum is null");
+        }
+        if (datum.getType().typeString == null) {
+            Log.w("jjb_TO_KNOWLEDGEBASE","datum.getType().typeString is null");
+        }
+        if (dataToKBCount.get(datum.getType().typeString) == null) {
+            Log.w("jjb_TO_KNOWLEDGEBASE","dataToKBCount.get(datum.getType().typeString is null");
+        }
+        */
+
+
+        containers.environmentalData.get(type).get("count").set(dataToKBCount.get(datum.getType()));
+        containers.environmentalData.get(type).get(count).get("type").set(type);
 
         NativeDoubleVector latLongNDV = new NativeDoubleVector();
         NativeDoubleVector utmNDV = new NativeDoubleVector();

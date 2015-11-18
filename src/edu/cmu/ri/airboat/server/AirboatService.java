@@ -809,8 +809,7 @@ public class AirboatService extends Service {
         //Sensor imu = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION); //excludes gravity
         //sm.registerListener(imuListener,imu,SensorManager.SENSOR_DELAY_FASTEST);
 
-        // Hook up to the GPS system ---- CURRENTLY DISABLED DUE TO ADAFRUIT GPS
-        /*
+        // Hook up to the GPS system ---- ENABLED FOR BRAZILIAN BOATS, THEY DON'T HAVE ADAFRUIT BOARDS
         LocationManager gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Criteria c = new Criteria();
         c.setAccuracy(Criteria.ACCURACY_FINE);
@@ -818,7 +817,7 @@ public class AirboatService extends Service {
         String provider = gps.getBestProvider(c, false);
         //gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0, locationListener);
         gps.requestLocationUpdates(provider, 0, 0, locationListener);
-        */
+
 
         //GpsStatus gpsStatus = gps.getGpsStatus(null);
         //String a = String.format("gps time to first fix = %d ms",gpsStatus.getTimeToFirstFix());
@@ -1234,7 +1233,7 @@ public class AirboatService extends Service {
                             environmentalListener.newDatum(newPHDatum);
                         }
                         else if (type.equalsIgnoreCase("hds")) {
-                            String nmea = value.getString("nmea");
+                            String nmea = value.getString("data");
                             if (nmea.startsWith("$SDDBT")) {
                                 try {
                                     double depth = Double.parseDouble(nmea.split(",")[3]);
@@ -1260,6 +1259,26 @@ public class AirboatService extends Service {
                                 } catch(Exception e) {
                                 }
                             }
+                        }
+                        else if (type.equalsIgnoreCase("battery")){
+                            // Parse out voltage and motor velocity values
+                            String[] data = value.getString("data").trim().split(" ");
+                            double voltage = Double.parseDouble(data[0]);
+                            double motor0Velocity = Double.parseDouble(data[1]);
+                            double motor1Velocity = Double.parseDouble(data[2]);
+                            Log.i("jjb_BATTERY",String.format("Battery Voltage = %.2f V",voltage));
+                            if (lutra.platform.containers.batteryVoltage != null) {
+                                lutra.platform.containers.batteryVoltage.set(voltage);
+                            }
+
+                            //SensorData reading = new SensorData();
+                            //reading.channel = sensor;
+                            //reading.type = SensorType.BATTERY;
+                            //reading.data = new double[] {voltage, motor0Velocity, motor1Velocity};
+                            //reading.data = new double[] {value.getDouble("data")};
+                            //sendSensor(sensor, reading);
+                            //logger.info("Battery Voltage: "+ sensor + " " + reading );
+
                         }
                         else if (type.equalsIgnoreCase("winch")) {
                             // TODO: winch

@@ -27,12 +27,13 @@ enum SENSOR_TYPE {
     IMU(SENSOR_CATEGORY.LOCALIZATION,"IMU",false,10.0),
     DGPS(SENSOR_CATEGORY.LOCALIZATION,"DGPS",false,5.0),
     MOTOR(SENSOR_CATEGORY.LOCALIZATION,"MOTOR",false,25.0),
+    BATT_VOLT(SENSOR_CATEGORY.LOCALIZATION,"BATT_VOLT",false,5.0),
     EC(SENSOR_CATEGORY.ENVIRONMENTAL,"EC",false,20.0),
-    TEMP(SENSOR_CATEGORY.ENVIRONMENTAL,"TEMP",true,20.0),
-    DO(SENSOR_CATEGORY.ENVIRONMENTAL,"DO",true,5.0),
+    TEMP(SENSOR_CATEGORY.ENVIRONMENTAL,"TEMP",false,20.0),
+    DO(SENSOR_CATEGORY.ENVIRONMENTAL,"DO",false,5.0),
     WIFI(SENSOR_CATEGORY.ENVIRONMENTAL,"WIFI",false,1.0),
     DEPTH(SENSOR_CATEGORY.ENVIRONMENTAL,"DEPTH",false,1.0),
-    FLOW(SENSOR_CATEGORY.ENVIRONMENTAL,"FLOW",true,1.0),
+    FLOW(SENSOR_CATEGORY.ENVIRONMENTAL,"FLOW",false,1.0),
     PH(SENSOR_CATEGORY.ENVIRONMENTAL,"PH",false,4.0);
 
     SENSOR_CATEGORY category;
@@ -46,7 +47,7 @@ enum SENSOR_TYPE {
         this.Hz = Hz;
         this.typeString = typeString;
     }
-    public static Set<SENSOR_TYPE> localization = EnumSet.of(GPS, COMPASS, GYRO, IMU, DGPS, MOTOR);
+    public static Set<SENSOR_TYPE> localization = EnumSet.of(GPS, COMPASS, GYRO, IMU, DGPS, MOTOR,BATT_VOLT);
     public static Set<SENSOR_TYPE> environmental = EnumSet.of(EC, TEMP, DO, WIFI, DEPTH, FLOW, PH);
 
     /*
@@ -127,16 +128,17 @@ public class Datum {
 
     @Override
     public String toString() {
-        return String.format("TYPE = %s,  DATE = %s,  TIME = %d,  LAT = %.6e,  LONG = %.6e, VALUE = %s",
-                type.typeString,df.format(dateobj),timestamp,lat,lon,zString());
+        //return String.format("TYPE = %s,  DATE = %s,  TIME = %d,  LAT = %.6e,  LONG = %.6e, VALUE = %s", type.typeString,df.format(dateobj),timestamp,lat,lon,zString());
+        return String.format("TYPE = %s,  DATE = %s,  LAT = %.6e,  LON = %.6e, VALUE = %s", type.typeString,df.format(dateobj),lat,lon,zString());
     }
 
     String zString () {
-        String a = "[";
+        String a = ""; //"[";
         for (int i = 0; i < z.getRowDimension()-1; i++) {
             a = a + String.format("%f,",z.getEntry(i,0));
         }
-        a = a + String.format("%f]",z.getEntry(z.getRowDimension()-1,0));
+        //a = a + String.format("%f]",z.getEntry(z.getRowDimension()-1,0));
+        a = a + String.format("%f",z.getEntry(z.getRowDimension()-1,0));
         return a;
     }
 

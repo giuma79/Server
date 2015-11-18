@@ -68,6 +68,7 @@ public class LutraMadaraContainers {
 
     FlexMap environmentalData;
     String unhandledException;
+    Double batteryVoltage;
     Double distToDest;
     Double sufficientProximity;
     Double peakVelocity;
@@ -123,6 +124,8 @@ public class LutraMadaraContainers {
         this.self.device.home.resize(3);
         this.self.device.location.resize(3);
         this.self.device.source.resize(3);
+        batteryVoltage = new Double();
+        batteryVoltage.setName(knowledge,prefix + "batteryVoltage");
         distToDest = new Double();
         distToDest.setName(knowledge, prefix + "distToDest");
         distToDest.setSettings(settings);
@@ -221,7 +224,7 @@ public class LutraMadaraContainers {
         gpsWatchdog.set(0L);
 
         environmentalData = new FlexMap();
-        environmentalData.setName(knowledge, java.lang.String.format("%senvironmentalData.",prefix));
+        environmentalData.setName(knowledge, java.lang.String.format("%senvironmentalData",prefix));
 
         restoreDefaults();
 
@@ -230,6 +233,7 @@ public class LutraMadaraContainers {
 
     public void freeAll() {
         unhandledException.free();
+        batteryVoltage.free();
         distToDest.free();
         sufficientProximity.free();
         peakVelocity.free();
