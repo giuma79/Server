@@ -97,8 +97,8 @@ public class LutraPlatform extends BasePlatform {
                     RealMatrix F = MatrixUtils.createRealMatrix(2, 1);
                     F.setEntry(0, 0, fx);
                     F.setEntry(1, 0, fy);
-                    double lat = self.device.location.get(0);
-                    double lon = self.device.location.get(1);
+                    double lat = self.agent.location.get(0);
+                    double lon = self.agent.location.get(1);
                     Datum datum = new Datum(SENSOR_TYPE.FLOW, System.currentTimeMillis(), F, lat, lon, (int) self.id.get());
                     hysteresisFilter.newDatum(datum);
                 }
@@ -200,9 +200,9 @@ public class LutraPlatform extends BasePlatform {
      *
      */
     public Position getPosition() {
-        //Position position = new Position(self.device.location.get(0), self.device.location.get(1), 0.0);
-        position.setX(self.device.location.get(0));
-        position.setY(self.device.location.get(1));
+        //Position position = new Position(self.agent.location.get(0), self.agent.location.get(1), 0.0);
+        position.setX(self.agent.location.get(0));
+        position.setY(self.agent.location.get(1));
         position.setZ(0.0);
         return position;
     }
@@ -220,9 +220,9 @@ public class LutraPlatform extends BasePlatform {
 
         // moving in local X,Y requires recreation of Utm global X,Y using current home container Utm
 
-        double[] home = containers.NDV_to_DA(self.device.home);
-        self.device.dest.set(0,localTarget[0]+home[0]);
-        self.device.dest.set(1, localTarget[1] + home[1]);
+        double[] home = containers.NDV_to_DA(self.agent.home);
+        self.agent.dest.set(0,localTarget[0]+home[0]);
+        self.agent.dest.set(1, localTarget[1] + home[1]);
 
     }
 
@@ -235,9 +235,9 @@ public class LutraPlatform extends BasePlatform {
         }
         else {
             currentTarget = targetArray;
-            self.device.source.set(0, containers.eastingNorthingBearing.get(0));
-            self.device.source.set(1, containers.eastingNorthingBearing.get(1));
-            self.device.source.set(2, containers.eastingNorthingBearing.get(2));
+            self.agent.source.set(0, containers.eastingNorthingBearing.get(0));
+            self.agent.source.set(1, containers.eastingNorthingBearing.get(1));
+            self.agent.source.set(2, containers.eastingNorthingBearing.get(2));
         }
 
         double[] localTarget = containers.PositionToLocalXY(target);
@@ -353,18 +353,18 @@ public class LutraPlatform extends BasePlatform {
     public int sense() {
         containers.connectivityWatchdog.set(1L);
 
-        // move local .x localization state into device.id.location
-        // remember to add in device.id.home because .x is about (0,0)
-        double[] home = containers.NDV_to_DA(self.device.home);
+        // move local .x localization state into agent.id.location
+        // remember to add in agent.id.home because .x is about (0,0)
+        double[] home = containers.NDV_to_DA(self.agent.home);
 
         containers.eastingNorthingBearing.set(0,containers.localState.get(0) + home[0]);
         containers.eastingNorthingBearing.set(1,containers.localState.get(1) + home[1]);
         containers.eastingNorthingBearing.set(2,containers.localState.get(2));
 
         latLong = containers.LocalXYToLatLong();
-        self.device.location.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
-        self.device.location.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
-        self.device.location.set(2, 0.0);
+        self.agent.location.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
+        self.agent.location.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
+        self.agent.location.set(2, 0.0);
 
         covariance.setEntry(0,0,containers.localStateXYCovariance.get(0));
         covariance.setEntry(1,0,containers.localStateXYCovariance.get(1));

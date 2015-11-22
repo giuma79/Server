@@ -93,7 +93,7 @@ public class LutraGAMS extends AbstractVehicleServer {
         simSettings = new QoSTransportSettings();
         simSettings.setHosts(new String[]{"239.255.0.1:4150"});
         simSettings.setType(TransportType.MULTICAST_TRANSPORT);
-        knowledge.attachTransport(String.format("device.%d_KB", id),simSettings);
+        knowledge.attachTransport(String.format("agent.%d_KB", id),simSettings);
         */
 
         controller = new BaseController(knowledge);

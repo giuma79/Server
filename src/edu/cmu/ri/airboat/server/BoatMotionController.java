@@ -316,8 +316,8 @@ public class BoatMotionController implements VelocityProfileListener {
             PPIGains[i] = containers.thrustPPIGains.get(i);
         }
 
-        // remember to subtract device.{.id}.home from the destination so xd is centered about (0,0) like x
-        xd = containers.NDV_to_RM(containers.self.device.dest).subtract(containers.NDV_to_RM(containers.self.device.home));
+        // remember to subtract agent.{.id}.home from the destination so xd is centered about (0,0) like x
+        xd = containers.NDV_to_RM(containers.self.agent.dest).subtract(containers.NDV_to_RM(containers.self.agent.home));
 
         // update current state
         for (int i = 0; i < stateSize; i++) {

@@ -69,7 +69,7 @@ public class HysteresisFilter implements DatumListener {
 
         Log.i("jjb_HYSTERESIS",String.format("New datum: %s", datum.toString()));
 
-        if (containers.localized.get() == 1L) {
+        //if (containers.localized.get() == 1L) {  //boat must know where it is
             if (!isConverged(type)) {
                 logString = logString + " -- WARNING: MAY HAVE HYSTERESIS";
                 filter(datum);
@@ -78,7 +78,7 @@ public class HysteresisFilter implements DatumListener {
                 incrementCount(datum.getType());
             }
             datum.pushToLog();
-        }
+        //}
     }
 
     public void filter(Datum datum) {
@@ -267,8 +267,8 @@ public class HysteresisFilter implements DatumListener {
         NativeDoubleVector utmNDV = new NativeDoubleVector();
         latLongNDV.setName(knowledge,containers.environmentalData.get(type).get("latLong").getName());
         latLongNDV.resize(2);
-        latLongNDV.set(0,containers.self.device.location.get(0));
-        latLongNDV.set(1,containers.self.device.location.get(1));
+        latLongNDV.set(0,containers.self.agent.location.get(0));
+        latLongNDV.set(1,containers.self.agent.location.get(1));
         utmNDV.setName(knowledge,containers.environmentalData.get(type).get("eastingNorthingBearing").getName());
         utmNDV.resize(3);
         utmNDV.set(0,containers.eastingNorthingBearing.get(0));

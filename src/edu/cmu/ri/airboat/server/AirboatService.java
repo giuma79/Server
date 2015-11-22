@@ -159,8 +159,8 @@ public class AirboatService extends Service {
         lutra.platform.containers.wifiStrength.set(signalStrength);
         signalStrengthString = Integer.toString(signalStrength);
         if(lutra.platform.containers.gpsInitialized.get()==1L) {
-            lat = lutra.platform.containers.self.device.location.get(0);
-            lon = lutra.platform.containers.self.device.location.get(1);
+            lat = lutra.platform.containers.self.agent.location.get(0);
+            lon = lutra.platform.containers.self.agent.location.get(1);
             wifiLog = Double.toString(lat);
             wifiLog = wifiLog + " , " + lon + " : ";
 
@@ -964,7 +964,7 @@ public class AirboatService extends Service {
     }
 
     /**
-     * Read in device id and team size from text file madara.config
+     * Read in agent id and team size from text file madara.config
      * http://stackoverflow.com/questions/12421814/how-can-i-read-a-text-file-in-android
      */
     private void readMadaraConfig() {
@@ -1211,26 +1211,33 @@ public class AirboatService extends Service {
                             T.setEntry(0,0,tempData);
                             RealMatrix EC = MatrixUtils.createRealMatrix(1,1);
                             EC.setEntry(0,0,ecData);
-                            double lat = lutra.platform.self.device.location.get(0);
-                            double lon = lutra.platform.self.device.location.get(1);
+
+                            Log.i("jjb_ES2",String.format("EC.getEntry(0,0)",EC.getEntry(0,0)));
+
+                            double lat = lutra.platform.self.agent.location.get(0);
+                            double lon = lutra.platform.self.agent.location.get(1);
                             Datum newTDatum = new Datum(SENSOR_TYPE.TEMP,System.currentTimeMillis(),T,lat,lon,_id);
                             Datum newECDatum = new Datum(SENSOR_TYPE.EC,System.currentTimeMillis(),EC,lat,lon,_id);
+
+
                             environmentalListener.newDatum(newTDatum);
                             environmentalListener.newDatum(newECDatum);
+
+
                         }
                         else if (type.equalsIgnoreCase("atlas_do")) {
                             RealMatrix DO = MatrixUtils.createRealMatrix(1,1);
                             DO.setEntry(0,0,value.getDouble("data"));
-                            double lat = lutra.platform.self.device.location.get(0);
-                            double lon = lutra.platform.self.device.location.get(1);
+                            double lat = lutra.platform.self.agent.location.get(0);
+                            double lon = lutra.platform.self.agent.location.get(1);
                             Datum newDODatum = new Datum(SENSOR_TYPE.DO,System.currentTimeMillis(),DO,lat,lon,_id);
                             environmentalListener.newDatum(newDODatum);
                         }
                         else if (type.equalsIgnoreCase("atlas_ph")) {
                             RealMatrix PH = MatrixUtils.createRealMatrix(1,1);
                             PH.setEntry(0,0,value.getDouble("data"));
-                            double lat = lutra.platform.self.device.location.get(0);
-                            double lon = lutra.platform.self.device.location.get(1);
+                            double lat = lutra.platform.self.agent.location.get(0);
+                            double lon = lutra.platform.self.agent.location.get(1);
                             Datum newPHDatum = new Datum(SENSOR_TYPE.PH,System.currentTimeMillis(),PH,lat,lon,_id);
                             environmentalListener.newDatum(newPHDatum);
                         }
@@ -1242,8 +1249,8 @@ public class AirboatService extends Service {
 
                                     RealMatrix D = MatrixUtils.createRealMatrix(1,1);
                                     D.setEntry(0,0,depth);
-                                    double lat = lutra.platform.self.device.location.get(0);
-                                    double lon = lutra.platform.self.device.location.get(1);
+                                    double lat = lutra.platform.self.agent.location.get(0);
+                                    double lon = lutra.platform.self.agent.location.get(1);
                                     Datum newDDatum = new Datum(SENSOR_TYPE.DEPTH,System.currentTimeMillis(),D,lat,lon,_id);
                                     environmentalListener.newDatum(newDDatum);
                                 } catch(Exception e) {

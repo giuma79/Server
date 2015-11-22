@@ -118,7 +118,7 @@ public class BoatEKF implements DatumListener {
         if (datum.isType(SENSOR_TYPE.GPS)) { // subtract home so localization is centered around (0,0)
             RealMatrix _z = datum.getZ();
             if (containers.gpsInitialized.get() != 0) { // subtract home ONLY IF gps is already initialized
-                home_RM = containers.NDV_to_RM(containers.self.device.home);
+                home_RM = containers.NDV_to_RM(containers.self.agent.home);
                 z = _z.subtract(home_RM.getSubMatrix(0,1,0,0));
             }
             else {
@@ -154,9 +154,9 @@ public class BoatEKF implements DatumListener {
 
                 for (int i = 0; i < 3; i++) {
                     containers.eastingNorthingBearing.set(i,_z[i]);
-                    containers.self.device.home.set(i,_z[i]);
-                    containers.self.device.dest.set(i,_z[i]);
-                    containers.self.device.source.set(i,_z[i]);
+                    containers.self.agent.home.set(i,_z[i]);
+                    containers.self.agent.dest.set(i,_z[i]);
+                    containers.self.agent.source.set(i,_z[i]);
                 }
 
                 x.setEntry(0,0,0.0);
@@ -166,9 +166,9 @@ public class BoatEKF implements DatumListener {
                 containers.gpsInitialized.set(1);
 
                 LatLong latLong = containers.LocalXYToLatLong();
-                containers.self.device.location.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
-                containers.self.device.location.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
-                containers.self.device.location.set(2,0.0);
+                containers.self.agent.location.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
+                containers.self.agent.location.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
+                containers.self.agent.location.set(2,0.0);
 
                 if (containers.compassInitialized.get() == 1) {
                     containers.localized.set(1);
@@ -189,9 +189,9 @@ public class BoatEKF implements DatumListener {
 
                 for (int i = 0; i < 3; i++) {
                     containers.eastingNorthingBearing.set(i,_z[i]);
-                    containers.self.device.home.set(i,_z[i]);
-                    containers.self.device.dest.set(i,_z[i]);
-                    containers.self.device.source.set(i,_z[i]);
+                    containers.self.agent.home.set(i,_z[i]);
+                    containers.self.agent.dest.set(i,_z[i]);
+                    containers.self.agent.source.set(i,_z[i]);
                 }
 
                 x.setEntry(2,0,z.getEntry(0,0));

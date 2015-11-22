@@ -116,14 +116,14 @@ public class LutraMadaraContainers {
     public LutraMadaraContainers(KnowledgeBase knowledge, Self self, THRUST_TYPES thrustType) {
         this.knowledge = knowledge;
         this.self = self;
-        this.prefix = java.lang.String.format("device.%d.",this.self.id.get());
+        this.prefix = java.lang.String.format("agent.%d.",this.self.id.get());
         this.settings = new UpdateSettings();
         settings.setTreatGlobalsAsLocals(true);
 
-        this.self.device.dest.resize(3);
-        this.self.device.home.resize(3);
-        this.self.device.location.resize(3);
-        this.self.device.source.resize(3);
+        this.self.agent.dest.resize(3);
+        this.self.agent.home.resize(3);
+        this.self.agent.location.resize(3);
+        this.self.agent.source.resize(3);
         batteryVoltage = new Double();
         batteryVoltage.setName(knowledge,prefix + "batteryVoltage");
         distToDest = new Double();
@@ -285,7 +285,7 @@ public class LutraMadaraContainers {
 
     public RealMatrix NDV_to_RM(NativeDoubleVector NDV) {
         // NativeDoubleVector to RealMatrix column conversion
-        // Useful for pulling out self.device.home, .location, .dest, and .source
+        // Useful for pulling out self.agent.home, .location, .dest, and .source
         double[] DA = NDV_to_DA(NDV);
         RealMatrix result = MatrixUtils.createColumnRealMatrix(DA);
         return result;
@@ -293,8 +293,8 @@ public class LutraMadaraContainers {
 
     public double[] NDV_to_DA(NativeDoubleVector NDV) {
         // NativeDoubleVector to double[] conversion
-        // Useful for pulling out self.device.home, .location, .dest, and .source
-        // e.g. double[] home = containers.NDV_to_DA(self.device.home);
+        // Useful for pulling out self.agent.home, .location, .dest, and .source
+        // e.g. double[] home = containers.NDV_to_DA(self.agent.home);
         KnowledgeRecord KR = NDV.toRecord();
         double[] result = KR.toDoubleArray();
         KR.free();
@@ -310,7 +310,7 @@ public class LutraMadaraContainers {
         //initialV.setEntry(1,0,this.localState.get(3)*Math.sin(this.localState.get(2)));
         initialV.setEntry(0,0,this.localState.get(4));
         initialV.setEntry(1,0,this.localState.get(5));
-        RealMatrix xd = NDV_to_RM(self.device.dest).subtract(NDV_to_RM(self.device.home));
+        RealMatrix xd = NDV_to_RM(self.agent.dest).subtract(NDV_to_RM(self.agent.home));
         RealMatrix x = MatrixUtils.createRealMatrix(2, 1);
         x.setEntry(0,0, this.localState.get(0));
         x.setEntry(1,0,this.localState.get(1));
@@ -322,7 +322,7 @@ public class LutraMadaraContainers {
 
     public double[] UTMToLocalXY(UTM utm) {
         double[] result = new double[2];
-        double[] home = NDV_to_DA(self.device.home);
+        double[] home = NDV_to_DA(self.agent.home);
         result[0] = utm.eastingValue(SI.METER) - home[0];
         result[1] = utm.northingValue(SI.METER) - home[1];
         return result;
@@ -345,8 +345,8 @@ public class LutraMadaraContainers {
     }
 
     public UTM LocalXYToUTM() {
-        double easting = localState.get(0) + self.device.home.get(0);
-        double northing = localState.get(1) + self.device.home.get(1);
+        double easting = localState.get(0) + self.agent.home.get(0);
+        double northing = localState.get(1) + self.agent.home.get(1);
         int longitudeZone = (int)this.longitudeZone.get();
         char latitudeZone = this.latitudeZone.get().charAt(0);
         UTM utm = UTM.valueOf(longitudeZone, latitudeZone, easting, northing, SI.METER);

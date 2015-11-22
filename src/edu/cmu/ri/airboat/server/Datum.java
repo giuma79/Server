@@ -28,8 +28,8 @@ enum SENSOR_TYPE {
     DGPS(SENSOR_CATEGORY.LOCALIZATION,"DGPS",false,5.0),
     MOTOR(SENSOR_CATEGORY.LOCALIZATION,"MOTOR",false,25.0),
     BATT_VOLT(SENSOR_CATEGORY.LOCALIZATION,"BATT_VOLT",false,5.0),
-    EC(SENSOR_CATEGORY.ENVIRONMENTAL,"EC",false,20.0),
-    TEMP(SENSOR_CATEGORY.ENVIRONMENTAL,"TEMP",false,20.0),
+    EC(SENSOR_CATEGORY.ENVIRONMENTAL,"EC",false,1.0),
+    TEMP(SENSOR_CATEGORY.ENVIRONMENTAL,"TEMP",false,1.0),
     DO(SENSOR_CATEGORY.ENVIRONMENTAL,"DO",false,5.0),
     WIFI(SENSOR_CATEGORY.ENVIRONMENTAL,"WIFI",false,1.0),
     DEPTH(SENSOR_CATEGORY.ENVIRONMENTAL,"DEPTH",false,1.0),
@@ -128,8 +128,12 @@ public class Datum {
 
     @Override
     public String toString() {
-        //return String.format("TYPE = %s,  DATE = %s,  TIME = %d,  LAT = %.6e,  LONG = %.6e, VALUE = %s", type.typeString,df.format(dateobj),timestamp,lat,lon,zString());
-        return String.format("TYPE = %s,  DATE = %s,  LAT = %.6e,  LON = %.6e, VALUE = %s", type.typeString,df.format(dateobj),lat,lon,zString());
+        if (type == SENSOR_TYPE.EC) {
+            Log.i("jjb_ES2",String.format("ES2 Datum value = %f",z.getEntry(0,0)));
+            Log.i("jjb_ES2", String.format("ES2 zString() = %s",zString()));
+        }
+        return String.format("TYPE = %s,  DATE = %s,  TIME = %d,  LAT = %.6e,  LONG = %.6e, VALUE = %s", type.typeString,df.format(dateobj),timestamp,lat,lon,zString());
+        //return String.format("TYPE = %s,  DATE = %s,  LAT = %.6e,  LON = %.6e, VALUE = %s", type.typeString,df.format(dateobj),lat,lon,zString());
     }
 
     String zString () {
