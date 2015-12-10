@@ -71,7 +71,7 @@ public class LutraMadaraContainers {
     Double batteryVoltage;
     Double distToDest;
     Double sufficientProximity;
-    Double peakVelocity;
+    Double peakThrustFraction;
     Double accel;
     Double decel;
     DoubleVector localState;
@@ -96,9 +96,9 @@ public class LutraMadaraContainers {
     Double bearingFraction;
     NativeDoubleVector bearingPIDGains;
     NativeDoubleVector thrustPIDGains;
-    NativeDoubleVector thrustPPIGains;
+    //NativeDoubleVector thrustPPIGains;
     final double defaultSufficientProximity = 2.0;
-    final double defaultPeakVelocity = 2.0;
+    final double defaultPeakThrustFraction = 0.5;
     final double defaultAccelTime = 5.0;
     final double defaultDecelTime = 5.0;
     final double maxAccel = 1.0; // no more than X m/s^2 capable at full power
@@ -109,7 +109,7 @@ public class LutraMadaraContainers {
     double[] bearingPIDGainsDefaults_PROP = new double[]{0.3,0.01,0.5}; // cols: P,I,D
     double[] bearingPIDGainsDefaults_AIR = new double[]{5.0,0.1,5.0}; // cols: P,I,D
     final double[] thrustPIDGainsDefaults = new double[]{0.1,0,0.2}; // cols: P,I,D
-    final double[] thrustPPIGainsDefaults = new double[]{0.2,0.2,0.05}; // cols: Pos-P, Vel-P, Vel-I
+    //final double[] thrustPPIGainsDefaults = new double[]{0.2,0.2,0.05}; // cols: Pos-P, Vel-P, Vel-I
 
     Self self;
 
@@ -132,9 +132,9 @@ public class LutraMadaraContainers {
         sufficientProximity = new Double();
         sufficientProximity.setName(knowledge, prefix + "sufficientProximity");
         sufficientProximity.setSettings(settings);
-        peakVelocity = new Double();
-        peakVelocity.setName(knowledge, prefix + "peakVelocity");
-        peakVelocity.setSettings(settings);
+        peakThrustFraction = new Double();
+        peakThrustFraction.setName(knowledge, prefix + "peakThrustFraction");
+        peakThrustFraction.setSettings(settings);
         accel = new Double();
         accel.setName(knowledge, prefix + "accelTime");
         accel.setSettings(settings);
@@ -193,10 +193,10 @@ public class LutraMadaraContainers {
         thrustPIDGains.setName(knowledge, prefix + "thrustPIDGains");
         thrustPIDGains.setSettings(settings);
         thrustPIDGains.resize(3);
-        thrustPPIGains= new NativeDoubleVector();
-        thrustPPIGains.setName(knowledge, prefix + "thrustPPIGains");
-        thrustPPIGains.setSettings(settings);
-        thrustPPIGains.resize(3);
+        //thrustPPIGains= new NativeDoubleVector();
+        //thrustPPIGains.setName(knowledge, prefix + "thrustPPIGains");
+        //thrustPPIGains.setSettings(settings);
+        //thrustPPIGains.resize(3);
 
         thrustFraction = new Double();
         bearingFraction = new Double();
@@ -236,7 +236,7 @@ public class LutraMadaraContainers {
         batteryVoltage.free();
         distToDest.free();
         sufficientProximity.free();
-        peakVelocity.free();
+        peakThrustFraction.free();
         accel.free();
         decel.free();
         localState.free();
@@ -253,7 +253,7 @@ public class LutraMadaraContainers {
         latitudeZone.free();
         bearingPIDGains.free();
         thrustPIDGains.free();
-        thrustPPIGains.free();
+        //thrustPPIGains.free();
         thrustFraction.free();
         bearingFraction.free();
         resetLocalization.free();
@@ -265,11 +265,10 @@ public class LutraMadaraContainers {
     public void restoreDefaults() {
         unhandledException.set("none");
         sufficientProximity.set(defaultSufficientProximity);
-        peakVelocity.set(defaultPeakVelocity);
+        peakThrustFraction.set(defaultPeakThrustFraction);
         accel.set(defaultAccelTime);
         decel.set(defaultDecelTime);
         teleopStatus.set(defaultTeleopStatus);
-        //thrustType.set(defaultThrustType);
         resetLocalization.set(0);
         for (int i = 0; i < 3; i++) {
             if (thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
@@ -279,8 +278,9 @@ public class LutraMadaraContainers {
                 bearingPIDGains.set(i, bearingPIDGainsDefaults_AIR[i]);
             }
             thrustPIDGains.set(i,thrustPIDGainsDefaults[i]);
-            thrustPPIGains.set(i,thrustPPIGainsDefaults[i]);
+            //thrustPPIGains.set(i,thrustPPIGainsDefaults[i]);
         }
+        knowledge.sendModifieds();
     }
 
     public RealMatrix NDV_to_RM(NativeDoubleVector NDV) {

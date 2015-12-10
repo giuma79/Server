@@ -37,8 +37,8 @@ public class BoatMotionController implements VelocityProfileListener {
     double[] simplePIDErrorAccumulator; // cols: x,y,th
     public static final double SAFE_DIFFERENTIAL_THRUST = 0.2;
     public static final double MIN_DIFFERENTIAL_BEARING = 0.0;
-    public static final double MAX_DIFFERENTIAL_BEARING = 0.2;
-    public static final double SAFE_VECTORED_THRUST = 0.6;
+    //public static final double MAX_DIFFERENTIAL_BEARING = 0.2;
+    //public static final double SAFE_VECTORED_THRUST = 0.6;
     double headingSignal = 0.0;
     double thrustSignal = 0.0;
     DatumListener datumListener;
@@ -291,17 +291,18 @@ public class BoatMotionController implements VelocityProfileListener {
             double maxThrust = thrustReductionRatio*SAFE_DIFFERENTIAL_THRUST;
             T = clip(thrustSignal,-maxThrust,maxThrust);
             if (Math.signum(-headingSignal) < 0) {
-                B = clip(-headingSignal,Math.signum(-headingSignal)*MAX_DIFFERENTIAL_BEARING,Math.signum(-headingSignal)*MIN_DIFFERENTIAL_BEARING);
+                //B = clip(-headingSignal,Math.signum(-headingSignal)*MAX_DIFFERENTIAL_BEARING,Math.signum(-headingSignal)*MIN_DIFFERENTIAL_BEARING);
+                B = clip(-headingSignal,Math.signum(-headingSignal)*containers.peakThrustFraction.get(),Math.signum(-headingSignal)*MIN_DIFFERENTIAL_BEARING);
             }
             else {
-                B = clip(-headingSignal,MIN_DIFFERENTIAL_BEARING,MAX_DIFFERENTIAL_BEARING);
+                B = clip(-headingSignal,MIN_DIFFERENTIAL_BEARING,containers.peakThrustFraction.get());
             }
 
             Log.i("jjb_TANDB", String.format("clippedAngleError = %.3f  thrustReductionRatio = %.3f  T = %.3f  B = %.3f", clippedAngleError, thrustReductionRatio,T,B));
 
         }
         else if (containers.thrustType.get() == THRUST_TYPES.VECTORED.getLongValue()) {
-            T = clip(thrustSignal,0,SAFE_VECTORED_THRUST);
+            T = clip(thrustSignal,0,containers.peakThrustFraction.get());
             B = clip(-headingSignal,-1,1);
         }
         containers.thrustFraction.set(T);
@@ -313,7 +314,7 @@ public class BoatMotionController implements VelocityProfileListener {
         for (int i = 0; i < 3; i++) {
             simplePIDGains[0][i] = containers.thrustPIDGains.get(i);
             simplePIDGains[1][i] = containers.bearingPIDGains.get(i);
-            PPIGains[i] = containers.thrustPPIGains.get(i);
+            //PPIGains[i] = containers.thrustPPIGains.get(i);
         }
 
         // remember to subtract agent.{.id}.home from the destination so xd is centered about (0,0) like x

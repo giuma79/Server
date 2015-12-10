@@ -166,12 +166,14 @@ public class LutraPlatform extends BasePlatform {
             moveLocalXY(goal, 1.5);
         }
         *////////////////////////////////////////////
+        /*
         if ((containers.distToDest.get() > containers.sufficientProximity.get()) &&
                                            (containers.executingProfile.get() != 1)) {
 
             double finalSpeed = 0.0;
             createProfile(containers.peakVelocity.get(), finalSpeed);
         }
+        */
 
         return PlatformStatusEnum.OK.value();
     }

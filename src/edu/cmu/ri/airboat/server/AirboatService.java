@@ -128,7 +128,7 @@ public class AirboatService extends Service {
     private java.lang.String SSID;
     //Wifi Scanning Rate in milliseconds
     private final int wifiScanningRate = 1000; // ms interval
-    private FileOutputStream logFileWriter;
+    //private FileOutputStream logFileWriter;
     private Handler scanHandler;
     private boolean isLogging = false;
     private String wifiLog;
@@ -175,18 +175,17 @@ public class AirboatService extends Service {
             //Location is unavailable
             wifiLog = "LOCATION UNAVAILABLE: ";
         }
-        wifiLog = wifiLog + wifiInfo.getSSID() + " " + signalStrengthString + " dBi\n";
-        try {
-            logger.info(wifiLog);
-            logFileWriter.write(wifiLog.getBytes());
-        }catch(IOException e) {
-        }catch (NullPointerException e){
-        }
+        //wifiLog = wifiLog + wifiInfo.getSSID() + " " + signalStrengthString + " dBi\n";
+        //try {
+        //    logger.info(wifiLog);
+        //    logFileWriter.write(wifiLog.getBytes());
+        //}catch(IOException e) {
+        //}catch (NullPointerException e){
+        //}
     }
     void startWifiScanning() {
         scanStatusChecker.run();
     }
-
     void stopWifiScanning() {
         scanHandler.removeCallbacks(scanStatusChecker);
     }
@@ -294,8 +293,6 @@ public class AirboatService extends Service {
     private static final String TAG = AirboatService.class.getName();
     private static final com.google.code.microlog4android.Logger logger = LoggerFactory
             .getLogger();
-
-
 
 
     // Default values for parameters
@@ -668,6 +665,7 @@ public class AirboatService extends Service {
         ConnectivityManager connManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo mWifi = connManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
 
+        /*
         File logfile = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM);
         String filename = String.format("WIFI_LOG_%d.txt",System.currentTimeMillis());
         String path = logfile.getPath() + "/" + filename;
@@ -677,6 +675,7 @@ public class AirboatService extends Service {
         } catch (FileNotFoundException e) {
             Log.d(WIFITAG, "... " + e.toString() + ": failed to create " + filename);
         }
+        */
         ////////////////////////////////////////////////////////////////////////
 
         // Disable all DNS lookups (safer for private/ad-hoc networks)
@@ -1026,9 +1025,9 @@ public class AirboatService extends Service {
 
         try {
             stopWifiScanning();
-            logFileWriter.close();
+            //logFileWriter.close();
             Datum.endLog();
-        }catch(IOException e) {
+        //}catch(IOException e) {
         }catch (NullPointerException e){
 
         }
