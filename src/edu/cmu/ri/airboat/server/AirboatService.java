@@ -291,8 +291,7 @@ public class AirboatService extends Service {
 
     private static final int SERVICE_ID = 11312;
     private static final String TAG = AirboatService.class.getName();
-    private static final com.google.code.microlog4android.Logger logger = LoggerFactory
-            .getLogger();
+    private static final com.google.code.microlog4android.Logger logger = LoggerFactory.getLogger();
 
 
     // Default values for parameters
