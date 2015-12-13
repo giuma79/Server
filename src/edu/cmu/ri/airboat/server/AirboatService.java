@@ -195,12 +195,13 @@ public class AirboatService extends Service {
     DatumListener environmentalListener;
     List<Datum> gpsHistory; // maintain a list of GPS data within some time window
     final double gpsHistoryTimeWindow = 3.0; // if a gps point is older than X seconds, abandon it
+    final int gpsHistorySizeRequired = 6; // need at least this many points over the time window
     Long t; // current time in this thread
     double eBoardGPSTimestamp = 0.0;
     SimpleRegression regX = new SimpleRegression();
     SimpleRegression regY = new SimpleRegression();
-    synchronized void gpsVelocity(Datum datum) {
 
+    synchronized void gpsVelocity(Datum datum) {
         t = System.currentTimeMillis();
 
         gpsHistory.add(datum);
@@ -213,7 +214,7 @@ public class AirboatService extends Service {
         String gpsHistoryString = String.format("There are %d GPS measurements in the history",gpsHistory.size());
         Log.i("jjb_DGPS",gpsHistoryString);
 
-        if (gpsHistory.size() < 6) {return;} // need at least six data points
+        if (gpsHistory.size() < gpsHistorySizeRequired) {return;} // need at least six data points
 
         // Least squares linear regression with respect to time
         double[][] xvst = new double[gpsHistory.size()][2];
@@ -250,22 +251,22 @@ public class AirboatService extends Service {
     }
 
     /////******************************************* Accelerometer calibration. Basically junk.
-    double[] imuVelocity = new double[2]; // acceleration is integrated into this sum
+    //double[] imuVelocity = new double[2]; // acceleration is integrated into this sum
     Long tAccel; // a special time keeper just for accelerometer data
     Long t0; // used to grow the covariance of the IMU integrated velocity over time
-    double tSeconds;
-    final double imuCalibTime = 120.0; // number of seconds to calibrate a linear drift fit for the accelerometer
+    //double tSeconds;
+    //final double imuCalibTime = 120.0; // number of seconds to calibrate a linear drift fit for the accelerometer
     // the first half of the calibration time is used to find a DC offset for acceleration
     // the second half of the calibration time is then used to find a slope for velocity drift
-    boolean imuABiasCalibrated;
-    boolean imuVSlopeCalibrated;
-    List<double[]> imuVCalX, imuVCalY; // container used for velocities, used to calculate linear drift
-    List<double[]> imuACalX, imuACalY; // container used for accelerations, used to calculate linear drift
-    List<Double> imuHistoryX, imuHistoryY; // the container used for the median filter
-    final int imuMedianFilterSize = 10; // a sliding median of accelerations reduces noise
-    double[][] imuATrend =  new double[2][2];
-    double[][] imuVTrend = new double[2][2];
-    double tIMUAStart,tIMUVStart;
+    //boolean imuABiasCalibrated;
+    //boolean imuVSlopeCalibrated;
+    //List<double[]> imuVCalX, imuVCalY; // container used for velocities, used to calculate linear drift
+    //List<double[]> imuACalX, imuACalY; // container used for accelerations, used to calculate linear drift
+    //List<Double> imuHistoryX, imuHistoryY; // the container used for the median filter
+    //final int imuMedianFilterSize = 10; // a sliding median of accelerations reduces noise
+    //double[][] imuATrend =  new double[2][2];
+    //double[][] imuVTrend = new double[2][2];
+    //double tIMUAStart,tIMUVStart;
     /////*******************************************
     Threader threader;
     class motorCmdThread extends BaseThread {
@@ -387,7 +388,7 @@ public class AirboatService extends Service {
                 lutra.platform.containers.latitudeZone.set(java.lang.String.format("%c",utmLoc.latitudeZone()));
             }
 
-            Log.w("jjb", "the GPS phone listener has activated");
+            Log.i("jjb_GPS", "the GPS phone listener has activated");
 
             RealMatrix z = MatrixUtils.createRealMatrix(2,1);
             z.setEntry(0, 0, utmLoc.eastingValue(SI.METER));
@@ -864,6 +865,8 @@ public class AirboatService extends Service {
         localizationListener = lutra.platform.boatEKF;
         environmentalListener = lutra.platform.hysteresisFilter;
         startWifiScanning();
+        Context appContext = getApplicationContext();
+        Thread.setDefaultUncaughtExceptionHandler(new ExceptionHandler(appContext, lutra.knowledge, lutra.platform.containers));
 
         ////////////////////////////////////////////////////////////////////////
 		new Thread(new Runnable() {

@@ -16,7 +16,7 @@
     <string name="rudder_title">Rudder:</string>
     <string name="rudder_gain_title">Rudder PID Gains:</string>
     <string name="master_title">UDP Registry</string>
-    <string name="master_default_addr">athiri.cimds.ri.cmu.edu:6077</string>
+    <string name="master_default_addr">MADARA/GAMS SERVER</string>
     <string name="failsafe_title">Failsafe IP Address:</string>
     <string name="failsafe_default_addr">192.168.1.1</string>
     <string name="failsafe_toggle">failsafe</string>

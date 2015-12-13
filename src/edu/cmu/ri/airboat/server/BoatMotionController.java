@@ -35,8 +35,8 @@ public class BoatMotionController implements VelocityProfileListener {
     double PPIGains[];
     double PPIErrorAccumulator; // [Pos-P*(pos error) + vel error] accumulation
     double[] simplePIDErrorAccumulator; // cols: x,y,th
-    public static final double SAFE_DIFFERENTIAL_THRUST = 0.2;
-    public static final double MIN_DIFFERENTIAL_BEARING = 0.0;
+    //public static final double SAFE_DIFFERENTIAL_THRUST = 0.2;
+    //public static final double MIN_DIFFERENTIAL_BEARING = 0.0;
     //public static final double MAX_DIFFERENTIAL_BEARING = 0.2;
     //public static final double SAFE_VECTORED_THRUST = 0.6;
     double headingSignal = 0.0;
@@ -255,8 +255,6 @@ public class BoatMotionController implements VelocityProfileListener {
         double B = containers.bearingFraction.get();
         double trueT = 0;
         double trueB = 0;
-        //RealMatrix z = MatrixUtils.createRealMatrix(1,1);
-        //RealMatrix R = MatrixUtils.createRealMatrix(1,1);
         t = System.currentTimeMillis();
         if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
             m0 = clip(T + B, -1, 1);
@@ -273,8 +271,14 @@ public class BoatMotionController implements VelocityProfileListener {
         containers.thrustFraction.set(trueT);
         containers.bearingFraction.set(trueB);
 
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // switch motor 0 and motor 1 so that Platypus wiring can be used (i.e. left ESC connects to right side of e-board
         containers.motorCommands.set(0,m0);
         containers.motorCommands.set(1,m1);
+        //containers.motorCommands.set(0,m1);
+        //containers.motorCommands.set(1,m0);
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
         String velocityMapTestString = String.format("t = %d   X = %.2f   Y = %.2f   trueT = %.4f   trueB = %.4f  m0 = %.3f  m1 = %.3f",
                 System.currentTimeMillis(),x.getEntry(0,0),x.getEntry(1,0),trueT,trueB,m0,m1);
@@ -288,14 +292,15 @@ public class BoatMotionController implements VelocityProfileListener {
         double clippedAngleError = clip(Math.abs(angleError), 0, headingErrorThreshold);
         double thrustReductionRatio = Math.cos((Math.PI/2.0)/headingErrorThreshold*clippedAngleError);
         if (containers.thrustType.get() == THRUST_TYPES.DIFFERENTIAL.getLongValue()) {
-            double maxThrust = thrustReductionRatio*SAFE_DIFFERENTIAL_THRUST;
+            //double maxThrust = thrustReductionRatio*SAFE_DIFFERENTIAL_THRUST;
+            double maxThrust = containers.peakThrustFraction.get();
             T = clip(thrustSignal,-maxThrust,maxThrust);
             if (Math.signum(-headingSignal) < 0) {
                 //B = clip(-headingSignal,Math.signum(-headingSignal)*MAX_DIFFERENTIAL_BEARING,Math.signum(-headingSignal)*MIN_DIFFERENTIAL_BEARING);
-                B = clip(-headingSignal,Math.signum(-headingSignal)*containers.peakThrustFraction.get(),Math.signum(-headingSignal)*MIN_DIFFERENTIAL_BEARING);
+                B = clip(-headingSignal,Math.signum(-headingSignal)*maxThrust,0.0);
             }
             else {
-                B = clip(-headingSignal,MIN_DIFFERENTIAL_BEARING,containers.peakThrustFraction.get());
+                B = clip(-headingSignal,0.0,maxThrust);
             }
 
             Log.i("jjb_TANDB", String.format("clippedAngleError = %.3f  thrustReductionRatio = %.3f  T = %.3f  B = %.3f", clippedAngleError, thrustReductionRatio,T,B));

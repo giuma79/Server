@@ -252,6 +252,7 @@ public class LutraPlatform extends BasePlatform {
         }
     }
 
+
     public int move(UTM utm, double proximity) {
         moveLocalXY(containers.UTMToLocalXY(utm), proximity);
         return PlatformStatusEnum.OK.value();

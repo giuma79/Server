@@ -68,6 +68,7 @@ public class LutraMadaraContainers {
 
     FlexMap environmentalData;
     String unhandledException;
+    Integer distress;
     Double batteryVoltage;
     Double distToDest;
     Double sufficientProximity;
@@ -205,6 +206,10 @@ public class LutraMadaraContainers {
 
         unhandledException = new String();
         unhandledException.setName(knowledge, prefix + "unhandledException");
+        unhandledException.set("");
+        distress = new Integer();
+        distress.setName(knowledge, prefix + "distress");
+        distress.set(0L);
 
         resetLocalization = new Integer();
         resetLocalization.setName(knowledge, prefix + "resetLocalization");
@@ -233,6 +238,7 @@ public class LutraMadaraContainers {
 
     public void freeAll() {
         unhandledException.free();
+        distress.free();
         batteryVoltage.free();
         distToDest.free();
         sufficientProximity.free();

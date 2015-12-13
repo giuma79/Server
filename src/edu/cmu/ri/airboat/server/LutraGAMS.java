@@ -47,29 +47,33 @@ public class LutraGAMS extends AbstractVehicleServer {
         return String.format("/mnt/sdcard/GAMS_LOG_AGENT#%d_",id) + sdf.format(d) + ".txt";
     }
 
+    public class PacketMetaDataReceiveFilter extends com.madara.filters.CounterFilter {
+
+    }
+
+
     public LutraGAMS(int id, int teamSize, THRUST_TYPES thrustType) {
         this.id = id;
         this.teamSize = teamSize;
         this.thrustType = thrustType;
 
-        /*
-        Log.i("jjb", "ABOUT TO CREATE MADARA LOGFILE");
-        com.madara.logger.GlobalLogger.clear();
-        com.madara.logger.GlobalLogger.setLevel(3);
-        com.madara.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
-        com.madara.logger.GlobalLogger.addFile(MadaraLogFilename());
-        */
 
-        /*
-        Log.i("jjb", "ABOUT TO CREATE GAMS LOGFILE");
-        com.gams.logger.GlobalLogger.clear();
-        com.gams.logger.GlobalLogger.setLevel(3);
-        com.gams.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
-        com.gams.logger.GlobalLogger.addFile(GAMSLogFilename());
-        */
+        //Log.i("jjb", "ABOUT TO CREATE MADARA LOGFILE");
+        //com.madara.logger.GlobalLogger.clear();
+        //com.madara.logger.GlobalLogger.setLevel(6);
+        //com.madara.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
+        //com.madara.logger.GlobalLogger.addFile(MadaraLogFilename());
+
+
+
+        //Log.i("jjb", "ABOUT TO CREATE GAMS LOGFILE");
+        //com.gams.logger.GlobalLogger.clear();
+        //com.gams.logger.GlobalLogger.setLevel(6);
+        //0com.gams.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
+        //com.gams.logger.GlobalLogger.addFile(GAMSLogFilename());
+
 
         settings = new QoSTransportSettings();
-
 
 
         settings.setHosts(new String[]{"192.168.1.255:15000"});

@@ -39,6 +39,7 @@ public class BoatEKF implements DatumListener {
     RealMatrix S; // the innovation
     RealMatrix dtemp; // a placeholder during a calculation with several RealMatrix objects
     RealMatrix home_RM; // used to create local X,Y
+    final double MAX_MAHALANOBIS_DIST = 6.0;
 
     Long t; // current time
     final double ROLLBACK_LIMIT = 1.0; // seconds allowed for a rollback before measurements are just abandoned
@@ -53,7 +54,7 @@ public class BoatEKF implements DatumListener {
         containers.localState.resize(stateSize);
 
         // default Q and P (use other constructor to override these)
-        //QBase = QBase.scalarMultiply(0.1);
+        QBase = QBase.scalarMultiply(0.0001);
         //QBase.setEntry(0,0,1.0);
         //QBase.setEntry(1,1,1.0);
         //initialP = initialP.scalarMultiply(0.1);
@@ -108,7 +109,10 @@ public class BoatEKF implements DatumListener {
             Log.i("jjb_GYRO",String.format("received gyro datum z = %.2f", datum.getZ().getEntry(0,0)*180.0/Math.PI));
         }
         if (datum.getType() == SENSOR_TYPE.GPS) {
-            Log.i("jjb_GPS",String.format("received GPS datum X = %.6e  Y = %.6e", datum.getZ().getEntry(0,0), datum.getZ().getEntry(1,0)));
+            Log.i("jjb_GPS",String.format("received GPS datum easting = %.6e  northing = %.6e", datum.getZ().getEntry(0,0), datum.getZ().getEntry(1,0)));
+        }
+        if (datum.getType() == SENSOR_TYPE.DGPS) {
+            Log.i("jjb_DGPS",String.format("received DGPS datum = %s",datum.zString()));
         }
 
         //String timeString = String.format("EKF.t BEFORE = %d",t);
@@ -274,7 +278,7 @@ public class BoatEKF implements DatumListener {
             //newH.setEntry(1,6,-1.0);
             */
             newH.setEntry(0,4,1.0);
-            newH.setEntry(0,5,1.0);
+            newH.setEntry(1,5,1.0);
         }
 
         this.H = newH;
@@ -299,6 +303,19 @@ public class BoatEKF implements DatumListener {
         // compute innovation covariance S = HPH' + R
         S = H.multiply(P).multiply(H.transpose());
 
+        // check if S is singular - if it is, do NOT take the inverse!
+        boolean SisSingular = S.isSingular();
+        if (SisSingular) {
+            Log.e("jjb_SINGULAR", "ERROR: innovation covariance is singular for sensor type " + type.typeString);
+            Log.e("jjb_SINGULAR", "S = " + RMO.realMatrixToString(S));
+            Log.e("jjb_SINGULAR", "z = " + RMO.realMatrixToString(z));
+            Log.e("jjb_SINGULAR", "H = " + RMO.realMatrixToString(H));
+            Log.e("jjb_SINGULAR", "x = " + RMO.realMatrixToString(x));
+            Log.e("jjb_SINGULAR", "dz = " + RMO.realMatrixToString(dz));
+            Log.e("jjb_SINGULAR", "skipping application of sensor type " + type.typeString);
+            return;
+        }
+
         // check "validation gate" - calculate Mahalanobis distance d = sqrt(dz'*inv(S)*dz)
         dtemp = dz.transpose().multiply(RMO.inverse(S)).multiply(dz);
         double d = Math.sqrt(dtemp.getEntry(0,0));
@@ -309,8 +326,8 @@ public class BoatEKF implements DatumListener {
             // and update state covariance P_{k+1} = (I - KH)P
             //String a = String.format("Mahalanobis distance = %f",d);
             //Log.w("jjb", a);
-            if (d > 3.0) {
-                Log.w("jjb","WARNING, Mahalanobis distance is > 3. Measurement will be ignored.");
+            if (d > MAX_MAHALANOBIS_DIST) {
+                Log.w("jjb_MAHALANOBIS",String.format("WARNING, Mahalanobis distance = %.2f is > %.1f. Measurement will be ignored.",d,MAX_MAHALANOBIS_DIST));
             }
             else {
                 incorporate = true;

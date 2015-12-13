@@ -69,7 +69,8 @@ public class HysteresisFilter implements DatumListener {
 
         Log.i("jjb_HYSTERESIS",String.format("New datum: %s", datum.toString()));
 
-        //if (containers.localized.get() == 1L) {  //boat must know where it is
+        try {
+            //if (containers.localized.get() == 1L) {  //boat must know where it is
             if (!isConverged(type)) {
                 logString = logString + " -- WARNING: MAY HAVE HYSTERESIS";
                 filter(datum);
@@ -78,7 +79,11 @@ public class HysteresisFilter implements DatumListener {
                 incrementCount(datum.getType());
             }
             datum.pushToLog();
-        //}
+            //}
+        }
+        catch (Exception e) {
+            Log.e("jjb_HYSTERESIS",String.format("newDatum() error: %s",e.getMessage()));
+        }
     }
 
     public void filter(Datum datum) {

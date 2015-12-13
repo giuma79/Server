@@ -31,16 +31,50 @@ public class ExceptionHandler implements UncaughtExceptionHandler {
     Activity activity;
     Context context;
     int restartMilliseconds;
+    KnowledgeBase knowledge;
+    LutraMadaraContainers containers;
 
+    /*
     public ExceptionHandler(Activity activity, Context context, int restartMilliseconds) {
         this.activity = activity;
         this.context = context;
         this.restartMilliseconds = restartMilliseconds;
     }
+    */
+    public ExceptionHandler(Context context, KnowledgeBase knowledge, LutraMadaraContainers containers) {
+        this.context = context;
+        this.knowledge = knowledge;
+        this.containers = containers;
+        Log.i("jjb_ERROR", "constructing ExceptionHandler");
+    }
 
     @Override
     public void uncaughtException(Thread thread, Throwable ex) {
 
+        Log.e("jjb_ERROR", "uncaughtException() call!");
+
+        try {
+            containers.distress.set(1L);
+            Log.e("jjb_ERROR", "Unhandled Exception: ", ex);
+            ex.printStackTrace();
+            containers.teleopStatus.set(2L);
+            containers.motorCommands.set(0, 0.0);
+            containers.motorCommands.set(1, 0.0);
+            containers.unhandledException.set(ex.getMessage());
+            knowledge.sendModifieds();
+            knowledge.print();
+            Log.e("jjb_ERROR", "KILLING BOAT SERVER !!!");
+            //This will stop your application and take out from it.
+            //System.exit(2);
+            android.os.Process.killProcess(android.os.Process.myPid());
+            //super.onDestroy();
+        }
+        catch (Exception e) {
+            Log.e("jjb_ERROR","uncaughtException ERROR: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        /*
         try {
 
             //activity.getIntent().setAction("");
@@ -84,5 +118,6 @@ public class ExceptionHandler implements UncaughtExceptionHandler {
             e.printStackTrace();
             //e.printStackTrace();
         }
+        */
     }
 }
