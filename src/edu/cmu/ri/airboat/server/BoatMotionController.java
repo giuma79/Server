@@ -273,10 +273,10 @@ public class BoatMotionController implements VelocityProfileListener {
 
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         // switch motor 0 and motor 1 so that Platypus wiring can be used (i.e. left ESC connects to right side of e-board
-        containers.motorCommands.set(0,m0);
-        containers.motorCommands.set(1,m1);
-        //containers.motorCommands.set(0,m1);
-        //containers.motorCommands.set(1,m0);
+        //containers.motorCommands.set(0,m0);
+        //containers.motorCommands.set(1,m1);
+        containers.motorCommands.set(0,m1);
+        containers.motorCommands.set(1,m0);
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
