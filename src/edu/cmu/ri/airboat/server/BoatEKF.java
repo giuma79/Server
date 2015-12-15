@@ -54,7 +54,7 @@ public class BoatEKF implements DatumListener {
         containers.localState.resize(stateSize);
 
         // default Q and P (use other constructor to override these)
-        QBase = QBase.scalarMultiply(0.0001);
+        QBase = QBase.scalarMultiply(0.1);
         //QBase.setEntry(0,0,1.0);
         //QBase.setEntry(1,1,1.0);
         //initialP = initialP.scalarMultiply(0.1);

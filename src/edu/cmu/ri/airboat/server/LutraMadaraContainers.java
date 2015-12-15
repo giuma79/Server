@@ -68,11 +68,13 @@ public class LutraMadaraContainers {
 
     FlexMap environmentalData;
     String unhandledException;
+    String name;
     Integer distress;
     Double batteryVoltage;
     Double distToDest;
     Double sufficientProximity;
-    Double peakThrustFraction;
+    Double peakForwardMotorSignal;
+    Double peakBackwardMotorSignal;
     Double accel;
     Double decel;
     DoubleVector localState;
@@ -99,27 +101,34 @@ public class LutraMadaraContainers {
     NativeDoubleVector thrustPIDGains;
     //NativeDoubleVector thrustPPIGains;
     final double defaultSufficientProximity = 2.0;
-    final double defaultPeakThrustFraction = 0.5;
+    final double defaultPeakForwardMotorSignal = 0.1;
+    final double defaultPeakBackwardMotorSignal = 1.0;
     final double defaultAccelTime = 5.0;
     final double defaultDecelTime = 5.0;
     final double maxAccel = 1.0; // no more than X m/s^2 capable at full power
     final double minAccel = 0.1; // no less than X m/s^2, or motor doesn't respond
     final long defaultTeleopStatus = TELEOPERATION_TYPES.GUI_MS.getLongValue(); // start in teleop mode!
-    final long defaultThrustType = THRUST_TYPES.DIFFERENTIAL.getLongValue();
+    //final long defaultThrustType = THRUST_TYPES.DIFFERENTIAL.getLongValue();
     final double controlHz = 25.0; // frequency of control loop and sending the corresponding JSON commands
-    double[] bearingPIDGainsDefaults_PROP = new double[]{0.3,0.01,0.5}; // cols: P,I,D
+    //double[] bearingPIDGainsDefaults_PROP = new double[]{0.3,0.01,0.5}; // cols: P,I,D /////////////////////////////////////////////
+    double[] bearingPIDGainsDefaults_PROP = new double[]{0.3,0.1,0.5}; // cols: P,I,D
+
     double[] bearingPIDGainsDefaults_AIR = new double[]{5.0,0.1,5.0}; // cols: P,I,D
     final double[] thrustPIDGainsDefaults = new double[]{0.1,0,0.2}; // cols: P,I,D
     //final double[] thrustPPIGainsDefaults = new double[]{0.2,0.2,0.05}; // cols: Pos-P, Vel-P, Vel-I
 
     Self self;
 
-    public LutraMadaraContainers(KnowledgeBase knowledge, Self self, THRUST_TYPES thrustType) {
+    public LutraMadaraContainers(KnowledgeBase knowledge, Self self, THRUST_TYPES thrustType, java.lang.String nameString) {
         this.knowledge = knowledge;
         this.self = self;
         this.prefix = java.lang.String.format("agent.%d.",this.self.id.get());
         this.settings = new UpdateSettings();
         settings.setTreatGlobalsAsLocals(true);
+
+        name = new String();
+        name.setName(knowledge, prefix + "name");
+        name.set(nameString);
 
         this.self.agent.dest.resize(3);
         this.self.agent.home.resize(3);
@@ -133,9 +142,10 @@ public class LutraMadaraContainers {
         sufficientProximity = new Double();
         sufficientProximity.setName(knowledge, prefix + "sufficientProximity");
         sufficientProximity.setSettings(settings);
-        peakThrustFraction = new Double();
-        peakThrustFraction.setName(knowledge, prefix + "peakThrustFraction");
-        peakThrustFraction.setSettings(settings);
+        peakForwardMotorSignal = new Double();
+        peakForwardMotorSignal.setName(knowledge, prefix + "peakForwardMotorSignal");
+        peakBackwardMotorSignal = new Double();
+        peakBackwardMotorSignal.setName(knowledge, prefix + "peakBackwardMotorSignal");
         accel = new Double();
         accel.setName(knowledge, prefix + "accelTime");
         accel.setSettings(settings);
@@ -237,12 +247,14 @@ public class LutraMadaraContainers {
     }
 
     public void freeAll() {
+        name.free();
         unhandledException.free();
         distress.free();
         batteryVoltage.free();
         distToDest.free();
         sufficientProximity.free();
-        peakThrustFraction.free();
+        peakForwardMotorSignal.free();
+        peakBackwardMotorSignal.free();
         accel.free();
         decel.free();
         localState.free();
@@ -271,7 +283,8 @@ public class LutraMadaraContainers {
     public void restoreDefaults() {
         unhandledException.set("none");
         sufficientProximity.set(defaultSufficientProximity);
-        peakThrustFraction.set(defaultPeakThrustFraction);
+        peakForwardMotorSignal.set(defaultPeakForwardMotorSignal);
+        peakBackwardMotorSignal.set(defaultPeakBackwardMotorSignal);
         accel.set(defaultAccelTime);
         decel.set(defaultDecelTime);
         teleopStatus.set(defaultTeleopStatus);

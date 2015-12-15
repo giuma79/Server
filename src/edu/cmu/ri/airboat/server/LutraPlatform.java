@@ -44,6 +44,7 @@ public class LutraPlatform extends BasePlatform {
     VelocityProfileListener velocityProfileListener;
     LutraMadaraContainers containers;
     THRUST_TYPES thrustType;
+    String name;
     Long t;
     final double METERS_PER_LATLONG_DEGREE = 111*1000;
     Long startTime;
@@ -111,8 +112,9 @@ public class LutraPlatform extends BasePlatform {
     // Delay for sending modified fields
     EvalSettings evalSettings;
 
-    public LutraPlatform(KnowledgeBase knowledge, THRUST_TYPES thrustType) {
+    public LutraPlatform(KnowledgeBase knowledge, THRUST_TYPES thrustType, String name) {
         this.knowledge = knowledge;
+        this.name = name;
         evalSettings = new EvalSettings();
         evalSettings.setDelaySendingModifieds(true);
         threader = new Threader(knowledge);
@@ -124,7 +126,7 @@ public class LutraPlatform extends BasePlatform {
     @Override
     public void init(BaseController controller) {
         super.init(controller);
-        containers = new LutraMadaraContainers(knowledge,self,thrustType); // has to occur AFTER super.init, or "self" will be null
+        containers = new LutraMadaraContainers(knowledge,self,thrustType, name); // has to occur AFTER super.init, or "self" will be null
         boatEKF = new BoatEKF(knowledge,containers); // has to occur AFTER containers() b/c it needs "self"
         boatMotionController = new BoatMotionController(knowledge,boatEKF,containers);
         hysteresisFilter = new HysteresisFilter(knowledge, containers);

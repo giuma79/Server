@@ -128,10 +128,10 @@ public class Datum {
 
     @Override
     public String toString() {
-        if (type == SENSOR_TYPE.EC) {
-            Log.i("jjb_ES2",String.format("ES2 Datum value = %f",z.getEntry(0,0)));
-            Log.i("jjb_ES2", String.format("ES2 zString() = %s",zString()));
-        }
+        //if (type == SENSOR_TYPE.EC) {
+        //    Log.i("jjb_ES2",String.format("ES2 Datum value = %f",z.getEntry(0,0)));
+        //    Log.i("jjb_ES2", String.format("ES2 zString() = %s",zString()));
+        //}
         //return String.format("TYPE = %s,  DATE = %s,  TIME = %d,  LAT = %.6e,  LONG = %.6e, VALUE = %s", type.typeString,df.format(dateobj),timestamp,lat,lon,zString());
         return String.format("TYPE = %s,  DATE = %s,  LAT = %.6e,  LON = %.6e, VALUE = %s", type.typeString,df.format(dateobj),lat,lon,zString());
     }
@@ -152,7 +152,7 @@ public class Datum {
     private static String EnvironmentalLogFilename() {
         Date d = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
-        return "/mnt/sdcard/" + "ENVIRONMENTAL_DATA_" + sdf.format(d) + ".txt";
+        return "/mnt/sdcard/" + "ENVIRONMENTAL_DATA_" + String.format("AGENT#%d_",containers.self.id) + sdf.format(d) + ".txt";
     }
 
     public static void establishLogger() {

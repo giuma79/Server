@@ -23,6 +23,7 @@ import java.util.Date;
 public class LutraGAMS extends AbstractVehicleServer {
 
     int id;
+    String name;
     int teamSize;
     public THRUST_TYPES thrustType;
 
@@ -52,8 +53,9 @@ public class LutraGAMS extends AbstractVehicleServer {
     }
 
 
-    public LutraGAMS(int id, int teamSize, THRUST_TYPES thrustType) {
+    public LutraGAMS(int id, String name, int teamSize, THRUST_TYPES thrustType) {
         this.id = id;
+        this.name = name;
         this.teamSize = teamSize;
         this.thrustType = thrustType;
 
@@ -113,7 +115,7 @@ public class LutraGAMS extends AbstractVehicleServer {
 
     void start(final AbstractVehicleServer lutra) {
         controller.initVars(id, teamSize);
-        platform = new LutraPlatform(knowledge,thrustType);
+        platform = new LutraPlatform(knowledge,thrustType, name);
         algorithm = new DwellAlgorithm();
         controller.initPlatform(platform);
         controller.initAlgorithm(algorithm);

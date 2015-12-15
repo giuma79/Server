@@ -122,7 +122,6 @@ import com.madara.threads.BaseThread;
  */
 public class AirboatService extends Service {
 
-    private static final java.lang.String WIFITAG = "WifiLogger";
     private WifiManager wifiManager;
     private WifiInfo wifiInfo;
     private java.lang.String SSID;
@@ -138,7 +137,7 @@ public class AirboatService extends Service {
         wifiInfo = wifiManager.getConnectionInfo();
         SSID = wifiInfo.getSSID();
         SSID = SSID.substring(1, SSID.length() - 1);
-        Log.d(WIFITAG, "WIFI is connected. WifiInfo is initialised\n");
+        Log.i("jjb_WIFI", String.format("WIFI is connected to network SSID = %s", SSID));
     }
     Runnable scanStatusChecker = new Runnable() {
         @Override
@@ -184,6 +183,7 @@ public class AirboatService extends Service {
         //}
     }
     void startWifiScanning() {
+        getWifiInfo();
         scanStatusChecker.run();
     }
     void stopWifiScanning() {
@@ -337,7 +337,7 @@ public class AirboatService extends Service {
 
     private int _id, _teamSize;
     private THRUST_TYPES _thrustType;
-    private String _ipAddress;
+    private String _ipAddress, _name;
 
     AirboatImpl _airboatImpl;
     public AirboatImpl getServer() {
@@ -860,7 +860,7 @@ public class AirboatService extends Service {
 
         // Create the GAMS loop object ///////////////////////////////////////////////////////////////////////////////
         readMadaraConfig();
-        lutra = new LutraGAMS(_id,_teamSize,_thrustType);
+        lutra = new LutraGAMS(_id,_name,_teamSize,_thrustType);
         lutra.start(lutra);
         localizationListener = lutra.platform.boatEKF;
         environmentalListener = lutra.platform.hysteresisFilter;
@@ -988,6 +988,10 @@ public class AirboatService extends Service {
                     if(token.equals(".id") && st.hasMoreTokens()) {
                         token = st.nextToken();
                         _id = Integer.valueOf(token);
+                    }
+                    else if (token.equals(".name") && st.hasMoreTokens()) {
+                        token = st.nextToken();
+                        _name = String.valueOf(token);
                     }
                     else if(token.equals(".processes") && st.hasMoreTokens()) {
                         token = st.nextToken();
