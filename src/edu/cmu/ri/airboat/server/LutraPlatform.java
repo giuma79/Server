@@ -19,7 +19,13 @@ import org.apache.commons.math.linear.RealMatrix;
 import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 
 import javax.measure.unit.NonSI;
 
@@ -54,6 +60,15 @@ public class LutraPlatform extends BasePlatform {
     RealMatrix velocityProfile = MatrixUtils.createRealMatrix(timeSteps, 3); // t, vel., pos.
     LatLong latLong;
     RealMatrix covariance = MatrixUtils.createRealMatrix(2,2);
+
+    private FileOutputStream logFileWriter;
+    static DateFormat df = new SimpleDateFormat("yy/MM/dd HH:mm:ss");
+    Date dateobj;
+    private String StateLogFilename() {
+        Date d = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
+        return "/mnt/sdcard/" + "STATE_" + String.format("AGENT#%d_",containers.self.id.get()) + sdf.format(d) + ".txt";
+    }
 
     class FilterAndControllerThread extends BaseThread {
         @Override
@@ -121,6 +136,7 @@ public class LutraPlatform extends BasePlatform {
         this.thrustType = thrustType;
         position = new Position(0.0,0.0,0.0);
         currentTarget = new double[3];
+        dateobj = new Date();
     }
 
     @Override
@@ -131,7 +147,6 @@ public class LutraPlatform extends BasePlatform {
         boatMotionController = new BoatMotionController(knowledge,boatEKF,containers);
         hysteresisFilter = new HysteresisFilter(knowledge, containers);
         velocityProfileListener = boatMotionController;
-        Datum.establishLogger(); // start the environmental data logger
         Datum.setContainersObject(containers);
     }
 
@@ -140,6 +155,16 @@ public class LutraPlatform extends BasePlatform {
         threader.run(containers.controlHz, "FilterAndController", new FilterAndControllerThread());
         threader.run(1.0,"KBPrinting", new KBPrintingThread());
         threader.run(SENSOR_TYPE.FLOW.Hz,"FlowMeasurement",new FlowMeasurementThread());
+
+        // start state log
+        String filename = StateLogFilename();
+        Datum.establishLogger(); // start the environmental data logger
+        try {
+            logFileWriter = new FileOutputStream(filename);
+        } catch (FileNotFoundException e) {
+            Log.e("jjb_STATE_LOGGER", e.toString() + ": failed to create " + filename);
+        }
+
     }
 
 
@@ -365,6 +390,9 @@ public class LutraPlatform extends BasePlatform {
         containers.eastingNorthingBearing.set(0,containers.localState.get(0) + home[0]);
         containers.eastingNorthingBearing.set(1,containers.localState.get(1) + home[1]);
         containers.eastingNorthingBearing.set(2,containers.localState.get(2));
+        containers.velocities.set(0,containers.localState.get(4));
+        containers.velocities.set(1,containers.localState.get(5));
+        containers.velocities.set(2,containers.localState.get(3));
 
         latLong = containers.LocalXYToLatLong();
         self.agent.location.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
@@ -384,6 +412,31 @@ public class LutraPlatform extends BasePlatform {
         //Log.w("jjb","platform sense() KB:");
         //knowledge.print();
 
+        // write to STATE log if localized
+        if (containers.localized.get() == 1L) {
+            try {
+                String stringForLog = String.format("DATE = %s, TIME = %d, X = %.8e, Y = %.8e, TH = %.3f, DX = %.3f, DY = %.3f, DTH = %.3f\n",
+                        df.format(dateobj),
+                        System.currentTimeMillis(),
+                        containers.eastingNorthingBearing.get(0),
+                        containers.eastingNorthingBearing.get(1),
+                        containers.eastingNorthingBearing.get(2),
+                        containers.velocities.get(0),
+                        containers.velocities.get(1),
+                        containers.velocities.get(2));
+
+                Log.d("jjb_STATE", stringForLog);
+
+                logFileWriter.write(stringForLog.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (NullPointerException e) {
+                e.printStackTrace();
+            }
+        }
+
+
+
         return PlatformStatusEnum.OK.value();
     }
 
@@ -397,6 +450,12 @@ public class LutraPlatform extends BasePlatform {
     }
 
     public void shutdown() {
+
+        // end state log
+        try {
+            logFileWriter.close();
+        }catch(IOException e) {
+        }
 
         Datum.endLog();
         boatEKF.shutdown();

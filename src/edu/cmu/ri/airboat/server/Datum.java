@@ -152,7 +152,18 @@ public class Datum {
     private static String EnvironmentalLogFilename() {
         Date d = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
-        return "/mnt/sdcard/" + "ENVIRONMENTAL_DATA_" + String.format("AGENT#%d_",containers.self.id) + sdf.format(d) + ".txt";
+
+        if (containers == null) {
+            Log.e("jjb_ERROR","ERROR: containers is null");
+        }
+        if (containers.self == null) {
+            Log.e("jjb_ERROR","ERROR: containers.self is null");
+        }
+        if (containers.self.id == null) {
+            Log.e("jjb_ERROR", "ERROR: containers.self.id is null");
+        }
+
+        return "/mnt/sdcard/" + "ENVIRONMENTAL_DATA_" + String.format("AGENT#%d_",containers.self.id.get()) + sdf.format(d) + ".txt";
     }
 
     public static void establishLogger() {

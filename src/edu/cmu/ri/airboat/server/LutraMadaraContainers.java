@@ -79,6 +79,7 @@ public class LutraMadaraContainers {
     Double decel;
     DoubleVector localState;
     NativeDoubleVector eastingNorthingBearing; // UTM x,y,th
+    NativeDoubleVector velocities; // UTM x,y,th rates of change
     NativeDoubleVector errorEllipse; // width, height, angle
     NativeDoubleVector localStateXYCovariance; // P(0,0), P(1,0), P(0,1), P(1,1)
     Integer longitudeZone;
@@ -186,6 +187,9 @@ public class LutraMadaraContainers {
         eastingNorthingBearing = new NativeDoubleVector();
         eastingNorthingBearing.setName(knowledge, prefix + "eastingNorthingBearing");
         eastingNorthingBearing.resize(3);
+        velocities = new NativeDoubleVector();
+        velocities.setName(knowledge, prefix + "velocities");
+        velocities.resize(3);
 
         errorEllipse = new NativeDoubleVector();
         errorEllipse.setName(knowledge, prefix + "errorEllipse");
@@ -258,6 +262,8 @@ public class LutraMadaraContainers {
         accel.free();
         decel.free();
         localState.free();
+        eastingNorthingBearing.free();
+        velocities.free();
         executingProfile.free();
         teleopStatus.free();
         gpsInitialized.free();

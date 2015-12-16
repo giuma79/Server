@@ -100,6 +100,11 @@ public class BoatEKF implements DatumListener {
     @Override
     public synchronized void newDatum(Datum datum) {
 
+        if (datum.getZ() == null) {
+            Log.e("jjb_ERROR", "ERROR: boatEKF.newDatum() received a null datum");
+            return;
+        }
+
         //String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
         //Log.i("jjb_EKF",String.format("received %s datum z = %s", Datum.typeString(datum.getType()), datum.getZ().toString()));
         if (datum.getType() == SENSOR_TYPE.COMPASS) {
@@ -183,7 +188,7 @@ public class BoatEKF implements DatumListener {
             }
         }
 
-        if (containers.compassInitialized.get() == 0) { // TODO: is there a way to have the compass update even if you don't have a GPS lock?
+        if (containers.compassInitialized.get() == 0) {
             if (datum.isType(SENSOR_TYPE.COMPASS)) {
                 double[] x_array = containers.NDV_to_DA(containers.eastingNorthingBearing);
                 double[] _z = new double[] {x_array[0],x_array[1],z.getEntry(0,0)};
