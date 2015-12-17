@@ -29,7 +29,7 @@ public class BoatMotionController implements VelocityProfileListener {
     boolean t0set;
     boolean pointing;
     LutraMadaraContainers containers;
-    final double headingErrorThreshold = 60.0*Math.PI/180.0; // +/- 20 deg
+    final double headingErrorThreshold = 30.0*Math.PI/180.0; // +/- 20 deg
     final double returnToPointingThreshold = 45.0*Math.PI/180.0; // +/- 45 deg
     double simplePIDGains[][];
     double PPIGains[];
@@ -272,8 +272,8 @@ public class BoatMotionController implements VelocityProfileListener {
             trueT = T;
             trueB = B;
         }
-        containers.thrustFraction.set(trueT);
-        containers.bearingFraction.set(trueB);
+        //containers.thrustFraction.set(trueT);
+        //containers.bearingFraction.set(trueB);
 
         //containers.motorCommands.set(0,m0);
         //containers.motorCommands.set(1,m1);
@@ -313,7 +313,7 @@ public class BoatMotionController implements VelocityProfileListener {
         }
         */
 
-        T = clip(thrustReductionRatio*thrustSignal, -1, 1);
+        T = thrustReductionRatio*clip(thrustSignal, -1, 1); // must clip FIRST, because cosine assumes you have a maximum of 1!
         //T = clip(thrustSignal,-1,1);
         B = clip(-headingSignal, -1, 1);
 

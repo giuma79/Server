@@ -415,6 +415,7 @@ public class AirboatService extends Service {
         public void onSensorChanged(SensorEvent event) {
             if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
                 // TODO Auto-generated method stub
+
                 SensorManager.getRotationMatrixFromVector(rotationMatrix,
                         event.values);
                 double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);

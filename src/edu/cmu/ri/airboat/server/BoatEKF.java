@@ -39,7 +39,7 @@ public class BoatEKF implements DatumListener {
     RealMatrix S; // the innovation
     RealMatrix dtemp; // a placeholder during a calculation with several RealMatrix objects
     RealMatrix home_RM; // used to create local X,Y
-    final double MAX_MAHALANOBIS_DIST = 6.0;
+    final double MAX_MAHALANOBIS_DIST = 12.0;
 
     Long t; // current time
     final double ROLLBACK_LIMIT = 1.0; // seconds allowed for a rollback before measurements are just abandoned

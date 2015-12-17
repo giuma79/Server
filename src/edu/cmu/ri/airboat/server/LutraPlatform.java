@@ -394,10 +394,17 @@ public class LutraPlatform extends BasePlatform {
         containers.velocities.set(1,containers.localState.get(5));
         containers.velocities.set(2,containers.localState.get(3));
 
-        latLong = containers.LocalXYToLatLong();
-        self.agent.location.set(0,latLong.latitudeValue(NonSI.DEGREE_ANGLE));
-        self.agent.location.set(1,latLong.longitudeValue(NonSI.DEGREE_ANGLE));
-        self.agent.location.set(2, 0.0);
+        if (containers.localized.get() == 1L) {
+            latLong = containers.LocalXYToLatLong();
+            self.agent.location.set(0, latLong.latitudeValue(NonSI.DEGREE_ANGLE));
+            self.agent.location.set(1, latLong.longitudeValue(NonSI.DEGREE_ANGLE));
+            self.agent.location.set(2, 0.0);
+        }
+        else {
+            self.agent.location.set(0, 0.0);
+            self.agent.location.set(1, 0.0);
+            self.agent.location.set(2, 0.0);
+        }
 
         covariance.setEntry(0,0,containers.localStateXYCovariance.get(0));
         covariance.setEntry(1,0,containers.localStateXYCovariance.get(1));
