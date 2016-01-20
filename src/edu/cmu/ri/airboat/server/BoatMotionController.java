@@ -114,9 +114,9 @@ public class BoatMotionController implements VelocityProfileListener {
 
             containers.distToDest.set(distToDestCalc);
 
-            Log.i("jjb_XD","xd = " + RMO.realMatrixToString(xd));
-            Log.i("jjb_X","x = " + RMO.realMatrixToString(x));
-            Log.i("jjb_DISTTODEST",String.format("distToDest CALC = %.3f  distToDest CONTAINER = %.3f  sufficientProximity = %.3f",distToDestCalc,containers.distToDest.get(),containers.sufficientProximity.get()));
+            Log.d("jjb_XD","xd = " + RMO.realMatrixToString(xd));
+            Log.d("jjb_X","x = " + RMO.realMatrixToString(x));
+            Log.d("jjb_DISTTODEST",String.format("distToDest CALC = %.3f  distToDest CONTAINER = %.3f  sufficientProximity = %.3f",distToDestCalc,containers.distToDest.get(),containers.sufficientProximity.get()));
 
             if (containers.distToDest.get() < containers.sufficientProximity.get()) {
                 containers.executingProfile.set(0);
@@ -136,7 +136,7 @@ public class BoatMotionController implements VelocityProfileListener {
                 xErrorDiff = (xError.subtract(xErrorOld)).scalarMultiply(1.0 / dt);
 
                 String xErrorDiffString = String.format("xErrorDiff = %s", RMO.realMatrixToString(xErrorDiff));
-                Log.i("jjb_XERRORDIFF",xErrorDiffString);
+                Log.d("jjb_XERRORDIFF",xErrorDiffString);
 
                 double Pterm = 0.0;
                 double Iterm = 0.0;
@@ -161,7 +161,7 @@ public class BoatMotionController implements VelocityProfileListener {
                 }
 
                 headingSignal = Pterm + Iterm + Dterm;
-                Log.i("jjb_BEARINGPID", String.format("Bearing PID: total = %.4f  P-term = %.4f  I-term = %.4f  D-term = %.4f, ERROR = %f [deg]",
+                Log.d("jjb_BEARINGPID", String.format("Bearing PID: total = %.4f  P-term = %.4f  I-term = %.4f  D-term = %.4f, ERROR = %f [deg]",
                         headingSignal, Pterm, Iterm, Dterm, angleError * 180.0 / Math.PI));
 
                 // Determine which controller to use, simple PID or P-PI pos./vel. cascade
@@ -282,7 +282,7 @@ public class BoatMotionController implements VelocityProfileListener {
 
         String velocityMapTestString = String.format("t = %d   X = %.2f   Y = %.2f   trueT = %.4f   trueB = %.4f  m0 = %.3f  m1 = %.3f",
                 System.currentTimeMillis(),x.getEntry(0,0),x.getEntry(1,0),trueT,trueB,m0,m1);
-        Log.i("jjb_VEL", velocityMapTestString);
+        Log.d("jjb_VEL", velocityMapTestString);
     }
 
     void thrustAndBearingFractionsFromErrorSignal() {
@@ -314,6 +314,8 @@ public class BoatMotionController implements VelocityProfileListener {
         */
 
         T = thrustReductionRatio*clip(thrustSignal, -1, 1); // must clip FIRST, because cosine assumes you have a maximum of 1!
+        //T = clip(T,-1,containers.peakForwardMotorSignal.get());
+
         //T = clip(thrustSignal,-1,1);
         B = clip(-headingSignal, -1, 1);
 

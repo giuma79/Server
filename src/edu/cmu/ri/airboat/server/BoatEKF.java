@@ -108,16 +108,16 @@ public class BoatEKF implements DatumListener {
         //String threadID = String.format(" -- thread # %d",Thread.currentThread().getId());
         //Log.i("jjb_EKF",String.format("received %s datum z = %s", Datum.typeString(datum.getType()), datum.getZ().toString()));
         if (datum.getType() == SENSOR_TYPE.COMPASS) {
-            Log.i("jjb_COMPASS",String.format("received compass datum z = %.1f", datum.getZ().getEntry(0,0)*180.0/Math.PI));
+            Log.d("jjb_COMPASS",String.format("received compass datum z = %.1f", datum.getZ().getEntry(0,0)*180.0/Math.PI));
         }
         if (datum.getType() == SENSOR_TYPE.GYRO) {
-            Log.i("jjb_GYRO",String.format("received gyro datum z = %.2f", datum.getZ().getEntry(0,0)*180.0/Math.PI));
+            Log.d("jjb_GYRO",String.format("received gyro datum z = %.2f", datum.getZ().getEntry(0,0)*180.0/Math.PI));
         }
         if (datum.getType() == SENSOR_TYPE.GPS) {
-            Log.i("jjb_GPS",String.format("received GPS datum easting = %.6e  northing = %.6e", datum.getZ().getEntry(0,0), datum.getZ().getEntry(1,0)));
+            Log.d("jjb_GPS",String.format("received GPS datum easting = %.6e  northing = %.6e", datum.getZ().getEntry(0,0), datum.getZ().getEntry(1,0)));
         }
         if (datum.getType() == SENSOR_TYPE.DGPS) {
-            Log.i("jjb_DGPS",String.format("received DGPS datum = %s",datum.zString()));
+            Log.d("jjb_DGPS",String.format("received DGPS datum = %s",datum.zString()));
         }
 
         //String timeString = String.format("EKF.t BEFORE = %d",t);

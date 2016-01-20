@@ -3,8 +3,11 @@ package edu.cmu.ri.airboat.server;
 //////////////////////////////////////////////////////////////////////////////
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.media.MediaPlayer;
+import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.net.wifi.ScanResult;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -25,6 +28,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 //////////////////////////////////////////////////////////////////////////////
 
@@ -402,11 +406,11 @@ public class AirboatService extends Service {
 
             gpsVelocity(datum);
 
-			/*
+
 			logger.info("GPS: " + utmLoc + ", " + utmLoc.longitudeZone()
                     + utmLoc.latitudeZone() + ", " + location.getAltitude()
                     + ", " + location.getBearing());
-            */
+
         }
     };
 
@@ -419,6 +423,22 @@ public class AirboatService extends Service {
                 SensorManager.getRotationMatrixFromVector(rotationMatrix,
                         event.values);
                 double yaw = Math.atan2(-rotationMatrix[5], -rotationMatrix[2]);
+                double newYaw = Math.atan2(-rotationMatrix[2], -rotationMatrix[1]);
+
+                logger.info("ROT_VECTOR_VALUES: " + Arrays.toString(event.values));
+
+                //if (_airboatImpl != null) {
+                    //_airboatImpl.filter.compassUpdate(yaw,
+                    //        System.currentTimeMillis());
+                logger.info(String.format("YAW = atan2(%f,%f) = %f",-rotationMatrix[5], -rotationMatrix[2],yaw));
+                Log.i("jjb_COMPASS",String.format("YAW = atan2(%f,%f) = %f",-rotationMatrix[5], -rotationMatrix[2],yaw));
+                //logger.info("COMPASS_NEW: " + newYaw);
+                //logger.info("COMPASS_DIFF: " + (newYaw - yaw));
+                //logger.info("COMPASS_DIFF_DEG: " + ((newYaw - yaw) * 180.0 / Math.PI));
+                //if (lutra.platform.containers.compassMessage != null) {
+                //    logger.info("Nate's ITBFU Sensor: " + lutra.platform.containers.compassMessage.get());
+                //}
+                //}
 
 
                 /* // IF CURRENT YAW IS ALWAYS -PI TO PI, THIS YAW MEASUREMENT DOES NOT NEED TO BE ALTERED b/c ATAN2 IS ALREADY -PI TO PI ONLY
@@ -599,6 +619,7 @@ public class AirboatService extends Service {
     private final SensorEventListener gyroListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
+            logger.info("GYRO_VALUES: " + Arrays.toString(event.values));
             // TODO Auto-generated method stub
 			/*
 			 * Convert phone coordinates to world coordinates. use magnetometer
@@ -638,6 +659,143 @@ public class AirboatService extends Service {
         public void onAccuracyChanged(Sensor sensor, int accuracy) {
         }
     };
+
+
+    /**
+     * Suspicious of EM interference causing Android rotation vector fusion to think boat's pitch is boat's yaw. Log compass readings
+     */
+    float[] magneticVectorOld = {0,0,0};
+    float[] magneticVectorNew = {0,0,0};
+    final int MAGNETIC_LOCK_COUNT_LIMIT = 10;
+    int magneticLockCount = 0;
+    SensorManager sm;
+    Sensor magnetic_field;
+    Sensor rotation_vector;
+    Uri notification;// = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+    MediaPlayer mp;// = MediaPlayer.create(getApplicationContext(), notification);
+
+    //static boolean magneticLock = false;
+    class magneticLockFixThread extends BaseThread {
+        @Override
+        public void run() {
+            if (lutra.platform.containers != null) {
+                long magneticLockStatus = lutra.platform.containers.magneticLock.get();
+                logger.info(String.format("Magnetic lock status = %d",magneticLockStatus));
+                Log.i("jjb_MAGNETIC",String.format("Magnetic lock status = %d",magneticLockStatus));
+                if (magneticLockStatus == 1L) {
+                    logger.info("Magnetic values currently locked at " + Arrays.toString(magneticVectorOld));
+                    Log.w("jjb_MAGNETIC", "Magnetic values currently locked at " + Arrays.toString(magneticVectorOld));
+
+                    logger.info("MAGNETIC: de-re-registering rotation vector listener");
+                    Log.w("jjb_MAGNETIC","de-re-registering rotation vector listener");
+                    sm.unregisterListener(rotationVectorListener);
+                    sm.registerListener(rotationVectorListener, rotation_vector, SensorManager.SENSOR_DELAY_NORMAL);
+                    lutra.platform.containers.compassMessage.set("Tried to fix a compass lock. Did it work?");
+                    try {
+                        //this.wait(1000); // wait 1 second before setting magneticLock boolean back to 0
+                        com.madara.util.Utility.sleep(1.0); // units in seconds
+                    }
+                    catch (Exception e) {
+                        logger.info("MAGNETIC LOCK FIX THREAD ERROR: " + e.getMessage());
+                        Log.e("jjb_MAGNETIC", "MAGNETIC LOCK FIX THREAD ERROR: " + e.getMessage());
+                    }
+
+                    
+                    logger.info("MAGNETIC: de-re-registering magnetic field sensor");
+                    sm.unregisterListener(magneticFieldListener);
+                    sm.registerListener(magneticFieldListener, magnetic_field, SensorManager.SENSOR_DELAY_NORMAL);
+                    try {
+                        //this.wait(1000); // wait 1 seconds -  for testing purposes only. We want to see if resetting an extra magnetic sensor is enough
+                        // apparently wait() is very different from sleep(). I want sleep here. Might as well use guarantees of Madara's utility
+                        com.madara.util.Utility.sleep(1.0); // units in seconds
+                    }
+                    catch (Exception e) {
+                        logger.info("MAGNETIC LOCK FIX THREAD ERROR: " + e.getMessage());
+                    }
+
+                    logger.info("MAGNETIC: attempted to fix a compass lock. Did it work?");
+                    lutra.platform.containers.magneticLock.set(0L);
+                }
+            }
+        }
+    }
+
+    private final SensorEventListener magneticFieldListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+
+            logger.info("MAGNETIC_VALUES: " + Arrays.toString(event.values));
+
+            magneticVectorNew[0] = event.values[0];
+            magneticVectorNew[1] = event.values[1];
+            magneticVectorNew[2] = event.values[2];
+
+            if (lutra.platform.containers != null) { // reset lock counter
+                long magneticLockStatus = lutra.platform.containers.magneticLock.get();
+                if ((magneticLockStatus == 0L) && (magneticLockCount > MAGNETIC_LOCK_COUNT_LIMIT)) {
+                    logger.info("Resetting magnetic lock count to 0");
+                    Log.w("jjb_MAGNETIC", "Resetting magnetic lock count to 0");
+                    magneticLockCount = 0;
+                    lutra.platform.containers.compassMessage.set("");
+                }
+            }
+
+            if (Arrays.equals(magneticVectorOld,magneticVectorNew)) {
+                logger.info(String.format("WARNING: MAGNETIC LOCK, %d in a row",magneticLockCount++));
+                Log.w("jjb_MAGNETIC",String.format("WARNING: MAGNETIC LOCK, %d in a row",magneticLockCount));
+                if ((lutra.platform.containers != null) && (magneticLockCount > MAGNETIC_LOCK_COUNT_LIMIT) && (lutra.platform.containers.magneticLock.get() == 0L)) {
+                    logger.info("Setting magnetic lock boolean, playing a notification");
+                    Log.w("jjb_MAGNETIC","Setting magnetic lock boolean, playing a notification");
+                    lutra.platform.containers.magneticLock.set(1L);
+
+                    mp.start();
+                }
+            }
+
+
+
+            magneticVectorOld[0] = magneticVectorNew[0];
+            magneticVectorOld[1] = magneticVectorNew[1];
+            magneticVectorOld[2] = magneticVectorNew[2];
+
+        }
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            logger.info("MAGNETIC_ACCURACY: " + accuracy);
+        }
+    };
+    private final SensorEventListener magneticFieldUncalListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            logger.info("MAGNETIC_UNCAL_VALUES: " + Arrays.toString(event.values));
+        }
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            logger.info("MAGNETIC_UNCAL_ACCURACY: " + accuracy);
+        }
+    };
+    private final SensorEventListener accelerometerListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            logger.info("ACCELEROMETER_VALUES: " + Arrays.toString(event.values));
+        }
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            logger.info("ACCELEROMETER_ACCURACY: " + accuracy);
+        }
+    };
+    private final SensorEventListener gravityListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            logger.info("GRAVITY_VALUES: " + Arrays.toString(event.values));
+        }
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            logger.info("GRAVITY_ACCURACY: " + accuracy);
+        }
+    };
+
+
 
     /**
      * Class for clients to access. Because we know this service always runs in
@@ -709,6 +867,9 @@ public class AirboatService extends Service {
         */
         ////////////////////////////////////////////////////////////////
 
+        notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE);
+        mp = MediaPlayer.create(getApplicationContext(), notification);
+
 
     }
 
@@ -770,7 +931,7 @@ public class AirboatService extends Service {
         //	return Service.START_NOT_STICKY;
         //}
         if (lutra != null) {
-        	Log.w("jjb", "Attempted to start while running.");
+            Log.w("jjb", "Attempted to start while running.");
         }
 
         // start tracing to "/sdcard/trace_crw.trace"
@@ -800,12 +961,26 @@ public class AirboatService extends Service {
         logger.addAppender(_fileAppender);
 
         // Hook up to necessary Android sensors
-        SensorManager sm;
+        //SensorManager sm;
         sm = (SensorManager) getSystemService(SENSOR_SERVICE);
         Sensor gyro = sm.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         sm.registerListener(gyroListener, gyro, SensorManager.SENSOR_DELAY_NORMAL);
-        Sensor rotation_vector = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        //Sensor rotation_vector = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        rotation_vector = sm.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
         sm.registerListener(rotationVectorListener, rotation_vector, SensorManager.SENSOR_DELAY_NORMAL);
+
+
+        //Sensor magnetic_field = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        magnetic_field = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        sm.registerListener(magneticFieldListener, magnetic_field, SensorManager.SENSOR_DELAY_NORMAL);
+        Sensor magnetic_field_uncal = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED);
+        sm.registerListener(magneticFieldUncalListener, magnetic_field_uncal, SensorManager.SENSOR_DELAY_NORMAL);
+        Sensor accelerometer = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        sm.registerListener(accelerometerListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        Sensor gravity = sm.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        sm.registerListener(gravityListener, gravity, SensorManager.SENSOR_DELAY_NORMAL);
+
+
         //Sensor imu = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION); //excludes gravity
         //sm.registerListener(imuListener,imu,SensorManager.SENSOR_DELAY_FASTEST);
 
@@ -874,7 +1049,7 @@ public class AirboatService extends Service {
 			@Override
 			public void run() {
 
-                Log.w("jjb","the receiveJSON thread is starting...");
+                Log.i("jjb","the receiveJSON thread is starting...");
 
 				// Start a loop to receive data from accessory.
 				try {
@@ -916,6 +1091,7 @@ public class AirboatService extends Service {
 
         threader = new Threader(lutra.knowledge);
         threader.run(lutra.platform.containers.controlHz,"MotorJSONCommands",new motorCmdThread());
+        threader.run(5.0,"magneticLockFixThread", new magneticLockFixThread());
 		////////////////////////////////////////////////////////////////////////
 
         // This is now a foreground service
@@ -1066,8 +1242,8 @@ public class AirboatService extends Service {
         unregisterReceiver(_usbStatusReceiver);/////////////////////////////////////////////////////////////////////////////////////////
 
         // Disconnect from the Android sensors
-        SensorManager sm;
-        sm = (SensorManager) getSystemService(SENSOR_SERVICE);
+        //SensorManager sm;
+        //sm = (SensorManager) getSystemService(SENSOR_SERVICE);
         sm.unregisterListener(gyroListener);
         sm.unregisterListener(rotationVectorListener);
 
@@ -1187,7 +1363,7 @@ public class AirboatService extends Service {
         @SuppressWarnings("unchecked")
         Iterator<String> keyIterator = (Iterator<String>)cmd.keys();
 
-        Log.i("jjb_JSONRECEIVE","receiveJSON()...");
+        Log.d("jjb_JSONRECEIVE","receiveJSON()...");
 
         // Iterate through JSON fields
         while (keyIterator.hasNext()) {

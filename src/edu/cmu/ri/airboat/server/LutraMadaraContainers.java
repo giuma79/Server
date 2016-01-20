@@ -66,6 +66,9 @@ public class LutraMadaraContainers {
     // allows other agents to change this value but does not broadcast changes made locally
     // e.g. i want to teleoperate the boat by changing the motor commands directly from the GUI agent
 
+    String compassMessage;
+    Integer magneticLock;
+
     FlexMap environmentalData;
     String unhandledException;
     String name;
@@ -130,6 +133,14 @@ public class LutraMadaraContainers {
         name = new String();
         name.setName(knowledge, prefix + "name");
         name.set(nameString);
+
+        compassMessage = new String();
+        compassMessage.setName(knowledge, prefix + "compassMessage");
+        compassMessage.set("");
+        magneticLock = new Integer();
+        magneticLock.setName(knowledge, prefix + "magneticLock");
+        magneticLock.set(0L);
+
 
         this.self.agent.dest.resize(3);
         this.self.agent.home.resize(3);
@@ -251,6 +262,8 @@ public class LutraMadaraContainers {
     }
 
     public void freeAll() {
+        compassMessage.free();
+        magneticLock.free();
         name.free();
         unhandledException.free();
         distress.free();

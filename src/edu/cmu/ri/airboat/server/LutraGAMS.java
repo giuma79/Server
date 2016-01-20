@@ -11,9 +11,9 @@ import com.gams.algorithms.BaseAlgorithm;
 import com.gams.controllers.BaseController;
 import com.madara.KnowledgeBase;
 
-//import com.madara.KnowledgeList;
-//import com.madara.KnowledgeRecord;
-//import com.madara.KnowledgeType;
+import com.madara.KnowledgeList;
+import com.madara.KnowledgeRecord;
+import com.madara.KnowledgeType;
 
 import com.madara.Variables;
 import com.madara.filters.EndpointClear;
@@ -21,6 +21,10 @@ import com.madara.transport.QoSTransportSettings;
 import com.madara.transport.TransportType;
 import com.madara.transport.filters.RecordFilter;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -44,6 +48,15 @@ public class LutraGAMS extends AbstractVehicleServer {
 
     KnowledgeBase knowledge;
     BaseAlgorithm algorithm;
+
+    private FileOutputStream logFileWriter;
+    static DateFormat df = new SimpleDateFormat("yy/MM/dd HH:mm:ss");
+    Date dateobj;
+    private String PacketLogFilename() {
+        Date d = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
+        return "/mnt/sdcard/" + "PACKETS_" + String.format("AGENT#%d_",id) + sdf.format(d) + ".txt";
+    }
 
     private String MadaraLogFilename() {
         Date d = new Date();
@@ -69,20 +82,43 @@ public class LutraGAMS extends AbstractVehicleServer {
             args[8]: Originator (identifier of sender, usually host:port)
             */
 
-    /*
+
     public class PacketReceiveLogFilter implements RecordFilter {
         public KnowledgeRecord filter(KnowledgeList args, Variables variables) {
             KnowledgeRecord result = new KnowledgeRecord();
 
-            String logString = String.format("originator %s, sent %d, rcvd %d, bandwidth %d, %s = %s",
-                    args.get(8).toString(),
-                    args.get(5).toLong(),
-                    args.get(6).toLong(),
-                    args.get(4).toLong(),
-                    args.get(1).toString(),
-                    args.get(0).toString());
+            KnowledgeRecord originator = args.get(8);
+            KnowledgeRecord sent = args.get(5);
+            KnowledgeRecord rcvd = args.get(6);
+            KnowledgeRecord bandwidth = args.get(4);
+            KnowledgeRecord key = args.get(1);
+            KnowledgeRecord value = args.get(0);
 
-            Log.i("jjb_RCVFILTER",logString);
+            String logString = String.format("RECEIVE: originator %s, sent %s, rcvd %s, bandwidth %s, %s = %s",
+                    originator.toString(),
+                    sent.toString(),
+                    rcvd.toString(),
+                    bandwidth.toString(),
+                    key.toString(),
+                    value.toString());
+
+            originator.free();
+            rcvd.free();
+            sent.free();
+            bandwidth.free();
+            key.free();
+            value.free();
+
+            Log.i("jjb_RCVFILTER", logString);
+
+            try {
+                logFileWriter.write(logString.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (NullPointerException e) {
+                e.printStackTrace();
+            }
+
 
             result = args.get(0); // we're just logging this, so send it through
             return result;
@@ -93,19 +129,37 @@ public class LutraGAMS extends AbstractVehicleServer {
         public KnowledgeRecord filter(KnowledgeList args, Variables variables) {
             KnowledgeRecord result = new KnowledgeRecord();
 
-            String logString = String.format("sent %d, bandwidth %d, %s = %s",
-                    args.get(5).toLong(),
-                    args.get(4).toLong(),
-                    args.get(1).toString(),
-                    args.get(0).toString());
+            KnowledgeRecord sent = args.get(5);
+            KnowledgeRecord bandwidth = args.get(4);
+            KnowledgeRecord key = args.get(1);
+            KnowledgeRecord value = args.get(0);
+
+            String logString = String.format("SEND: sent %s, bandwidth %s, %s = %s",
+                    sent.toString(),
+                    bandwidth.toString(),
+                    key.toString(),
+                    value.toString());
+
+            sent.free();
+            bandwidth.free();
+            key.free();
+            value.free();
 
             Log.i("jjb_SNDFILTER",logString);
+
+            try {
+                logFileWriter.write(logString.getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (NullPointerException e) {
+                e.printStackTrace();
+            }
 
             result = args.get(0);
             return result;
         }
     }
-    */
+
 
 
     public LutraGAMS(int id, String name, int teamSize, THRUST_TYPES thrustType) {
@@ -113,6 +167,7 @@ public class LutraGAMS extends AbstractVehicleServer {
         this.name = name;
         this.teamSize = teamSize;
         this.thrustType = thrustType;
+        dateobj = new Date();
 
 
         //Log.i("jjb", "ABOUT TO CREATE MADARA LOGFILE");
@@ -126,7 +181,7 @@ public class LutraGAMS extends AbstractVehicleServer {
         //Log.i("jjb", "ABOUT TO CREATE GAMS LOGFILE");
         //com.gams.logger.GlobalLogger.clear();
         //com.gams.logger.GlobalLogger.setLevel(6);
-        //0com.gams.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
+        //com.gams.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
         //com.gams.logger.GlobalLogger.addFile(GAMSLogFilename());
 
 
@@ -135,11 +190,20 @@ public class LutraGAMS extends AbstractVehicleServer {
 
         settings.setHosts(new String[]{"192.168.1.255:15000"});
         settings.setType(TransportType.BROADCAST_TRANSPORT);
+        settings.setQueueLength(5000000);
         //settings.setRebroadcastTtl(1);
         //settings.enableParticipantTtl(1);
-        settings.setDeadline(3);
+        //settings.setDeadline(3);
         //settings.addReceiveFilter(KnowledgeType.ALL_TYPES, new PacketReceiveLogFilter());
         //settings.addSendFilter(KnowledgeType.ALL_TYPES, new PacketSendLogFilter());
+
+        // start packet log
+        String filename = PacketLogFilename();
+        try {
+            logFileWriter = new FileOutputStream(filename);
+        } catch (FileNotFoundException e) {
+            Log.e("jjb_PACKET_LOGGER", e.toString() + ": failed to create " + filename);
+        }
 
 
 
@@ -187,6 +251,11 @@ public class LutraGAMS extends AbstractVehicleServer {
     }
 
     void shutdown() {
+        // end packet log
+        try {
+            logFileWriter.close();
+        }catch(IOException e) {
+        }
         knowledge.free();
         controller.free();
         platform.shutdown();

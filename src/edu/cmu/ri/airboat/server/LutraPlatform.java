@@ -60,6 +60,7 @@ public class LutraPlatform extends BasePlatform {
     RealMatrix velocityProfile = MatrixUtils.createRealMatrix(timeSteps, 3); // t, vel., pos.
     LatLong latLong;
     RealMatrix covariance = MatrixUtils.createRealMatrix(2,2);
+    final double KB_PRINTING_THREAD_HZ = 1.0;
 
     private FileOutputStream logFileWriter;
     static DateFormat df = new SimpleDateFormat("yy/MM/dd HH:mm:ss");
@@ -153,7 +154,7 @@ public class LutraPlatform extends BasePlatform {
     public void start() {
         startTime = System.currentTimeMillis();
         threader.run(containers.controlHz, "FilterAndController", new FilterAndControllerThread());
-        threader.run(1.0,"KBPrinting", new KBPrintingThread());
+        threader.run(KB_PRINTING_THREAD_HZ,"KBPrinting", new KBPrintingThread());
         threader.run(SENSOR_TYPE.FLOW.Hz,"FlowMeasurement",new FlowMeasurementThread());
 
         // start state log
