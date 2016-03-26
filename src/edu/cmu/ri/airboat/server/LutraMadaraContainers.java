@@ -68,6 +68,7 @@ public class LutraMadaraContainers {
 
     String compassMessage;
     Integer magneticLock;
+    Integer operatorHeartbeat;
 
     FlexMap environmentalData;
     String unhandledException;
@@ -113,7 +114,7 @@ public class LutraMadaraContainers {
     final double minAccel = 0.1; // no less than X m/s^2, or motor doesn't respond
     final long defaultTeleopStatus = TELEOPERATION_TYPES.GUI_MS.getLongValue(); // start in teleop mode!
     //final long defaultThrustType = THRUST_TYPES.DIFFERENTIAL.getLongValue();
-    final double controlHz = 25.0; // frequency of control loop and sending the corresponding JSON commands
+    final double controlHz = 20.0; // frequency of control loop and sending the corresponding JSON commands
     //double[] bearingPIDGainsDefaults_PROP = new double[]{0.3,0.01,0.5}; // cols: P,I,D /////////////////////////////////////////////
     double[] bearingPIDGainsDefaults_PROP = new double[]{1.0,0.1,0.5}; // cols: P,I,D
 
@@ -256,6 +257,10 @@ public class LutraMadaraContainers {
         environmentalData = new FlexMap();
         environmentalData.setName(knowledge, java.lang.String.format("%senvironmentalData",prefix));
 
+        operatorHeartbeat = new Integer();
+        operatorHeartbeat.setName(knowledge, prefix + "operatorHeartbeat");
+        operatorHeartbeat.set(0L);
+
         restoreDefaults();
 
         settings.free(); // don't need this object past the initialization
@@ -297,6 +302,7 @@ public class LutraMadaraContainers {
         errorEllipse.free();
         localStateXYCovariance.free();
         environmentalData.free();
+        operatorHeartbeat.free();
     }
 
     public void restoreDefaults() {

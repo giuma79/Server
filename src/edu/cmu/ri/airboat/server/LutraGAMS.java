@@ -67,7 +67,7 @@ public class LutraGAMS extends AbstractVehicleServer {
     private String GAMSLogFilename() {
         Date d = new Date();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_hhmmss");
-        return String.format("/mnt/sdcard/GAMS_LOG_AGENT#%d_",id) + sdf.format(d) + ".txt";
+        return String.format("/sdcard/GAMS_LOG_AGENT#%d_",id) + sdf.format(d) + ".txt";
     }
 
             /*
@@ -178,11 +178,11 @@ public class LutraGAMS extends AbstractVehicleServer {
 
 
 
-        //Log.i("jjb", "ABOUT TO CREATE GAMS LOGFILE");
-        //com.gams.logger.GlobalLogger.clear();
-        //com.gams.logger.GlobalLogger.setLevel(6);
-        //com.gams.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
-        //com.gams.logger.GlobalLogger.addFile(GAMSLogFilename());
+        Log.i("jjb", "ABOUT TO CREATE GAMS LOGFILE");
+        com.gams.logger.GlobalLogger.clear();
+        com.gams.logger.GlobalLogger.setLevel(6);
+        com.gams.logger.GlobalLogger.setTimestampFormat("%F  %X: ");
+        com.gams.logger.GlobalLogger.addFile(GAMSLogFilename());
 
 
         settings = new QoSTransportSettings();
@@ -198,12 +198,14 @@ public class LutraGAMS extends AbstractVehicleServer {
         //settings.addSendFilter(KnowledgeType.ALL_TYPES, new PacketSendLogFilter());
 
         // start packet log
+        /*
         String filename = PacketLogFilename();
         try {
             logFileWriter = new FileOutputStream(filename);
         } catch (FileNotFoundException e) {
             Log.e("jjb_PACKET_LOGGER", e.toString() + ": failed to create " + filename);
         }
+        */
 
 
 
@@ -252,10 +254,10 @@ public class LutraGAMS extends AbstractVehicleServer {
 
     void shutdown() {
         // end packet log
-        try {
-            logFileWriter.close();
-        }catch(IOException e) {
-        }
+        //try {
+        //    logFileWriter.close();
+        //}catch(IOException e) {
+        //}
         knowledge.free();
         controller.free();
         platform.shutdown();

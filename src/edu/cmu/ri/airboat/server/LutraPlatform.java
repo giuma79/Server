@@ -61,6 +61,7 @@ public class LutraPlatform extends BasePlatform {
     LatLong latLong;
     RealMatrix covariance = MatrixUtils.createRealMatrix(2,2);
     final double KB_PRINTING_THREAD_HZ = 1.0;
+    final double OPERATOR_WATCHDOG_HZ = 1.0;
 
     private FileOutputStream logFileWriter;
     static DateFormat df = new SimpleDateFormat("yy/MM/dd HH:mm:ss");
@@ -95,6 +96,20 @@ public class LutraPlatform extends BasePlatform {
         public void run() {
             knowledge.print();
         }
+    }
+
+    class OperatorWatchdogThread extends BaseThread {
+        @Override
+        public void run() {
+            if (containers.operatorHeartbeat.get() != 1L) {
+                Log.w("jjb_HEARTBEAT", "Operator is not sending packets to the boat");
+                containers.teleopStatus.set(2L); // turn on teleop
+                containers.thrustFraction.set(0L);
+                containers.bearingFraction.set(0L);
+            }
+            containers.operatorHeartbeat.set(0L);
+        }
+
     }
 
     class FlowMeasurementThread extends BaseThread {
@@ -149,6 +164,9 @@ public class LutraPlatform extends BasePlatform {
         hysteresisFilter = new HysteresisFilter(knowledge, containers);
         velocityProfileListener = boatMotionController;
         Datum.setContainersObject(containers);
+        this.status.init(knowledge, "Lutra");
+        this.status.ok.set(1L);
+        this.status.movementAvailable.set(1L);
     }
 
     public void start() {
@@ -156,15 +174,19 @@ public class LutraPlatform extends BasePlatform {
         threader.run(containers.controlHz, "FilterAndController", new FilterAndControllerThread());
         threader.run(KB_PRINTING_THREAD_HZ,"KBPrinting", new KBPrintingThread());
         threader.run(SENSOR_TYPE.FLOW.Hz,"FlowMeasurement",new FlowMeasurementThread());
+        threader.run(OPERATOR_WATCHDOG_HZ, "OperatorWatchdog", new OperatorWatchdogThread());
 
         // start state log
+
         String filename = StateLogFilename();
-        Datum.establishLogger(); // start the environmental data logger
         try {
             logFileWriter = new FileOutputStream(filename);
         } catch (FileNotFoundException e) {
             Log.e("jjb_STATE_LOGGER", e.toString() + ": failed to create " + filename);
         }
+
+        Datum.establishLogger(); // start the environmental data logger
+
 
     }
 

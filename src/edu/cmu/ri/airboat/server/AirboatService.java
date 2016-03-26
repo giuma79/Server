@@ -751,6 +751,10 @@ public class AirboatService extends Service {
                     mp.start();
                 }
             }
+            else if (magneticLockCount > 0 && !Arrays.equals(magneticVectorOld, magneticVectorNew)) {
+                lutra.platform.containers.magneticLock.set(0L);
+                magneticLockCount = 0;
+            }
 
 
 
@@ -971,14 +975,14 @@ public class AirboatService extends Service {
 
 
         //Sensor magnetic_field = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        magnetic_field = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        sm.registerListener(magneticFieldListener, magnetic_field, SensorManager.SENSOR_DELAY_NORMAL);
-        Sensor magnetic_field_uncal = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED);
-        sm.registerListener(magneticFieldUncalListener, magnetic_field_uncal, SensorManager.SENSOR_DELAY_NORMAL);
-        Sensor accelerometer = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        sm.registerListener(accelerometerListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
-        Sensor gravity = sm.getDefaultSensor(Sensor.TYPE_GRAVITY);
-        sm.registerListener(gravityListener, gravity, SensorManager.SENSOR_DELAY_NORMAL);
+        //magnetic_field = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        //sm.registerListener(magneticFieldListener, magnetic_field, SensorManager.SENSOR_DELAY_NORMAL);
+        //Sensor magnetic_field_uncal = sm.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED);
+        //sm.registerListener(magneticFieldUncalListener, magnetic_field_uncal, SensorManager.SENSOR_DELAY_NORMAL);
+        //Sensor accelerometer = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        //sm.registerListener(accelerometerListener, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+        //Sensor gravity = sm.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        //sm.registerListener(gravityListener, gravity, SensorManager.SENSOR_DELAY_NORMAL);
 
 
         //Sensor imu = sm.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION); //excludes gravity
@@ -1091,7 +1095,7 @@ public class AirboatService extends Service {
 
         threader = new Threader(lutra.knowledge);
         threader.run(lutra.platform.containers.controlHz,"MotorJSONCommands",new motorCmdThread());
-        threader.run(5.0,"magneticLockFixThread", new magneticLockFixThread());
+        //threader.run(5.0,"magneticLockFixThread", new magneticLockFixThread());
 		////////////////////////////////////////////////////////////////////////
 
         // This is now a foreground service
@@ -1188,7 +1192,8 @@ public class AirboatService extends Service {
             br.close();
         }
         catch (IOException e) {
-            logger.error(e.getMessage());
+            Log.e("jjb", e.getMessage());
+;           logger.error(e.getMessage());
         }
     }
 
