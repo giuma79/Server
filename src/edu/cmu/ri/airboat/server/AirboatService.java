@@ -989,6 +989,7 @@ public class AirboatService extends Service {
         //sm.registerListener(imuListener,imu,SensorManager.SENSOR_DELAY_FASTEST);
 
         // Hook up to the GPS system ---- ENABLED FOR BRAZILIAN BOATS, THEY DON'T HAVE ADAFRUIT BOARDS
+        /*
         LocationManager gps = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         Criteria c = new Criteria();
         c.setAccuracy(Criteria.ACCURACY_FINE);
@@ -996,6 +997,7 @@ public class AirboatService extends Service {
         String provider = gps.getBestProvider(c, false);
         //gps.requestLocationUpdates(provider, GPS_UPDATE_RATE, 0, locationListener);
         gps.requestLocationUpdates(provider, 0, 0, locationListener);
+        */
 
 
         //GpsStatus gpsStatus = gps.getGpsStatus(null);

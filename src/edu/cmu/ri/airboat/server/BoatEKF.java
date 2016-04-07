@@ -331,13 +331,13 @@ public class BoatEKF implements DatumListener {
             // and update state covariance P_{k+1} = (I - KH)P
             //String a = String.format("Mahalanobis distance = %f",d);
             //Log.w("jjb", a);
-            if (d > MAX_MAHALANOBIS_DIST) {
-                Log.w("jjb_MAHALANOBIS",String.format("WARNING, Mahalanobis distance = %.2f is > %.1f. Measurement will be ignored.",d,MAX_MAHALANOBIS_DIST));
-            }
-            else {
-                incorporate = true;
-                containers.gpsWatchdog.set(1L);
-            }
+            //if (d > MAX_MAHALANOBIS_DIST) {
+            //    Log.w("jjb_MAHALANOBIS",String.format("WARNING, Mahalanobis distance = %.2f is > %.1f. Measurement will be ignored.",d,MAX_MAHALANOBIS_DIST));
+            //}
+            //else {
+            incorporate = true;
+            containers.gpsWatchdog.set(1L);
+            //}
         }
         else {
             incorporate = true;

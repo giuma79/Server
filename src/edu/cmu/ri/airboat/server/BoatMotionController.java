@@ -313,11 +313,11 @@ public class BoatMotionController implements VelocityProfileListener {
         }
         */
 
-        T = thrustReductionRatio*clip(thrustSignal, -1, 1); // must clip FIRST, because cosine assumes you have a maximum of 1!
+        T = 0.25*thrustReductionRatio*clip(thrustSignal, -1, 1); // must clip FIRST, because cosine assumes you have a maximum of 1!
         //T = clip(T,-1,containers.peakForwardMotorSignal.get());
 
         //T = clip(thrustSignal,-1,1);
-        B = clip(-headingSignal, -1, 1);
+        B = 0.75*clip(-headingSignal, -1, 1);
 
 
         containers.thrustFraction.set(T);
